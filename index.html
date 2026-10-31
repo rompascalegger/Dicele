@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dicele</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="stars" aria-hidden="true"></div>
+  <div id="tower" class="tower" aria-hidden="true"></div>
+
+  <div id="mult" class="panel mult" title="Multiplier die (d100)">
+    <div class="d100"><span>%</span></div>
+    <div class="mult-text">
+      <span class="label">Multi</span>
+      <span id="mult-value" class="mult-value">x?</span>
+      <span id="super-chance" class="super-chance"></span>
+    </div>
+  </div>
+
+  <button id="mute" class="panel mute" type="button" aria-label="Toggle sound">&#9834;</button>
+  <button id="flashy" class="panel flashy-btn" type="button" aria-label="Toggle flashy animations" title="Flashy animations (screen flashes &amp; strobing)">&#9889;</button>
+
+  <div id="splash" class="splash">
+    <div class="sign">
+      <h1>DICELE</h1>
+      <p class="subtitle">THE INFINITE CASINO TOWER</p>
+    </div>
+    <button id="enter" class="roll-btn" type="button">&#9650; ENTER &#9650;</button>
+    <p class="splash-hint">click to enter &middot; sound on &middot; &#9889; for flashy mode</p>
+  </div>
+
+  <div id="gameover" class="gameover" aria-live="polite">
+    <div id="go-card" class="panel go-card">
+      <p class="go-title">CASHING OUT</p>
+      <span id="go-score" class="go-score">0</span>
+      <span id="go-tier" class="go-tier">PAPER</span>
+      <div id="go-ladder" class="go-ladder"></div>
+      <div class="go-stats">
+        <span>Chips <b id="go-chips">0</b></span>
+        <span>Multi <b id="go-mult">x0</b></span>
+        <span>Floors <b id="go-floors">0</b></span>
+        <span>Rounds <b id="go-rounds">0</b></span>
+      </div>
+      <p class="go-odds">chance of this exact game<strong id="go-odds">?</strong></p>
+      <button id="new-game" class="roll-btn" type="button">&#9650; NEW GAME &#9650;</button>
+    </div>
+  </div>
+
+  <header>
+    <div class="sign">
+      <h1>DICELE</h1>
+      <p class="subtitle">THE INFINITE CASINO TOWER</p>
+    </div>
+    <p class="rules">6 dice &middot; any 6 climbs a floor &middot; d100 multiplies it all</p>
+  </header>
+
+  <div id="drift" class="drift"></div>
+
+  <main class="floor">
+    <section class="scoreboard">
+      <div class="panel stat"><span class="label">Chips</span><span id="pips" class="value">0</span></div>
+      <div class="panel stat"><span class="label">Floor</span><span id="round" class="value">0</span></div>
+      <div class="panel stat"><span class="label">Score</span><span id="score" class="value">0</span></div>
+      <div class="panel stat"><span class="label">Best</span><span id="best" class="value">0</span></div>
+    </section>
+
+    <div class="table">
+      <div id="tray" class="tray" aria-live="polite"></div>
+      <div id="log" class="log"></div>
+    </div>
+
+    <p id="message" class="message">&gt; place your bets</p>
+
+    <button id="roll" class="roll-btn" type="button">&#9650; NEW GAME &#9650;</button>
+
+    <p class="footer">TOP FLOOR <span id="top-floor">0</span> &middot; tap the falling dice</p>
+    <p id="joke" class="joke"></p>
+  </main>
+
+  <aside class="elevator" aria-hidden="true">
+    <div id="shaft" class="shaft"></div>
+    <div class="marker">&#9650; FL <span id="floor-label">0</span></div>
+  </aside>
+
+  <div id="wheel-overlay" class="wheel-overlay" aria-live="polite">
+    <p id="wheel-title" class="wheel-title">SPIN THE D100</p>
+    <div class="wheel-wrap">
+      <div id="pointer" class="pointer"></div>
+      <canvas id="wheel" class="wheel"></canvas>
+      <div class="hub"><span class="hub-label">MULTI</span><span id="wheel-result" class="hub-value">?</span></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" aria-hidden="true">SIX!</div>
+  <canvas id="fx" class="fx"></canvas>
+
+  <script src="script.js"></script>
+</body>
+</html>
