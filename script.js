@@ -36,10 +36,21 @@ const TIERS = [
   { name: "JACKPOT", color: "#ffcf4a" },
 ];
 // Final scores at or above these reach the matching tier
-const SCORE_TIERS = [0, 100, 300, 750, 1500, 3000, 6000, 12000, 25000, 50000];
+// Tier thresholds come from simulating 200,000 games with these rules:
+// bottom 20% Paper, then 40/60/75/85/93/97/99/99.9th percentiles, top 0.1% Jackpot
+const SCORE_TIERS = [0, 1250, 3000, 6500, 12000, 20000, 40000, 85000, 200000, 750000];
+// Same idea for floors: median game reaches floor 2, top 1% floor 30
+const FLOOR_TIERS = [1, 2, 3, 4, 6, 9, 14, 20, 30, 57];
+// Simulated score percentiles [percent of games, score], used to rank each result
+const SCORE_PERCENTILES = [
+  [0, 10], [1, 96], [5, 360], [10, 663], [20, 1260], [30, 1978], [40, 3168], [50, 4445],
+  [60, 6480], [70, 9483], [75, 11832], [80, 15200], [85, 20451], [90, 30094], [93, 41475],
+  [95, 55752], [97, 86686], [98, 123123], [99, 209000], [99.5, 334044], [99.8, 549300],
+  [99.9, 754728], [99.95, 997662], [99.99, 1491105], [100, 3936800],
+];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
-const floorTier = (f) => Math.min(9, Math.max(0, f - 1));
+const floorTier = (f) => Math.max(0, FLOOR_TIERS.findLastIndex((t) => f >= t));
 const scoreTier = (s) => SCORE_TIERS.findLastIndex((t) => s >= t);
 
 function paintTier(el, tier) {
@@ -50,6 +61,8 @@ function paintTier(el, tier) {
 const BASE_DICE = 6;
 // Every this many floors the elevator hands you one more red die
 const FLOORS_PER_DIE = 5;
+// Without a cap more dice mean more sixes mean more dice: about 1 game in 330 never ends
+const MAX_DICE = 10;
 // Each extra round is worth this much more than the last: +10, +20, +30...
 const BONUS_STEP = 10;
 // Golden drifting dice add this to the multiplier
@@ -474,17 +487,26 @@ async function rollRound() {
   return Promise.all(rolls);
 }
 
-/* ---------- Odds of this exact game ---------- */
+/* ---------- How rare is this score? ---------- */
 
-let odds = 1;
-const choose = (n, k) => (k === 0 || k === n ? 1 : choose(n - 1, k - 1) + choose(n - 1, k));
-// Chance that exactly k of the rolled dice show a 6
-const sixesChance = (k) => choose(diceCount, k) * Math.pow(1 / 6, k) * Math.pow(5 / 6, diceCount - k);
+// Percent of simulated games scoring below `score`, interpolated on a log scale
+function scorePercentile(score) {
+  const table = SCORE_PERCENTILES;
+  if (score <= table[0][1]) return 0;
+  if (score >= table[table.length - 1][1]) return 100;
+  const i = table.findIndex(([, s]) => s > score);
+  const [p0, s0] = table[i - 1];
+  const [p1, s1] = table[i];
+  const t = Math.log(score / s0) / Math.log(s1 / s0);
+  return p0 + (p1 - p0) * t;
+}
 
-function formatOdds(p) {
-  const pct = p * 100;
-  const text = pct >= 0.01 ? pct.toFixed(2) : pct.toPrecision(2);
-  return `${text}% · 1 in ${Math.round(1 / p).toLocaleString("en-US")}`;
+function formatRank(score) {
+  const pct = scorePercentile(score);
+  const top = 100 - pct;
+  const oneIn = top > 0 ? Math.max(1, Math.round(100 / top)) : null;
+  const beats = pct >= 99.9 ? pct.toFixed(2) : pct.toFixed(1);
+  return `beats ${beats}% · ` + (oneIn ? `1 in ${oneIn.toLocaleString("en-US")} games` : "off the charts");
 }
 
 function scoreCombos(values) {
@@ -628,7 +650,6 @@ async function rollMultiplier() {
   let total = 0;
   for (let spin = 1; ; spin++) {
     const value = d(100);
-    odds *= 1 / 100;
     await spinWheel(value);
     total += value;
     SOUND.mult();
@@ -722,7 +743,6 @@ async function rollEndDie() {
   spin.cancel();
 
   const value = d(sides);
-  odds *= 1 / sides;
   valueEl.textContent = value;
   reveal(Math.min(9, sides - 1));
   el.animate([{ transform: "scale(1.6)" }, { transform: `scale(${grow})` }], { duration: 300, easing: "ease-out" });
@@ -848,6 +868,13 @@ const AUTO_ROLL_SECONDS = 4;
 let autoTimer = null;
 
 function startAutoRoll() {
+  // Insta-autoroll: climb straight on after a short beat instead of counting down
+  if (insta) {
+    setButton("again", 0);
+    rollBtn.querySelector(".auto").textContent = "insta!";
+    autoTimer = setTimeout(play, reducedMotion ? 100 : 500);
+    return;
+  }
   let left = AUTO_ROLL_SECONDS;
   setButton("again", left);
   autoTimer = setInterval(() => {
@@ -863,6 +890,7 @@ function startAutoRoll() {
 
 function stopAutoRoll() {
   clearInterval(autoTimer);
+  clearTimeout(autoTimer);
   autoTimer = null;
 }
 
@@ -876,7 +904,6 @@ async function startTurn() {
   pips = 0;
   totalSixes = 0;
   diceCount = BASE_DICE;
-  odds = 1;
   superUsed = false;
   $("super-chance").textContent = "";
   pipsEl.textContent = "0";
@@ -936,11 +963,9 @@ async function nextRound() {
     await wait(reducedMotion ? 300 : 1000);
   }
   const sixes = results.filter((r) => r.value === 6);
-  odds *= sixesChance(sixes.length);
   logRound(sum, extra, sixes.length);
 
   if (Math.random() < EVENT_CHANCE) await randomEvent();
-  else odds *= 1 - EVENT_CHANCE;
 
   if (sixes.length) {
     // Every six grows the end die: X sixes in total earn a dX
@@ -977,7 +1002,6 @@ async function nextRound() {
   if (superP > 0 && Math.random() < superP) {
     superUsed = true;
     const superValue = await superBonus();
-    odds *= superP * (superValue === 6 ? 1 / 6 : 5 / 6);
     if (superValue === 6) {
       totalSixes += 1;
       await climb(1);
@@ -988,8 +1012,6 @@ async function nextRound() {
       startAutoRoll();
       return;
     }
-  } else {
-    odds *= 1 - superP;
   }
   await endTurn();
 }
@@ -1078,7 +1100,8 @@ async function climb(floors) {
 
 // Every 5th floor: elevator doors slam shut, a new red die is handed over, doors fly open
 async function milestone() {
-  diceCount++;
+  const gift = diceCount < MAX_DICE;
+  if (gift) diceCount++;
   const doors = document.createElement("div");
   doors.className = "doors";
   doors.innerHTML = `
@@ -1086,7 +1109,7 @@ async function milestone() {
     <div class="door-sign">
       <span class="door-floor">FLOOR ${floor}</span>
       <div class="mini door-die"></div>
-      <span class="door-gift">+1 RED DIE · NOW ${diceCount}</span>
+      <span class="door-gift">${gift ? `+1 RED DIE · NOW ${diceCount}` : `TABLE FULL · ${MAX_DICE} DICE MAX`}</span>
     </div>`;
   fillFace(doors.querySelector(".door-die"), 6);
   document.body.appendChild(doors);
@@ -1114,7 +1137,7 @@ async function milestone() {
   );
   fanfare(4);
   arp([1046, 1318, 1568, 2093], 0.12, { type: "triangle", vol: 0.06, delay: 0.2 });
-  setMessage(`> floor ${floor}! the elevator gifts you die #${diceCount}`, true);
+  setMessage(gift ? `> floor ${floor}! the elevator gifts you die #${diceCount}` : `> floor ${floor}! the table can't fit more dice`, true);
   await wait(1800 * t);
 
   // Doors fly open and dice pour out
@@ -1194,7 +1217,6 @@ const EVENTS = [
 
 async function randomEvent() {
   const ev = pick(EVENTS);
-  odds *= EVENT_CHANCE / EVENTS.length;
   flashScreen("#ffcf4a");
   showToast(ev.text, 7);
   sfx(1200, 0.08, { vol: 0.05 });
@@ -1335,8 +1357,8 @@ async function showGameOver(final) {
   const { x, y } = centerOf(goScoreEl);
   burst(x, y, 30 + shownTier * 10);
 
-  // Type out the odds of this exact game
-  const text = formatOdds(odds);
+  // Type out how this score ranks against 200,000 simulated games
+  const text = formatRank(final);
   const oddsEl = $("go-odds");
   for (let i = 1; i <= text.length; i++) {
     oddsEl.textContent = text.slice(0, i);
@@ -1376,6 +1398,23 @@ flashyBtn.addEventListener("click", () => {
   save("dicele-flashy", flashy ? 1 : 0);
   applyFlashy();
   SOUND.pop();
+});
+
+let insta = load("dicele-insta") === 1;
+const instaBtn = $("insta");
+function applyInsta() {
+  instaBtn.classList.toggle("on", insta);
+  instaBtn.setAttribute("aria-pressed", String(insta));
+  instaBtn.innerHTML = `&#9193; INSTA-AUTOROLL: ${insta ? "ON" : "OFF"}`;
+}
+applyInsta();
+instaBtn.addEventListener("click", () => {
+  insta = !insta;
+  save("dicele-insta", insta ? 1 : 0);
+  applyInsta();
+  SOUND.pop();
+  // Switching on mid-countdown skips the rest of the wait
+  if (insta && phase === "again") play();
 });
 
 const splashEl = $("splash");

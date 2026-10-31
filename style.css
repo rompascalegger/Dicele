@@ -402,6 +402,17 @@ h1 {
   animation: none;
 }
 
+.insta-btn {
+  margin-top: 14px;
+  padding: 8px 16px 6px;
+  font-family: var(--pixel);
+  font-size: 1.15rem;
+  letter-spacing: .15em;
+  color: #8e72b0;
+  border-color: #4a3466;
+  cursor: pointer;
+}
+.insta-btn.on { color: var(--neon-cyan); border-color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
 .footer {
   margin: 22px 0 0;
   font-size: 1rem;
