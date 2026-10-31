@@ -50,8 +50,10 @@ const SCORE_PERCENTILES = [
 ];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
-const floorTier = (f) => Math.max(0, FLOOR_TIERS.findLastIndex((t) => f >= t));
-const scoreTier = (s) => SCORE_TIERS.findLastIndex((t) => s >= t);
+// Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
+const tierFor = (thresholds, value) => thresholds.reduce((tier, t, i) => (value >= t ? i : tier), 0);
+const floorTier = (f) => tierFor(FLOOR_TIERS, f);
+const scoreTier = (s) => tierFor(SCORE_TIERS, s);
 
 function paintTier(el, tier) {
   el.style.setProperty("--tc", TIERS[tier].color);
@@ -69,16 +71,6 @@ const BONUS_STEP = 10;
 const GOLDEN_MULT = 5;
 // Pixel height of one tower floor in the background (matches style.css)
 const FLOOR_HEIGHT = 120;
-
-// Which 3x3 grid cells hold a pip for each face (1 = top-left, 9 = bottom-right)
-const PIPS = {
-  1: [5],
-  2: [1, 9],
-  3: [1, 5, 9],
-  4: [1, 3, 7, 9],
-  5: [1, 3, 5, 7, 9],
-  6: [1, 3, 4, 6, 7, 9],
-};
 
 // Cube rotation (x, y) that brings each face to the front
 const FACE_ROTATION = {
@@ -175,6 +167,15 @@ setInterval(nextJoke, 7000);
 muteBtn.classList.toggle("off", muted);
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// animation.settled: like .finished, but also resolves after the animation's duration
+// even if the browser paused it (background tab, hidden pane), so the game never stalls
+Object.defineProperty(Animation.prototype, "settled", {
+  get() {
+    const ms = Number(this.effect?.getTiming().duration) || 0;
+    return Promise.race([this.finished.catch(() => {}), wait(ms + 150)]);
+  },
+});
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 const d = (sides) => 1 + Math.floor(Math.random() * sides);
 
@@ -198,8 +199,10 @@ function save(key, value) {
 
 let audioCtx = null;
 let master = null;
+let reverb = null;
 
-// Lazily creates the audio graph; a compressor keeps stacked fanfares from clipping
+// Lazily creates the audio graph: everything -> compressor (keeps stacked fanfares from
+// clipping), with a send into a generated concert-hall reverb for the epic stuff
 function audio() {
   if (muted) return null;
   if (!audioCtx) {
@@ -212,9 +215,27 @@ function audio() {
     master.threshold.value = -18;
     master.ratio.value = 6;
     master.connect(audioCtx.destination);
+
+    // Impulse response: 3s of stereo noise with an exponential tail
+    const len = Math.floor(audioCtx.sampleRate * 3);
+    const ir = audioCtx.createBuffer(2, len, audioCtx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    }
+    reverb = audioCtx.createConvolver();
+    reverb.buffer = ir;
+    reverb.connect(master);
   }
   if (audioCtx.state === "suspended") audioCtx.resume();
   return audioCtx;
+}
+
+function send(node, wet) {
+  if (!wet) return;
+  const g = audioCtx.createGain();
+  g.gain.value = wet;
+  node.connect(g).connect(reverb);
 }
 
 // Browsers only allow audio after a user gesture, so unlock it on the first one
@@ -222,7 +243,7 @@ for (const type of ["pointerdown", "keydown"]) {
   window.addEventListener(type, () => audio(), { once: true });
 }
 
-function sfx(freq, dur, { type = "square", vol = 0.04, to = null, delay = 0, attack = 0 } = {}) {
+function sfx(freq, dur, { type = "square", vol = 0.04, to = null, delay = 0, attack = 0, wet = 0 } = {}) {
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime + delay;
@@ -241,12 +262,14 @@ function sfx(freq, dur, { type = "square", vol = 0.04, to = null, delay = 0, att
   }
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   osc.connect(gain).connect(master);
+  send(gain, wet);
   osc.start(t);
   osc.stop(t + dur + 0.02);
 }
 
-// White noise through a high-pass filter: kicks, snares and cymbals
-function noise(dur, { vol = 0.1, delay = 0, hp = 1000 } = {}) {
+// White noise through a filter: snares, cymbals (high-pass) or thumps (lp set: low-pass).
+// attack > 0 swells in, which makes a reverse cymbal
+function noise(dur, { vol = 0.1, delay = 0, hp = 1000, lp = 0, attack = 0, wet = 0 } = {}) {
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime + delay;
@@ -256,13 +279,112 @@ function noise(dur, { vol = 0.1, delay = 0, hp = 1000 } = {}) {
   const src = ac.createBufferSource();
   src.buffer = buffer;
   const filter = ac.createBiquadFilter();
-  filter.type = "highpass";
-  filter.frequency.value = hp;
+  filter.type = lp ? "lowpass" : "highpass";
+  filter.frequency.value = lp || hp;
   const gain = ac.createGain();
-  gain.gain.setValueAtTime(vol, t);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  if (attack) {
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(dur, attack + 0.05));
+  } else {
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  }
   src.connect(filter).connect(gain).connect(master);
+  send(gain, wet);
   src.start(t);
+}
+
+/* ---------- Epic orchestra (all synthesized) ---------- */
+
+const semis = (root, s) => root * Math.pow(2, s / 12);
+
+// Brass: two detuned saws through a low-pass that opens up like a horn blat
+function brass(freq, dur, { vol = 0.05, delay = 0, wet = 0.3 } = {}) {
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime + delay;
+  const pitch = Math.pow(2, Math.min(totalSixes * 0.5, 12) / 12);
+  const filter = ac.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.Q.value = 2;
+  filter.frequency.setValueAtTime(300, t);
+  filter.frequency.exponentialRampToValueAtTime(3200, t + 0.08);
+  filter.frequency.exponentialRampToValueAtTime(1100, t + Math.min(dur, 0.6));
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.04);
+  gain.gain.setValueAtTime(vol, t + dur * 0.7);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  filter.connect(gain).connect(master);
+  send(gain, wet);
+  for (const cents of [-8, 8]) {
+    const osc = ac.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = freq * pitch;
+    osc.detune.value = cents;
+    osc.connect(filter);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+}
+
+const brassChord = (root, chord, dur, delay, vol = 0.035) =>
+  chord.forEach((s) => brass(semis(root, s), dur, { vol, delay }));
+
+// Timpani: a sine that drops onto its pitch, plus a felt-mallet thump, drenched in hall
+function timpani(freq, { vol = 0.35, delay = 0 } = {}) {
+  sfx(freq * 1.5, 1.4, { type: "sine", vol, to: freq, delay, wet: 0.5 });
+  sfx(freq * 2.01, 0.6, { type: "sine", vol: vol * 0.25, to: freq * 2, delay, wet: 0.4 });
+  noise(0.12, { vol: vol * 0.5, delay, lp: 600, wet: 0.3 });
+}
+
+// Sub boom: a huge low drop you feel more than hear
+function boom(delay = 0) {
+  sfx(70, 1.8, { type: "sine", vol: 0.6, to: 28, delay, wet: 0.2 });
+  noise(0.6, { vol: 0.3, delay, lp: 200, wet: 0.4 });
+}
+
+// Choir: soft detuned triangles fading in, mostly reverb
+function choir(root, chord, dur, delay = 0) {
+  for (const s of chord) {
+    for (const d of [0.996, 1, 1.004]) {
+      sfx(semis(root, s) * d, dur, { type: "triangle", vol: 0.018, delay, attack: dur * 0.35, wet: 0.7 });
+    }
+  }
+}
+
+// Reverse cymbal: noise swelling into the downbeat
+const swell = (dur, delay = 0) => noise(dur, { vol: 0.2, delay, hp: 3000, attack: dur * 0.95, wet: 0.3 });
+
+// Victory fanfare: longer and fuller the higher the tier (0-9)
+function victory(tier) {
+  const root = semis(196, Math.min(tier, 9)); // G3, rising a semitone per tier
+  boom(0);
+  timpani(semis(root, -12), { delay: 0 });
+  // I - IV - V - I, brass stabs on each, timpani under
+  const progression = [[0, 4, 7, 12], [5, 9, 12, 17], [7, 11, 14, 19], [12, 16, 19, 24]];
+  const chords = tier < 3 ? 2 : 4;
+  for (let i = 0; i < chords; i++) {
+    const at = 0.15 + i * 0.42;
+    const last = i === chords - 1;
+    brassChord(root, progression[last ? 3 : i], last ? 2.4 : 0.38, at);
+    timpani(semis(root, progression[i][0] - 12), { delay: at, vol: 0.25 });
+  }
+  if (tier >= 3) choir(root, [12, 16, 19, 24], 3.2, 0.5);
+  if (tier >= 6) {
+    noise(2.6, { vol: 0.16, delay: 0.15 + (chords - 1) * 0.42, hp: 5000, wet: 0.5 });
+    // Trumpet flourish up top
+    [24, 28, 31, 36].forEach((s, i) => brass(semis(root, s), 0.18, { vol: 0.03, delay: 0.1 + i * 0.07 }));
+  }
+  if (tier >= 9) {
+    // Key change and one more enormous chord
+    const up = semis(root, 2);
+    brassChord(up, [0, 4, 7, 12, 16], 3, 2.2, 0.04);
+    timpani(semis(up, -12), { delay: 2.2, vol: 0.4 });
+    boom(2.2);
+    choir(up, [12, 16, 19, 24, 28], 3, 2.2);
+  }
 }
 
 const arp = (notes, step, opts) => notes.forEach((f, i) => sfx(f, 0.14, { ...opts, delay: i * step }));
@@ -368,15 +490,10 @@ muteBtn.addEventListener("click", () => {
 
 /* ---------- Dice ---------- */
 
+// Pips are drawn by a CSS mask (.v1-.v6 in style.css), so a face is a single element
 function fillFace(face, n) {
-  face.innerHTML = "";
-  for (const cell of PIPS[n]) {
-    const pip = document.createElement("span");
-    pip.className = "pip";
-    pip.style.gridRow = Math.ceil(cell / 3);
-    pip.style.gridColumn = ((cell - 1) % 3) + 1;
-    face.appendChild(pip);
-  }
+  face.classList.remove("v1", "v2", "v3", "v4", "v5", "v6");
+  face.classList.add(`v${n}`);
 }
 
 function createDie() {
@@ -645,7 +762,17 @@ async function rollMultiplier() {
   wheelOverlay.classList.remove("leave");
   wheelOverlay.classList.add("show");
   drawWheel();
-  await wait(reducedMotion ? 100 : 500);
+  // Entrance via Web Animations: mobile Safari can skip a CSS transition that starts
+  // in the same frame the overlay becomes visible
+  const wrap = wheelOverlay.querySelector(".wheel-wrap");
+  await wrap.animate(
+    [
+      { transform: "scale(.2) rotate(-200deg)", opacity: 0 },
+      { transform: "scale(1.06) rotate(8deg)", opacity: 1, offset: 0.75 },
+      { transform: "none", opacity: 1 },
+    ],
+    { duration: reducedMotion ? 150 : 700, easing: "cubic-bezier(.3, .8, .4, 1)" }
+  ).settled;
 
   let total = 0;
   for (let spin = 1; ; spin++) {
@@ -678,8 +805,10 @@ async function rollMultiplier() {
   await wait(reducedMotion ? 400 : 1300);
 
   // Shrink the wheel away toward the multiplier badge
-  wheelOverlay.classList.add("leave");
-  await wait(reducedMotion ? 100 : 500);
+  await wrap.animate(
+    [{ transform: "none", opacity: 1 }, { transform: "translate(-42vw, -42vh) scale(.05)", opacity: 0 }],
+    { duration: reducedMotion ? 100 : 500, easing: "ease-in" }
+  ).settled;
   wheelOverlay.classList.remove("show", "leave");
   setMult(mult);
 }
@@ -690,71 +819,211 @@ function setMult(value) {
   bump(multValueEl);
 }
 
-/* ---------- The end die: a d(total sixes) ---------- */
+/* ---------- The end die: a big 3D d20 rolling a d(total sixes) ---------- */
+
+// Icosahedron geometry: 12 vertices, 20 faces found as triples of mutually adjacent vertices
+const PHI = (1 + Math.sqrt(5)) / 2;
+const ICO_VERTS = [
+  [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
+  [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
+  [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1],
+];
+const vsub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const vdot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const vcross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const vnorm = (a) => {
+  const l = Math.hypot(a[0], a[1], a[2]);
+  return [a[0] / l, a[1] / l, a[2] / l];
+};
+const ICO_FACES = (() => {
+  const faces = [];
+  const adjacent = (i, j) => Math.abs(vdot(vsub(ICO_VERTS[i], ICO_VERTS[j]), vsub(ICO_VERTS[i], ICO_VERTS[j])) - 4) < 1e-6;
+  for (let i = 0; i < 12; i++)
+    for (let j = i + 1; j < 12; j++)
+      for (let k = j + 1; k < 12; k++) {
+        if (!adjacent(i, j) || !adjacent(j, k) || !adjacent(i, k)) continue;
+        const [a, b, c] = [ICO_VERTS[i], ICO_VERTS[j], ICO_VERTS[k]];
+        const n = vcross(vsub(b, a), vsub(c, a));
+        // Wind every face outward
+        faces.push(vdot(n, a) > 0 ? [i, j, k] : [i, k, j]);
+      }
+  return faces;
+})();
+
+// Quaternions [w, x, y, z]
+const qmul = (a, b) => [
+  a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+  a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+  a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+  a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+];
+const qaxis = (axis, angle) => {
+  const s = Math.sin(angle / 2);
+  return [Math.cos(angle / 2), axis[0] * s, axis[1] * s, axis[2] * s];
+};
+const qrot = (q, v) => {
+  const p = qmul(qmul(q, [0, v[0], v[1], v[2]]), [q[0], -q[1], -q[2], -q[3]]);
+  return [p[1], p[2], p[3]];
+};
+
+const hexRgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+// Renders the d20 at low resolution (scaled up pixelated) for a chunky retro look
+function drawD20(ctx, size, q, color, labels, highlight) {
+  ctx.clearRect(0, 0, size, size);
+  const scale = size * 0.27;
+  const light = vnorm([-0.4, -0.7, 0.8]);
+  const [r, g, b] = hexRgb(color);
+  const verts = ICO_VERTS.map((v) => qrot(q, v));
+  const project = (v) => {
+    const f = 7 / (7 - v[2]);
+    return [size / 2 + v[0] * scale * f, size / 2 + v[1] * scale * f];
+  };
+  ICO_FACES.forEach((face, i) => {
+    const [a, bb, c] = face.map((k) => verts[k]);
+    const n = vnorm(vcross(vsub(bb, a), vsub(c, a)));
+    if (n[2] <= 0) return; // back face
+    const shade = 0.35 + 0.65 * Math.max(0, vdot(n, light));
+    const pts = face.map((k) => project(verts[k]));
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    ctx.lineTo(pts[1][0], pts[1][1]);
+    ctx.lineTo(pts[2][0], pts[2][1]);
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${r * shade | 0},${g * shade | 0},${b * shade | 0})`;
+    ctx.fill();
+    ctx.strokeStyle = i === 0 && highlight ? "#fff" : "rgba(22, 8, 40, .8)";
+    ctx.lineWidth = i === 0 && highlight ? 2 : 1;
+    ctx.stroke();
+    // Number on faces turned toward the viewer
+    if (n[2] > 0.45) {
+      const cx = (pts[0][0] + pts[1][0] + pts[2][0]) / 3;
+      const cy = (pts[0][1] + pts[1][1] + pts[2][1]) / 3;
+      const label = String(labels[i]);
+      const fs = Math.round(size * (label.length > 2 ? 0.06 : 0.075) * n[2]);
+      ctx.font = `${fs}px "Press Start 2P", monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = i === 0 && highlight ? "#fff" : "#160828";
+      ctx.fillText(label, cx, cy + 1);
+    }
+  });
+}
 
 async function rollEndDie() {
   const sides = totalSixes;
-  tray.innerHTML = "";
+  const value = d(sides);
   setMessage(sides === 1 ? "> a d1?! it's a 1. it's always a 1." : `> ${sides} sixes forged a d${sides}!`, true);
 
-  const el = document.createElement("div");
-  el.className = "end-die";
-  el.innerHTML = '<span class="bd-value">?</span><span class="bd-label">d1</span>';
-  tray.appendChild(el);
-  const valueEl = el.querySelector(".bd-value");
-  const labelEl = el.querySelector(".bd-label");
-  paintTier(el, 0);
+  const stage = document.createElement("div");
+  stage.className = "d20-stage";
+  stage.innerHTML = `
+    <p class="d20-title">THE END DIE</p>
+    <div class="d20-roll"><canvas class="d20" width="160" height="160"></canvas><div class="d20-shadow"></div></div>
+    <p class="d20-label">d1</p>`;
+  document.body.appendChild(stage);
+  const canvasEl = stage.querySelector(".d20");
+  const c = canvasEl.getContext("2d");
+  const rollEl = stage.querySelector(".d20-roll");
+  const labelEl = stage.querySelector(".d20-label");
 
-  // Drop in spinning and slam onto the felt
-  await el.animate(
-    [
-      { transform: "translateY(-260px) rotate(-540deg) scale(.2)", opacity: 0 },
-      { transform: "translateY(0) rotate(0) scale(1.15)", opacity: 1, offset: 0.8 },
-      { transform: "scale(1)" },
-    ],
-    { duration: reducedMotion ? 200 : 700, easing: "cubic-bezier(.3, .7, .4, 1)" }
-  ).finished;
-  kick(0);
-  shakeTray();
+  // Final orientation: face 0 pointing straight at the viewer
+  const n0 = vnorm(ICO_FACES[0].map((k) => ICO_VERTS[k]).reduce((s, v) => [s[0] + v[0], s[1] + v[1], s[2] + v[2]], [0, 0, 0]));
+  const axis0 = vcross(n0, [0, 0, 1]);
+  const qFinal = Math.hypot(...axis0) < 1e-6 ? [1, 0, 0, 0] : qaxis(vnorm(axis0), Math.acos(vdot(n0, [0, 0, 1])));
+  const labels = ICO_FACES.map(() => d(sides));
+  labels[0] = value;
+  let color = TIERS[0].color;
+  let q = qmul(qaxis(vnorm([1, 1, 0.3]), 0.6), qFinal);
+  let raf = 0;
+  let render = () => drawD20(c, 160, q, color, labels, false);
 
-  // Forge it: the die grows one side per six, climbing the tier colors
-  const step = reducedMotion ? 30 : Math.max(60, 600 / sides);
+  // Idle spin while the die is being forged
+  let idleAngle = 0;
+  const idle = () => {
+    idleAngle += 0.02;
+    q = qmul(qaxis(vnorm([0.3, 1, 0.2]), idleAngle), qFinal);
+    render();
+    raf = requestAnimationFrame(idle);
+  };
+  idle();
+  stage.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" });
+  rollEl.animate([{ transform: "scale(0) rotate(-180deg)" }, { transform: "none" }], { duration: reducedMotion ? 150 : 600, easing: "cubic-bezier(.3, 1.5, .5, 1)" });
+  boom(0);
+  await wait(reducedMotion ? 150 : 600);
+
+  // Forge: one side per six, climbing the tier colors
+  const step = reducedMotion ? 20 : Math.max(50, 700 / sides);
   for (let n = 1; n <= sides; n++) {
     labelEl.textContent = `d${n}`;
-    paintTier(el, Math.min(9, n - 1));
-    el.style.setProperty("--grow", 1 + Math.min(n, 12) * 0.04);
-    sfx(400 * Math.pow(2, Math.min(n, 24) / 12), 0.08, { vol: 0.05 });
+    color = TIERS[Math.min(9, n - 1)].color;
+    paintTier(labelEl, Math.min(9, n - 1));
+    sfx(330 * Math.pow(2, Math.min(n, 24) / 12), 0.1, { vol: 0.05, wet: 0.2 });
     await wait(step);
   }
+  brassChord(semis(196, Math.min(sides, 12)), [0, 7, 12], 0.5, 0, 0.03);
+  await wait(reducedMotion ? 100 : 500);
+  cancelAnimationFrame(raf);
 
-  // Spin and scramble like a slot reel, then slam down on the result
-  const grow = 1 + Math.min(sides, 12) * 0.04;
-  const spin = el.animate([{ transform: `rotateY(0) scale(${grow})` }, { transform: `rotateY(360deg) scale(${grow})` }], {
-    duration: 300,
-    iterations: Infinity,
-  });
-  tension(reducedMotion ? 0.5 : 1.6);
-  let delay = 40;
-  for (let elapsed = 0; elapsed < (reducedMotion ? 400 : 1600); elapsed += delay, delay *= 1.12) {
-    valueEl.textContent = d(sides);
-    SOUND.tick();
-    await wait(delay);
-  }
-  spin.cancel();
+  // The roll: flung off-screen left, tumbling across the floor, bouncing, settling on face 0
+  const time = reducedMotion ? 700 : 3200;
+  const tumbleAxis = vnorm([Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5]);
+  const turns = Math.PI * 2 * (5 + Math.random() * 2);
+  const start = performance.now();
+  swell(time / 1000 + 0.1);
+  tension(time / 1000);
+  rollEl.animate(
+    [
+      { transform: "translate(-80vw, -30vh) scale(.6)" },
+      { transform: "translate(-30vw, 0) scale(1)", offset: 0.3 },
+      { transform: "translate(-12vw, -14vh) scale(1)", offset: 0.48 },
+      { transform: "translate(4vw, 0) scale(1.05, .95)", offset: 0.66 },
+      { transform: "translate(8vw, -5vh) scale(1)", offset: 0.78 },
+      { transform: "translate(1vw, 0) scale(1.02, .98)", offset: 0.9 },
+      { transform: "none" },
+    ],
+    { duration: time, easing: "cubic-bezier(.2, .6, .35, 1)" }
+  );
+  let lastFace = 0;
+  // Frame loop, with a timeout fallback in case frames are paused (background tab)
+  await Promise.race([wait(time + 200), new Promise((resolve) => {
+    const frame = (now) => {
+      const t = Math.min(1, (now - start) / time);
+      const ease = 1 - Math.pow(1 - t, 3);
+      q = qmul(qaxis(tumbleAxis, turns * (1 - ease)), qFinal);
+      // Click as faces roll past, slowing down with the die
+      const face = Math.floor(turns * (1 - ease) / 0.6);
+      if (face !== lastFace) {
+        lastFace = face;
+        SOUND.tick();
+      }
+      render();
+      if (t < 1) requestAnimationFrame(frame);
+      else resolve();
+    };
+    requestAnimationFrame(frame);
+  })]);
 
-  const value = d(sides);
-  valueEl.textContent = value;
-  reveal(Math.min(9, sides - 1));
-  el.animate([{ transform: "scale(1.6)" }, { transform: `scale(${grow})` }], { duration: 300, easing: "ease-out" });
-  shakeTray();
-  const { x, y } = centerOf(el);
-  burst(x, y, 30 + sides * 8);
-  sparkles(x, y, 20);
+  // Land: the top face lights up with the result
+  q = qFinal;
+  render = () => drawD20(c, 160, q, color, labels, true);
+  render();
+  stage.classList.add("landed");
+  labelEl.textContent = `d${sides} → ${value}`;
+  boom(0);
+  timpani(98, { vol: 0.4 });
+  brassChord(semis(196, Math.min(sides, 12)), [0, 4, 7, 12], 1.6, 0.05, 0.04);
+  rollEl.animate([{ transform: "scale(1.25)" }, { transform: "none" }], { duration: 400, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
+  const { x, y } = centerOf(canvasEl);
+  burst(x, y, 40 + sides * 8);
+  sparkles(x, y, 24);
 
   mult += value;
   setMult(mult);
   showToast(`END DIE d${sides}\n+${value} MULTI`, multTier(mult));
-  await wait(reducedMotion ? 400 : 1500);
+  await wait(reducedMotion ? 600 : 2000);
+  await stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).settled;
+  stage.remove();
 }
 
 /* ---------- UI helpers ---------- */
@@ -1121,7 +1390,7 @@ async function milestone() {
   // Slam shut
   const close = { duration: 320 * t, easing: "cubic-bezier(.6, 0, 1, .6)", fill: "forwards" };
   left.animate([{ transform: "translateX(-100%)" }, { transform: "translateX(0)" }], close);
-  await right.animate([{ transform: "translateX(100%)" }, { transform: "translateX(0)" }], close).finished;
+  await right.animate([{ transform: "translateX(100%)" }, { transform: "translateX(0)" }], close).settled;
   kick(0);
   noise(0.4, { vol: 0.15, hp: 400 });
   shakeTray();
@@ -1144,7 +1413,7 @@ async function milestone() {
   const open = { duration: 450 * t, easing: "cubic-bezier(.2, .8, .3, 1)", fill: "forwards" };
   sign.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.6)" }], open);
   left.animate([{ transform: "translateX(0)" }, { transform: "translateX(-105%)" }], open);
-  await right.animate([{ transform: "translateX(0)" }, { transform: "translateX(105%)" }], open).finished;
+  await right.animate([{ transform: "translateX(0)" }, { transform: "translateX(105%)" }], open).settled;
   diceRain(30);
   celebrate();
   doors.remove();
@@ -1241,34 +1510,12 @@ async function endTurn() {
   const final = pips * mult;
   const tier = scoreTier(final);
 
-  // Drumroll suspense before the multiplier hits
-  const suspense = reducedMotion ? 0.8 : 2.6;
-  tension(suspense);
   setMessage(`> ${pips} chips x${mult} = ???`, true);
   scoreEl.textContent = "???";
-  const shake = [{ transform: "none" }, { transform: "translate(-3px, 2px)" }, { transform: "translate(3px, -2px)" }, { transform: "none" }];
-  const shakes = [multEl, scoreEl.parentElement].map((el) =>
-    el.animate(shake, { duration: 160, iterations: Infinity, easing: "steps(4)" })
-  );
-  const dim = document.createElement("div");
-  dim.className = "flash";
-  dim.style.background = "#000";
-  document.body.appendChild(dim);
-  dim.animate([{ opacity: 0 }, { opacity: 0.45 }], { duration: suspense * 1000, fill: "forwards" });
-  showToast(`${pips} CHIPS\nx${mult}`, multTier(mult));
-  await wait(suspense * 1000);
-  shakes.forEach((a) => a.cancel());
-  dim.remove();
-
-  reveal(tier);
-  flashScreen(TIERS[tier].color);
+  await cinematic(final, tier);
   paintTier(scoreEl, tier);
-  showToast(`${final}\n${TIERS[tier].name}`, tier);
-  const { x, y } = centerOf(scoreEl);
-  burst(x, y, 40 + tier * 12);
-  await countUp(scoreEl, pips, final, reducedMotion ? 300 : 700);
+  scoreEl.textContent = final;
   bump(scoreEl);
-  await wait(300);
   setMessage(`> ${pips} chips x${mult} = ${final}`, true);
 
   if (final > best) {
@@ -1293,6 +1540,123 @@ async function endTurn() {
   phase = "idle";
   setButton("idle");
   rollBtn.disabled = false;
+}
+
+/* ---------- Cinematic final score ---------- */
+
+// Letterbox, light rays, the equation assembling, a drumroll, then the score's
+// digits lock in one by one like slot reels and the tier stamps down
+async function cinematic(final, tier) {
+  const m = reducedMotion ? 0.3 : 1;
+  const color = TIERS[tier].color;
+  const cine = document.createElement("div");
+  cine.className = "cine";
+  cine.innerHTML = `
+    <div class="cine-bar top"></div><div class="cine-bar bottom"></div>
+    <div class="cine-rays"></div>
+    <div class="cine-eq"><span class="c">${pips.toLocaleString("en-US")}</span><span class="x">×</span><span class="m">${mult}</span></div>
+    <div class="cine-score"></div>
+    <div class="cine-tier">${TIERS[tier].name}</div>
+    <div class="cine-rank">${formatRank(final)}</div>`;
+  document.body.appendChild(cine);
+  paintTier(cine, multTier(mult));
+  const [barTop, barBottom] = cine.querySelectorAll(".cine-bar");
+  const rays = cine.querySelector(".cine-rays");
+  const eq = cine.querySelector(".cine-eq");
+  const [chipsEl, xEl, multElC] = eq.children;
+  const scoreBox = cine.querySelector(".cine-score");
+  const tierEl = cine.querySelector(".cine-tier");
+  const rankEl = cine.querySelector(".cine-rank");
+  const fwd = { fill: "forwards" };
+
+  // 1. Lights down, letterbox in
+  cine.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500 * m, ...fwd });
+  barTop.animate([{ transform: "translateY(-100%)" }, { transform: "none" }], { duration: 600 * m, easing: "ease-out", ...fwd });
+  barBottom.animate([{ transform: "translateY(100%)" }, { transform: "none" }], { duration: 600 * m, easing: "ease-out", ...fwd });
+  boom(0);
+  await wait(600 * m);
+
+  // 2. The equation assembles: chips, then x, then multiplier, each with a brass hit
+  const root = semis(196, tier);
+  chipsEl.animate([{ transform: "translateX(-60vw)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 450 * m, easing: "cubic-bezier(.2, .9, .3, 1.2)", ...fwd });
+  brassChord(root, [0, 7], 0.35, 0, 0.04);
+  timpani(semis(root, -12));
+  await wait(500 * m);
+  xEl.animate([{ transform: "scale(0) rotate(-360deg)" }, { transform: "none" }], { duration: 400 * m, easing: "cubic-bezier(.3, 1.6, .5, 1)", ...fwd });
+  brassChord(root, [5, 12], 0.35, 0, 0.04);
+  timpani(semis(root, -7));
+  await wait(450 * m);
+  multElC.animate([{ transform: "translateX(60vw)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 450 * m, easing: "cubic-bezier(.2, .9, .3, 1.2)", ...fwd });
+  brassChord(root, [7, 14], 0.35, 0, 0.04);
+  timpani(semis(root, -5));
+  await wait(550 * m);
+
+  // 3. Drumroll: rays fade in, the equation trembles, a reverse cymbal swells
+  const suspense = reducedMotion ? 0.6 : 2.4;
+  tension(suspense);
+  swell(suspense);
+  choir(root, [0, 7, 12], suspense + 0.3);
+  paintTier(rays, tier);
+  rays.animate([{ opacity: 0 }, { opacity: 0.35 }], { duration: suspense * 1000, ...fwd });
+  const tremble = eq.animate(
+    [{ transform: "none" }, { transform: "translate(-2px, 1px)" }, { transform: "translate(2px, -1px)" }, { transform: "none" }],
+    { duration: 120, iterations: Infinity }
+  );
+  await wait(suspense * 1000);
+  tremble.cancel();
+
+  // 4. Slam: the equation collapses into the score, digits spin and lock left to right
+  eq.animate([{ transform: "none", opacity: 1 }, { transform: "scale(.2)", opacity: 0 }], { duration: 250, easing: "ease-in", ...fwd });
+  paintTier(scoreBox, tier);
+  const text = final.toLocaleString("en-US");
+  const spans = [...text].map((ch) => {
+    const s = document.createElement("span");
+    s.textContent = /\d/.test(ch) ? String(d(10) - 1) : ch;
+    if (!/\d/.test(ch)) s.className = "comma";
+    scoreBox.appendChild(s);
+    return s;
+  });
+  boom(0);
+  noise(1.6, { vol: 0.2, hp: 3500, wet: 0.5 });
+  scoreBox.animate([{ transform: "scale(3)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 300, easing: "ease-out", ...fwd });
+  const digits = spans.filter((s) => !s.classList.contains("comma"));
+  const spinTimer = setInterval(() => {
+    for (const s of digits) if (!s.classList.contains("locked")) s.textContent = String(d(10) - 1);
+  }, 50);
+  const lockGap = Math.max(90, Math.min(260, 1600 / digits.length)) * m;
+  let di = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (!/\d/.test(text[i])) continue;
+    await wait(lockGap);
+    const s = digits[di++];
+    s.textContent = text[i];
+    s.classList.add("locked");
+    // Each locked digit climbs the scale
+    brass(semis(root, [0, 4, 7, 12, 16, 19, 24, 28, 31][Math.min(di - 1, 8)]), 0.25, { vol: 0.035 });
+    snare(0, 0.12);
+  }
+  clearInterval(spinTimer);
+
+  // 5. The tier stamps down with the full victory fanfare
+  victory(tier);
+  tierEl.animate([{ transform: "scale(4) rotate(-8deg)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 350, easing: "cubic-bezier(.5, 0, .7, 1.4)", ...fwd });
+  rays.animate([{ opacity: 0.35 }, { opacity: 0.6 }], { duration: 600, ...fwd });
+  cine.animate(
+    [{ transform: "none" }, { transform: "translate(-6px, 4px)" }, { transform: "translate(5px, -3px)" }, { transform: "none" }],
+    { duration: 300, easing: "steps(4)" }
+  );
+  flashScreen(color);
+  const { x, y } = centerOf(scoreBox);
+  burst(x, y, 50 + tier * 15);
+  // Coin fountain: gold confetti keeps erupting for higher tiers
+  for (let i = 1; i <= Math.min(tier, 6); i++) setTimeout(() => burst(x, y, 30), i * 250);
+  if (tier >= 6) diceRain(tier * 6);
+  await wait(500 * m);
+  rankEl.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 500, ...fwd });
+
+  await wait((tier >= 9 ? 3600 : 2400) * m);
+  await cine.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500 * m, ...fwd }).settled;
+  cine.remove();
 }
 
 /* ---------- Game over card ---------- */
@@ -1326,7 +1690,8 @@ async function showGameOver(final) {
   gameoverEl.classList.add("show");
   await wait(reducedMotion ? 100 : 600);
 
-  const duration = reducedMotion ? 400 : 2200;
+  // Quick recap: the cinematic already did the big reveal
+  const duration = reducedMotion ? 300 : 1100;
   const start = performance.now();
   let shownTier = -1;
   await new Promise((resolve) => {
@@ -1352,7 +1717,7 @@ async function showGameOver(final) {
     requestAnimationFrame(step);
   });
 
-  reveal(shownTier);
+  SOUND.combo();
   goCard.animate([{ transform: "scale(1.08)" }, { transform: "none" }], { duration: 350, easing: "ease-out" });
   const { x, y } = centerOf(goScoreEl);
   burst(x, y, 30 + shownTier * 10);
@@ -1436,7 +1801,7 @@ document.addEventListener("keydown", (e) => {
 
 /* ---------- Drifting dice you can tap ---------- */
 
-const MAX_DRIFTERS = reducedMotion ? 4 : 14;
+const MAX_DRIFTERS = reducedMotion ? 4 : 10;
 
 function spawnDrifter(fast = false) {
   if (!fast && driftEl.childElementCount >= MAX_DRIFTERS) return;
@@ -1469,7 +1834,6 @@ function popDrifter(el, face) {
   if (el.classList.contains("popped")) return;
   const value = d(6);
   fillFace(face, value);
-  face.classList.toggle("one", value === 1);
   el.classList.add("popped");
 
   const { x, y } = centerOf(el);
@@ -1514,10 +1878,10 @@ let particles = [];
 let animating = false;
 
 function resize() {
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = innerWidth * dpr;
-  canvas.height = innerHeight * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // 1:1 pixels on purpose: the confetti is pixel art, and a 2-3x retina canvas
+  // made every particle frame clear and redraw up to 9x the pixels
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
 }
 resize();
 window.addEventListener("resize", resize);
