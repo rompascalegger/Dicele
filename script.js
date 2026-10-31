@@ -663,7 +663,9 @@ function drawWheel() {
   wheelCanvas.width = size * dpr;
   wheelCanvas.height = size * dpr;
   const c = wheelCanvas.getContext("2d");
-  c.setTransform(dpr, 0, 0, dpr, size / 2, size / 2);
+  // The translate part of setTransform is in device pixels, so the centre is size * dpr / 2
+  // (using size / 2 put the wheel off-centre on phones, where dpr is 2-3)
+  c.setTransform(dpr, 0, 0, dpr, (size * dpr) / 2, (size * dpr) / 2);
   const r = size / 2;
   const rad = (deg) => (deg * Math.PI) / 180;
 
