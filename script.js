@@ -169,13 +169,21 @@ muteBtn.classList.toggle("off", muted);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // animation.settled: like .finished, but also resolves after the animation's duration
-// even if the browser paused it (background tab, hidden pane), so the game never stalls
-Object.defineProperty(Animation.prototype, "settled", {
-  get() {
-    const ms = Number(this.effect?.getTiming().duration) || 0;
-    return Promise.race([this.finished.catch(() => {}), wait(ms + 150)]);
-  },
-});
+// even if the browser paused it (background tab, hidden pane), so the game never stalls.
+// Guarded: on browsers without the Animation interface this must not crash the page
+if (window.Animation && !("settled" in Animation.prototype)) {
+  Object.defineProperty(Animation.prototype, "settled", {
+    get() {
+      let ms = 0;
+      try {
+        ms = Number(this.effect.getTiming().duration) || 0;
+      } catch {
+        ms = 1000;
+      }
+      return Promise.race([this.finished ? this.finished.catch(() => {}) : wait(ms), wait(ms + 150)]);
+    },
+  });
+}
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 const d = (sides) => 1 + Math.floor(Math.random() * sides);
 
@@ -649,7 +657,8 @@ let wheelRot = 0;
 
 // Draws 100 numbered slots around an inner ring of the 10 tiers
 function drawWheel() {
-  const size = wheelCanvas.clientWidth;
+  // Fall back to a computed size if layout hasn't given the canvas a width yet
+  const size = wheelCanvas.clientWidth > 50 ? wheelCanvas.clientWidth : Math.min(innerWidth * 0.84, 620);
   const dpr = window.devicePixelRatio || 1;
   wheelCanvas.width = size * dpr;
   wheelCanvas.height = size * dpr;
@@ -721,19 +730,20 @@ function drawWheel() {
 }
 
 // Spins clockwise so slot `value` stops under the top pointer
+// Driven frame by frame from script (no CSS transition, no reading the transform back
+// from the browser): both were unreliable on phones and could freeze the first spin
 async function spinWheel(value) {
   const theta = (value - 1) * SEG;
   const jitter = (Math.random() - 0.5) * SEG * 0.7;
+  const from = wheelRot;
   const base = wheelRot + 360 * (5 + Math.floor(Math.random() * 3));
-  wheelRot = base + mod(-theta - base, 360) + jitter;
-  wheelCanvas.style.transform = `rotate(${wheelRot}deg)`;
+  const to = base + mod(-theta - base, 360) + jitter;
+  wheelRot = to;
 
-  // Click the pointer every time a slot passes under it
-  let spinning = true;
   let lastSeg = null;
-  (function track() {
-    const m = new DOMMatrix(getComputedStyle(wheelCanvas).transform);
-    const angle = (Math.atan2(m.b, m.a) * 180) / Math.PI;
+  const show = (angle) => {
+    wheelCanvas.style.transform = `rotate(${angle}deg)`;
+    // Click the pointer every time a slot passes under it
     const seg = Math.floor(mod(-angle + SEG / 2, 360) / SEG);
     if (seg !== lastSeg) {
       if (lastSeg !== null) {
@@ -746,11 +756,23 @@ async function spinWheel(value) {
       wheelResultEl.textContent = seg + 1;
       paintTier(wheelResultEl, multTier(seg + 1));
     }
-    if (spinning) requestAnimationFrame(track);
-  })();
+  };
 
-  await wait(spinTime + 150);
-  spinning = false;
+  const start = performance.now();
+  await Promise.race([
+    wait(spinTime + 300),
+    new Promise((resolve) => {
+      const frame = (now) => {
+        const t = Math.min(1, (now - start) / spinTime);
+        // Fast start, long slow coast into the pointer
+        show(from + (to - from) * (1 - Math.pow(1 - t, 4)));
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve();
+      };
+      requestAnimationFrame(frame);
+    }),
+  ]);
+  show(to);
   wheelResultEl.textContent = value;
   paintTier(wheelResultEl, multTier(value));
   bump(wheelResultEl);
@@ -765,14 +787,17 @@ async function rollMultiplier() {
   // Entrance via Web Animations: mobile Safari can skip a CSS transition that starts
   // in the same frame the overlay becomes visible
   const wrap = wheelOverlay.querySelector(".wheel-wrap");
-  await wrap.animate(
+  const entrance = wrap.animate(
     [
       { transform: "scale(.2) rotate(-200deg)", opacity: 0 },
       { transform: "scale(1.06) rotate(8deg)", opacity: 1, offset: 0.75 },
       { transform: "none", opacity: 1 },
     ],
     { duration: reducedMotion ? 150 : 700, easing: "cubic-bezier(.3, .8, .4, 1)" }
-  ).settled;
+  );
+  await entrance.settled;
+  // If the browser stalled the entrance, drop it so the wheel is never stuck tiny
+  entrance.cancel();
 
   let total = 0;
   for (let spin = 1; ; spin++) {
@@ -1786,8 +1811,10 @@ const splashEl = $("splash");
 splashEl.addEventListener("click", () => {
   audio();
   SOUND.combo();
-  splashEl.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.1)" }], { duration: 400, fill: "forwards" }).onfinish = () =>
-    splashEl.remove();
+  splashEl.style.pointerEvents = "none";
+  splashEl.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.1)" }], { duration: 400, fill: "forwards" });
+  // Removed on a timer, not on animation end, so it can't get stuck covering the game
+  setTimeout(() => splashEl.remove(), 450);
   rollBtn.focus();
 });
 

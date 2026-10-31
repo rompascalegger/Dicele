@@ -749,11 +749,19 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   position: relative;
   /* Leave room for the title, pointer and marquee bulbs. Explicit height instead of
      aspect-ratio, which older mobile browsers ignore (the wheel collapsed to 0px) */
-  --wheel: min(84vw, calc(100vh - 170px), 620px);
-  width: var(--wheel);
-  height: var(--wheel);
+  width: 84vw;
+  height: 84vw;
+  max-width: 620px;
+  max-height: 620px;
   flex-shrink: 0;
   margin-top: 20px;
+}
+/* Also fit short screens; only where min() works, so older phones keep the plain size */
+@supports (width: min(1px, 2px)) {
+  .wheel-wrap {
+    width: min(84vw, calc(100vh - 170px), 620px);
+    height: min(84vw, calc(100vh - 170px), 620px);
+  }
 }
 /* Marquee bulbs around the rim */
 .wheel-wrap::before {
@@ -769,7 +777,8 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   height: 100%;
   border-radius: 50%;
   box-shadow: 0 0 0 8px var(--gold-dark), 0 0 0 12px var(--gold), 0 0 80px rgba(255, 207, 74, .5);
-  transition: transform calc(var(--spin-time, 4.8s)) cubic-bezier(.12, .8, .18, 1);
+  /* Rotation is set every frame from script.js; a transition here would fight it */
+  will-change: transform;
 }
 .pointer {
   position: absolute;
