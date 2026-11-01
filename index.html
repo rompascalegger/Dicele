@@ -99,6 +99,8 @@
         <li><b>Yazzy of 1s</b> unlocks rerolling 1s &middot; <b>2s</b> the green 1&ndash;5 die for 2s &middot; <b>3s</b> the end-game sacrifice &middot; <b>4s</b> the d4 shelf: every 4 adds a permanent little d4 that adds chips each round.</li>
         <li><b>Yazzy of 5s = SILVER JACKPOT:</b> your multiplier doubles. <b>Yazzy of 6s = GOLD JACKPOT:</b> a golden d10 joins your table for good and adds its roll to the multiplier every round.</li>
         <li><b>Perfect yazzy</b> (every die the same): one more red die, right away.</li>
+        <li><b>Silver 5s:</b> if 2 of 5 dice show a 5 (40%, rounded up), you may SILVER REROLL the whole table. Insta-autoroll takes it whenever there's no 6.</li>
+        <li><b>Hand-rollers:</b> roll every die yourself (no insta-autoroll) and the house gives you one second chance per game when you would lose.</li>
         <li><b>Last chance:</b> no 6? The last die is rerolled in slow motion: a fair 1/6 (16.7%) plus your wheel luck of (100 &minus; wheel) &divide; 10 %. Wheel 1 = 26.6%, wheel 99 = 16.8%, wheel 100+ = 16.7%.</li>
         <li><b>Every 5 floors</b> the elevator gives you one more red die.</li>
         <li><b>From 10 dice</b> the Casino Manager puts a bad d20 on the table, one more for every 5 dice. A <b>1</b> destroys a red die for good (from floor 25 one more losing face every 18 floors: 1&ndash;2, 1&ndash;3, ...). A <b>20</b> confiscates one of your unlocked bonuses.</li>
@@ -115,6 +117,8 @@
     </div>
   </div>
 
+  <div id="drift" class="drift"></div>
+  <div id="stage" class="stage">
   <header>
     <div class="sign">
       <h1>DICELE</h1>
@@ -122,7 +126,6 @@
     </div>
   </header>
 
-  <div id="drift" class="drift"></div>
 
   <main class="floor">
     <section class="scoreboard">
@@ -150,6 +153,7 @@
     <p class="footer">TOP FLOOR <span id="top-floor">0</span> &middot; tap the falling dice &middot; <span id="version" class="version"></span></p>
     <p id="joke" class="joke"></p>
   </main>
+  </div>
 
   <aside class="elevator" aria-hidden="true">
     <div id="shaft" class="shaft"></div>

@@ -1693,3 +1693,13 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
   box-shadow: 0 0 0 4px var(--night2), 0 6px 0 #127a3c, 0 0 20px rgba(46, 232, 122, .6);
   animation: none;
 }
+
+/* ---------- No scrolling: the game is scaled to fit 90% of the screen ---------- */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+body { touch-action: manipulation; }
+.stage { position: relative; width: 100%; transform-origin: top center; }
+/* Phones: the top bar (multi badge, buttons) sits above the scaled game, never over it */
+@media (max-width: 600px) {
+  header { padding-top: 4px; }
+  .stage { margin-top: 56px; }
+}

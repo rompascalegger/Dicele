@@ -23,6 +23,10 @@ BAD_FROM_DICE = int(os.environ.get("BAD_FROM_DICE", 10))
 BAD_EVERY_DICE = int(os.environ.get("BAD_EVERY_DICE", 5))
 LOSE_FACES_FROM_FLOOR = int(os.environ.get("LOSE_FACES_FROM_FLOOR", 25))
 LOSE_FACE_STEP = int(os.environ.get("LOSE_FACE_STEP", 18))
+# MANUAL=1 plays like a hand-roller: every tapped d6 has a secret extra 10% to be a 6, and
+# one second chance per game when a round would end it. Default: insta-autoroll
+MANUAL = os.environ.get("MANUAL") == "1"
+HAND_SIX_BONUS = float(os.environ.get("HAND_SIX_BONUS", 0.1))
 # Games past this floor are counted as practically endless
 TRACK_TOP = 300
 BONUS_STEP = 10
@@ -76,6 +80,12 @@ def best_count(values):
     return best, count
 
 
+def tap_d6():
+    if MANUAL:
+        return 6 if random.random() < 1 / 6 + HAND_SIX_BONUS else d(5)
+    return d(6)
+
+
 def game():
     wheel = 0
     while True:
@@ -92,17 +102,22 @@ def game():
     floor = 0
     rnd = 0
     dice = BASE_DICE
+    retry_used = False
     while True:
         rnd += 1
-        # Roll, then the free rerolls of unlocked 1s (d6) and 2s (green d5)
-        values = []
-        for _ in range(dice):
-            x = d(6)
-            if x == 1 and unlocked[1]:
-                x = d(6)
-            elif x == 2 and unlocked[2]:
-                x = d(5)
-            values.append(x)
+        # Roll, then the free rerolls of unlocked 1s (d6) and 2s (green d5); silver 5s (40%)
+        # reroll the whole table when there is no 6
+        while True:
+            values = []
+            for _ in range(dice):
+                x = tap_d6()
+                if x == 1 and unlocked[1]:
+                    x = tap_d6()
+                elif x == 2 and unlocked[2]:
+                    x = d(5)
+                values.append(x)
+            if 6 in values or 5 * values.count(5) < 2 * len(values):
+                break
         gold_roll = d(10) if gold else 0
         bad = [d(20) for _ in range(bad_dice_for(dice))]
 
@@ -138,6 +153,10 @@ def game():
             dice -= lost
             values = [d(6) for _ in range(len(values) - lost)]
 
+        if 6 not in values and MANUAL and not retry_used:
+            retry_used = True  # hand-roller's second chance: the round is played again
+            rnd -= 1
+            continue
         sixes = values.count(6)
         pips += sum(values) + BONUS_STEP * (rnd - 1) + combos(values) + (666 if sixes >= 6 else 0)
         if unlocked[4]:

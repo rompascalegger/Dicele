@@ -521,7 +521,39 @@ let roundDice = [];
 // Per-game statistics for the end screen
 let stats = {};
 function resetStats() {
-  stats = { rolls: 0, sixes: 0, expectedSixes: 0, lastChances: 0, lucky: 0, sacrificed: 0, struck: 0, d4: 0, bonusDice: 0, maxDice: BASE_DICE, combos: 0, silver: 0 };
+  stats = {
+    rolls: 0, sixes: 0, expectedSixes: 0, lastChances: 0, lucky: 0, sacrificed: 0, struck: 0, d4: 0,
+    bonusDice: 0, maxDice: BASE_DICE, combos: 0, silver: 0,
+    // Hand-roller perks: lost once any die was rolled automatically this game
+    autoUsed: false, handRetryUsed: false,
+  };
+}
+
+// Hand-rollers' second chance: the losing round is laid out again, once per game
+async function handRetry() {
+  showToast("HAND-ROLLER'S\nSECOND CHANCE", 4);
+  setMessage("> you rolled it all by hand. the house respects that: roll the round again", true);
+  arp([392, 523, 659, 784, 1047], 0.08, { type: "triangle", vol: 0.06, wet: 0.4 });
+  await wait(reducedMotion ? 400 : 1400);
+  for (const o of roundDice) {
+    if (o.gone) continue;
+    o.value = null;
+    if (o.kind === "red") {
+      o.rerolled = false;
+      o.slot.classList.remove("landed", "six", "silver", "one", "two", "green", "rolling", "lucky", "sacrificable");
+      delete o.slot.dataset.value;
+      o.slot.classList.add("waiting");
+      o.slot.querySelector(".die-badge").textContent = "";
+    } else {
+      o.slot.classList.remove("safe", "struck", "done");
+      o.slot.classList.add("waiting");
+      o.slot.querySelector(".bd-value").textContent = "?";
+    }
+  }
+  phase = "rolling";
+  setButton("rolling");
+  rollBtn.disabled = false;
+  updateHint();
 }
 resetStats();
 
@@ -539,7 +571,7 @@ function createDie() {
   // Random resting orientation so every die tumbles differently
   const obj = { kind: "red", slot, die, value: null, rerolled: false, rolling: false, rx: Math.random() * 360, ry: Math.random() * 360 };
   die.style.transform = `rotateX(${obj.rx}deg) rotateY(${obj.ry}deg)`;
-  slot.addEventListener("click", () => tapDie(obj));
+  slot.addEventListener("click", () => tapDie(obj, true));
   tray.appendChild(slot);
   return obj;
 }
@@ -551,7 +583,7 @@ function createBadDie() {
   slot.className = "bad-die waiting";
   slot.innerHTML = '<span class="bd-value">?</span><span class="bd-label">BAD d20</span>';
   const obj = { kind: "bad", slot, value: null, rolling: false };
-  slot.addEventListener("click", () => tapDie(obj));
+  slot.addEventListener("click", () => tapDie(obj, true));
   tray.appendChild(slot);
   return obj;
 }
@@ -760,7 +792,7 @@ function createGoldDie() {
   slot.className = "gold-die waiting";
   slot.innerHTML = '<span class="bd-value">?</span><span class="bd-label">GOLD d10</span>';
   const obj = { kind: "gold", slot, value: null, rolling: false };
-  slot.addEventListener("click", () => tapDie(obj));
+  slot.addEventListener("click", () => tapDie(obj, true));
   tray.appendChild(slot);
   return obj;
 }
@@ -857,9 +889,13 @@ async function confiscate(count) {
 const live = (o) => o.kind === "red" && !o.gone;
 
 // sides 6: a normal roll; sides 5: the green die (1-5 only) used on a 2
-async function rollRed(obj, sides = 6) {
+// A die tapped by hand has a secret extra 5% to land on 6 (1/6 + 5% = 21.7%), and a
+// hand-roller's last chance gets 10% on top
+const HAND_SIX_BONUS = 0.05;
+const HAND_LAST_CHANCE_BONUS = 10;
+async function rollRed(obj, sides = 6, byHand = false) {
   obj.rolling = true;
-  const value = d(sides);
+  const value = byHand && sides === 6 ? (Math.random() < 1 / 6 + HAND_SIX_BONUS ? 6 : d(5)) : d(sides);
   const [fx, fy] = FACE_ROTATION[value];
   obj.rx = nearestAbove(obj.rx, fx) + 360 * (2 + d(2));
   obj.ry = nearestAbove(obj.ry, fy) + 360 * (2 + d(2));
@@ -947,20 +983,22 @@ async function rollBad(obj) {
 
 // A tap on a die: roll it; reroll a 1 (normal die, up to 10 dice) or a 2 (green 1-5 die,
 // up to 15 dice), once per die; or, at the very end, sacrifice the 3s
-async function tapDie(obj) {
+async function tapDie(obj, byHand = false) {
   if (phase === "sacrifice" && obj.kind === "red" && obj.value === 3 && !obj.gone) {
     sacrificeThrees();
     return;
   }
   if ((phase !== "rolling" && phase !== "choice") || obj.rolling || obj.gone) return;
   if (obj.value === null) {
-    await (obj.kind === "red" ? rollRed(obj) : obj.kind === "gold" ? rollGold(obj) : rollBad(obj));
+    if (!byHand) stats.autoUsed = true;
+    await (obj.kind === "red" ? rollRed(obj, 6, byHand) : obj.kind === "gold" ? rollGold(obj) : rollBad(obj));
   } else if (obj.kind === "red" && !obj.rerolled && ((obj.value === 1 && canRerollOnes()) || (obj.value === 2 && canRerollTwos()))) {
     obj.rerolled = true;
     phase = "rolling";
     setButton("rolling");
     silverBtn.hidden = true;
-    await rollRed(obj, obj.value === 2 ? 5 : 6);
+    if (!byHand) stats.autoUsed = true;
+    await rollRed(obj, obj.value === 2 ? 5 : 6, byHand);
   } else {
     return;
   }
@@ -983,8 +1021,8 @@ function roundReady() {
   const red = roundDice.filter(live);
   const sixes = red.filter((o) => o.value === 6).length;
   const rerolls = red.filter(rerollable);
-  // The old 40%-fives silver reroll is gone: 5s now mean the Silver Jackpot
-  const silver = false;
+  // Silver: at least 40% of the red dice show 5 (2 of 5, 3 of 6, 4 of 10)
+  const silver = 5 * red.filter((o) => o.value === 5).length >= 2 * red.length;
 
   if (insta) {
     // Autopilot: reroll every 1 and 2, take the silver reroll only when there's no 6
@@ -1140,7 +1178,8 @@ function sizeTray(count) {
 // the 6. It's a fair 1/6 plus the wheel's luck: (100 - wheel) / 10 %. A miss lands on 1-5
 async function lastChance(obj) {
   const luck = luckChance();
-  const chance = 100 / 6 + luck;
+  // Hand-rollers get an extra 10% on the last chance
+  const chance = 100 / 6 + luck + (stats.autoUsed ? 0 : HAND_LAST_CHANCE_BONUS);
   const tipped = Math.random() < chance / 100;
   stats.lastChances++;
   stats.expectedSixes += chance / 100;
@@ -1970,6 +2009,12 @@ async function resolveRound() {
     await lastChance(table[table.length - 1]);
     // Still no 6: the very last way out is sacrificing every 3
     if (!hasSix()) await offerSacrifice();
+    // Rolled everything by hand this game? One more go at the round instead of game over
+    if (!hasSix() && !stats.autoUsed && !stats.handRetryUsed) {
+      stats.handRetryUsed = true;
+      await handRetry();
+      return;
+    }
     phase = "busy";
     rollBtn.disabled = true;
   }
@@ -3117,6 +3162,24 @@ async function keepAwake() {
 document.addEventListener("visibilitychange", keepAwake);
 window.addEventListener("pointerdown", keepAwake);
 keepAwake();
+
+/* ---------- Fit the whole game into 90% of the screen, no scrolling ---------- */
+
+const stageEl = $("stage");
+function fitStage() {
+  const natural = stageEl.offsetHeight; // layout size, not affected by the transform
+  // 90% of the screen, minus whatever sits above the game (the phone top bar)
+  const avail = window.innerHeight * 0.9 - stageEl.offsetTop;
+  const scale = Math.min(1, avail / Math.max(natural, 1));
+  stageEl.style.transform = scale < 1 ? `scale(${scale.toFixed(4)})` : "";
+}
+window.addEventListener("resize", fitStage);
+window.addEventListener("orientationchange", () => setTimeout(fitStage, 200));
+// The table grows and shrinks with dice, hints and buttons: refit whenever it does
+if (window.ResizeObserver) new ResizeObserver(fitStage).observe(stageEl);
+fitStage();
+// Fonts arriving late change sizes too
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitStage);
 
 const splashEl = $("splash");
 // The rules, before entering; the splash stays until ENTER
