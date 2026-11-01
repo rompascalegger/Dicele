@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.5">
+  <link rel="stylesheet" href="style.css?v=2.0.6">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -39,7 +39,7 @@
     </div>
     <button id="enter" class="roll-btn" type="button">&#9650; ENTER &#9650;</button>
     <button id="splash-help" class="panel splash-help" type="button">? HOW TO PLAY</button>
-    <p class="splash-hint">tap to enter &middot; sound on &middot; one game a day</p>
+    <p class="splash-hint">tap to enter &middot; sound on &middot; one game every 8 hours</p>
   </div>
 
   <div id="gameover" class="gameover" aria-live="polite">
@@ -62,7 +62,7 @@
       <div id="go-statgrid" class="go-statgrid"></div>
       <div id="go-comp" class="go-comp" hidden>
         <p class="go-comp-title">&#127808; BEGINNER'S LUCK &#127808;</p>
-        <p class="go-comp-text">Rough start! The house feels bad and buys you one more game. It doesn't count against today's.</p>
+        <p class="go-comp-text">Rough start! The house feels bad and buys you one more game. It doesn't use up your next game.</p>
         <button id="go-comp-btn" class="roll-btn go-comp-btn" type="button">&#9733; FREE GAME ON THE HOUSE &#9733;</button>
       </div>
       <div id="go-entry" class="go-entry" hidden>
@@ -174,6 +174,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.0.5"></script>
+  <script src="script.js?v=2.0.6"></script>
 </body>
 </html>

@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.0.5";
+const VERSION = "2.0.6";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -2927,7 +2927,7 @@ function offerBeginnersLuck(final) {
 $("go-comp-btn").addEventListener("click", () => {
   save(COMPS_KEY, load(COMPS_KEY) + 1);
   $("go-comp").hidden = true;
-  // Same door as the secret one: this game doesn't use up today's
+  // Same door as the secret one: this game doesn't use up the 8-hour game
   secretGame = true;
   gameoverEl.classList.remove("show");
   showToast("BEGINNER'S LUCK\nON THE HOUSE", 4);
@@ -3080,46 +3080,45 @@ $("lb-clear").addEventListener("click", () => {
 $("version").textContent = "v" + VERSION;
 renderBonusBar();
 
-/* ---------- One game a day (plus a secret door) ---------- */
+/* ---------- One game every 8 hours (plus a secret door) ---------- */
 
-const DAY_KEY = "dicele-played-day";
-const todayKey = () => {
-  const d0 = new Date();
-  return `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, "0")}-${String(d0.getDate()).padStart(2, "0")}`;
-};
-function playedToday() {
+const PLAYED_AT_KEY = "dicele-played-at";
+const COOLDOWN_MS = 8 * 60 * 60 * 1000;
+function lastPlayedAt() {
   try {
-    return localStorage.getItem(DAY_KEY) === todayKey();
+    return Number(localStorage.getItem(PLAYED_AT_KEY)) || 0;
   } catch {
-    return false;
+    return 0;
   }
 }
-function markPlayedToday() {
+// Still waiting for the next game?
+function onCooldown() {
+  return Date.now() - lastPlayedAt() < COOLDOWN_MS;
+}
+function markPlayed() {
   try {
-    localStorage.setItem(DAY_KEY, todayKey());
+    localStorage.setItem(PLAYED_AT_KEY, String(Date.now()));
   } catch {
-    // Storage unavailable: no daily limit then
+    // Storage unavailable: no limit then
   }
 }
-// The secret door: tap the DICELE logo 3 times quickly for one more game today
+// The secret door: tap the DICELE logo 3 times quickly for one more game right now
 let secretGame = false;
 
-function untilMidnight() {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const s = Math.max(0, Math.floor((next - now) / 1000));
+function untilNextGame() {
+  const s = Math.max(0, Math.ceil((lastPlayedAt() + COOLDOWN_MS - Date.now()) / 1000));
   return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((v) => String(v).padStart(2, "0")).join(":");
 }
 
-// While idle and out of games, the button counts down to tomorrow's game
+// While idle and waiting, the button counts down to the next game
 function refreshIdleButton() {
   if (phase !== "idle") return;
-  const locked = playedToday() && !secretGame;
+  const locked = onCooldown() && !secretGame;
   rollBtn.classList.toggle("locked", locked);
   rollBtn.innerHTML = locked
-    ? `NEXT GAME IN ${untilMidnight()}<span class="auto">one game a day, like a good habit</span>`
+    ? `NEXT GAME IN ${untilNextGame()}<span class="auto">one game every 8 hours</span>`
     : "&#9650; NEW GAME &#9650;";
-  $("new-game").innerHTML = locked ? `SEE YOU IN ${untilMidnight()}` : "&#9650; NEW GAME &#9650;";
+  $("new-game").innerHTML = locked ? `SEE YOU IN ${untilNextGame()}` : "&#9650; NEW GAME &#9650;";
 }
 setInterval(refreshIdleButton, 1000);
 
@@ -3128,7 +3127,7 @@ document.querySelector("header h1").addEventListener("click", () => {
   const now = performance.now();
   logoTaps = logoTaps.filter((t) => now - t < 1500).concat(now);
   sfx(300 + logoTaps.length * 200, 0.08, { vol: 0.04 });
-  if (logoTaps.length < 3 || phase !== "idle" || secretGame || !playedToday()) return;
+  if (logoTaps.length < 3 || phase !== "idle" || secretGame || !onCooldown()) return;
   logoTaps = [];
   secretGame = true;
   showToast("SECRET DOOR!\nONE MORE GAME", 9);
@@ -3141,15 +3140,15 @@ document.querySelector("header h1").addEventListener("click", () => {
 // The big button / space bar: whatever comes next
 function play() {
   if (phase === "idle") {
-    if (playedToday() && !secretGame) {
-      setMessage(`> the casino is closed for you today. come back in ${untilMidnight()}`);
-      setHint("One game a day. Rumor says the logo hides a secret door...");
+    if (onCooldown() && !secretGame) {
+      setMessage(`> the casino is closed for you. come back in ${untilNextGame()}`);
+      setHint("One game every 8 hours. Rumor says the logo hides a secret door...");
       rollBtn.animate([{ transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "none" }], { duration: 250 });
       SOUND.sad();
       return;
     }
     secretGame = false;
-    markPlayedToday();
+    markPlayed();
     save(GAMES_KEY, load(GAMES_KEY) + 1);
     gameoverEl.classList.remove("show");
     startTurn();
