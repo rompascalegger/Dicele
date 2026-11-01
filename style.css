@@ -170,8 +170,12 @@ h1 {
   align-items: center;
   padding: 16px 16px 40px;
 }
+/* .floor lets taps through to the falling dice behind it, so everything you can tap
+   inside it opts back in, including every die on the table */
 .floor .panel,
-.floor .roll-btn { pointer-events: auto; }
+.floor .roll-btn,
+.floor .silver-btn,
+.floor .tray { pointer-events: auto; }
 
 .panel {
   background: var(--panel);
