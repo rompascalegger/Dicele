@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.0.1";
+const VERSION = "2.0.2";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -2558,6 +2558,7 @@ async function showGameOver(final) {
   $("go-curve").innerHTML = "";
   $("go-statgrid").innerHTML = "";
   $("go-entry").hidden = true;
+  $("go-comp").hidden = true;
   gameoverEl.classList.add("show");
   setHint("Tap NEW GAME to play again. The trophy at the top shows your leaderboard.");
   await wait(reducedMotion ? 100 : 600);
@@ -2615,6 +2616,7 @@ async function showGameOver(final) {
   }
 
   offerLeaderboard(final, tier);
+  offerBeginnersLuck(final);
 }
 
 // Score at a given percentile, interpolated on a log scale (inverse of scorePercentile)
@@ -2793,6 +2795,40 @@ function saveBoard(list) {
     // Storage unavailable; the board just won't persist
   }
 }
+
+/* ---------- Beginner's Luck: a free retry for very unlucky new players ---------- */
+
+// In their first few games, a bottom-tier result (about 1 game in 5) gets one free game on
+// the house that doesn't count against the daily limit. A handful per player, ever
+const GAMES_KEY = "dicele-games-played";
+const COMPS_KEY = "dicele-comps-used";
+const BEGINNER_GAMES = 3;
+const MAX_COMPS = 3;
+
+function offerBeginnersLuck(final) {
+  const box = $("go-comp");
+  box.hidden = true;
+  const isNew = load(GAMES_KEY) <= BEGINNER_GAMES;
+  const unlucky = final < SCORE_TIERS[1];
+  if (!isNew || !unlucky || load(COMPS_KEY) >= MAX_COMPS) return;
+  box.hidden = false;
+  box.animate([{ transform: "scale(.6) rotate(-3deg)", opacity: 0 }, { transform: "none", opacity: 1 }], {
+    duration: 450,
+    easing: "cubic-bezier(.3, 1.6, .5, 1)",
+  });
+  arp([523, 659, 784, 1047], 0.09, { type: "triangle", vol: 0.06, wet: 0.4 });
+  setHint("Rough start? The house is buying you another game.");
+}
+
+$("go-comp-btn").addEventListener("click", () => {
+  save(COMPS_KEY, load(COMPS_KEY) + 1);
+  $("go-comp").hidden = true;
+  // Same door as the secret one: this game doesn't use up today's
+  secretGame = true;
+  gameoverEl.classList.remove("show");
+  showToast("BEGINNER'S LUCK\nON THE HOUSE", 4);
+  play();
+});
 
 // Top-10 score? Ask for 3-letter initials right on the game-over card
 function offerLeaderboard(final, tier) {
@@ -3010,6 +3046,7 @@ function play() {
     }
     secretGame = false;
     markPlayedToday();
+    save(GAMES_KEY, load(GAMES_KEY) + 1);
     gameoverEl.classList.remove("show");
     startTurn();
   } else if (phase === "wheel") {

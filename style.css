@@ -1674,3 +1674,18 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
 }
 .splash-help:hover { box-shadow: 0 0 0 3px var(--night2), 0 0 18px var(--neon-cyan); }
 .modal { z-index: 26; }
+
+/* Beginner's Luck: free retry offer on the end screen */
+.go-comp { margin: 12px 0; padding: 12px; border: 2px solid #2ee87a; background: rgba(46, 232, 122, .08); box-shadow: 0 0 18px rgba(46, 232, 122, .35); }
+.go-comp[hidden] { display: none; }
+.go-comp-title { margin: 0 0 6px; font-family: var(--pixel-bold); font-size: .9rem; color: #2ee87a; }
+.go-comp-text { margin: 0 0 10px; font-size: 1.1rem; color: #e6d6ff; }
+.go-comp-btn {
+  font-size: .85rem;
+  color: #0c3d1f;
+  text-shadow: none;
+  background: linear-gradient(#5cf59a 0 50%, #2ee87a 50%);
+  border-color: #127a3c;
+  box-shadow: 0 0 0 4px var(--night2), 0 6px 0 #127a3c, 0 0 20px rgba(46, 232, 122, .6);
+  animation: none;
+}

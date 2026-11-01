@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.1">
+  <link rel="stylesheet" href="style.css?v=2.0.2">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -60,6 +60,11 @@
       <p class="go-section">WHERE YOU LANDED</p>
       <div id="go-curve" class="go-curve"></div>
       <div id="go-statgrid" class="go-statgrid"></div>
+      <div id="go-comp" class="go-comp" hidden>
+        <p class="go-comp-title">&#127808; BEGINNER'S LUCK &#127808;</p>
+        <p class="go-comp-text">Rough start! The house feels bad and buys you one more game. It doesn't count against today's.</p>
+        <button id="go-comp-btn" class="roll-btn go-comp-btn" type="button">&#9733; FREE GAME ON THE HOUSE &#9733;</button>
+      </div>
       <div id="go-entry" class="go-entry" hidden>
         <p id="go-entry-title" class="go-entry-title">HIGH SCORE!</p>
         <label class="go-entry-label" for="go-initials">your initials</label>
@@ -165,6 +170,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.0.1"></script>
+  <script src="script.js?v=2.0.2"></script>
 </body>
 </html>
