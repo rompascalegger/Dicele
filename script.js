@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.0.6";
+const VERSION = "2.0.7";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 12,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 9700, 33000, 120000, 850000, 4300000, 12000000, 21000000, 38000000, 110000000];
+const SCORE_TIERS = [0, 6600, 19000, 51000, 140000, 610000, 6000000, 19000000, 43000000, 160000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 11, 23, 55, 106, 145, 168, 189, 223, 258];
+const FLOOR_TIERS = [1, 8, 13, 23, 44, 133, 203, 246, 289, 298];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 0], [0.1, 84], [1, 465], [5, 1887], [10, 4005], [20, 9672], [30, 18432], [40, 32928], [50, 60384], [60, 124902], [70, 378072], [75, 853776], [80, 2018370], [85, 4276880], [90, 8131032], [93, 11804661], [95, 15434118], [97, 21423896], [98, 26812944], [99, 38044776], [99.5, 52921248], [99.8, 81194689], [99.9, 111714604], [99.95, 154110060], [99.99, 320086032], [99.999, 947483390], [100, 8695687144]];
+const SCORE_PERCENTILES = [[0, 0], [0.1, 65], [1, 364], [5, 1344], [10, 2934], [20, 6600], [30, 11660], [40, 19100], [50, 30576], [60, 50880], [70, 95404], [75, 143616], [80, 253890], [85, 605160], [90, 2362033], [93, 5973132], [95, 10482075], [97, 18899928], [98, 26893080], [99, 42882864], [99.5, 63081195], [99.8, 106737020], [99.9, 162729040], [99.95, 259036074], [99.99, 862583200], [99.999, 5380193312], [100, 74718806400]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 5], [40, 11], [50, 16], [60, 23], [75, 55], [85, 106], [90, 130], [93, 145], [95, 155], [97, 168], [99, 189], [99.9, 223], [99.99, 258]];
+const FLOOR_PERCENTILES = [[20, 4], [40, 8], [50, 10], [60, 13], [75, 23], [85, 44], [90, 83], [93, 133], [95, 169], [97, 203], [99, 246], [99.9, 289], [99.99, 298]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0006], [1.063, 0.0009], [1.126, 0.0011], [1.188, 0.0012], [1.251, 0.0012], [1.314, 0.0013], [1.377, 0.0015], [1.44, 0.0019], [1.502, 0.0025], [1.565, 0.003], [1.628, 0.0036], [1.691, 0.0041], [1.754, 0.0049], [1.816, 0.006], [1.879, 0.0073], [1.942, 0.0091], [2.005, 0.0109], [2.068, 0.0131], [2.131, 0.0161], [2.193, 0.0193], [2.256, 0.0233], [2.319, 0.0283], [2.382, 0.0338], [2.445, 0.0405], [2.507, 0.049], [2.57, 0.0586], [2.633, 0.0702], [2.696, 0.0842], [2.759, 0.1], [2.821, 0.1185], [2.884, 0.1396], [2.947, 0.1614], [3.01, 0.1826], [3.073, 0.2016], [3.135, 0.2186], [3.198, 0.2371], [3.261, 0.2612], [3.324, 0.2952], [3.387, 0.3405], [3.449, 0.3926], [3.512, 0.4447], [3.575, 0.4937], [3.638, 0.5396], [3.701, 0.5863], [3.764, 0.6371], [3.826, 0.6911], [3.889, 0.7436], [3.952, 0.79], [4.015, 0.8334], [4.078, 0.8714], [4.14, 0.9055], [4.203, 0.9373], [4.266, 0.9631], [4.329, 0.983], [4.392, 0.9959], [4.454, 1.0], [4.517, 0.9941], [4.58, 0.9798], [4.643, 0.9581], [4.706, 0.931], [4.768, 0.9], [4.831, 0.8653], [4.894, 0.8279], [4.957, 0.7871], [5.02, 0.7439], [5.082, 0.6988], [5.145, 0.6526], [5.208, 0.6071], [5.271, 0.5632], [5.334, 0.5223], [5.397, 0.4853], [5.459, 0.4526], [5.522, 0.4244], [5.585, 0.4008], [5.648, 0.3813], [5.711, 0.3656], [5.773, 0.3535], [5.836, 0.3446], [5.899, 0.3386], [5.962, 0.3354], [6.025, 0.3345], [6.087, 0.336], [6.15, 0.3396], [6.213, 0.3453], [6.276, 0.353], [6.339, 0.3626], [6.401, 0.3738], [6.464, 0.3864], [6.527, 0.4001], [6.59, 0.414], [6.653, 0.428], [6.715, 0.441], [6.778, 0.4521], [6.841, 0.4604], [6.904, 0.4642], [6.967, 0.4626], [7.03, 0.4538], [7.092, 0.4366], [7.155, 0.4106], [7.218, 0.3757], [7.281, 0.3339], [7.344, 0.2878], [7.406, 0.2407], [7.469, 0.1958], [7.532, 0.1555], [7.595, 0.1208], [7.658, 0.0923], [7.72, 0.0696], [7.783, 0.0519], [7.846, 0.0384], [7.909, 0.0283], [7.972, 0.0208], [8.034, 0.0152], [8.097, 0.0111], [8.16, 0.0081], [8.223, 0.006], [8.286, 0.0044], [8.348, 0.0032], [8.411, 0.0023], [8.474, 0.0017], [8.537, 0.0013], [8.6, 0.0009], [8.663, 0.0007], [8.725, 0.0005], [8.788, 0.0003], [8.851, 0.0002], [8.914, 0.0002], [8.977, 0.0001]];
+const SCORE_CURVE = [[1.0, 0.0007], [1.069, 0.001], [1.137, 0.0013], [1.206, 0.0014], [1.275, 0.0015], [1.344, 0.0016], [1.412, 0.002], [1.481, 0.0026], [1.55, 0.0032], [1.619, 0.004], [1.687, 0.0048], [1.756, 0.0059], [1.825, 0.0071], [1.894, 0.0089], [1.962, 0.0109], [2.031, 0.0133], [2.1, 0.0164], [2.169, 0.0203], [2.237, 0.0249], [2.306, 0.031], [2.375, 0.038], [2.444, 0.0462], [2.512, 0.0563], [2.581, 0.0682], [2.65, 0.0827], [2.719, 0.1004], [2.787, 0.1217], [2.856, 0.1461], [2.925, 0.1723], [2.994, 0.1974], [3.062, 0.2197], [3.131, 0.2405], [3.2, 0.2628], [3.269, 0.293], [3.337, 0.3362], [3.406, 0.3906], [3.475, 0.4499], [3.544, 0.5091], [3.612, 0.564], [3.681, 0.6167], [3.75, 0.6716], [3.819, 0.7293], [3.887, 0.7859], [3.956, 0.8371], [4.025, 0.8837], [4.094, 0.9223], [4.162, 0.954], [4.231, 0.9802], [4.3, 0.9956], [4.369, 1.0], [4.437, 0.9929], [4.506, 0.9723], [4.575, 0.9406], [4.644, 0.9], [4.712, 0.8535], [4.781, 0.8039], [4.85, 0.7527], [4.919, 0.7004], [4.987, 0.6469], [5.056, 0.5923], [5.125, 0.5377], [5.194, 0.4849], [5.262, 0.4355], [5.331, 0.3915], [5.4, 0.3534], [5.469, 0.321], [5.537, 0.2937], [5.606, 0.2703], [5.675, 0.25], [5.744, 0.2323], [5.812, 0.2165], [5.881, 0.2025], [5.95, 0.1903], [6.018, 0.1796], [6.087, 0.1708], [6.156, 0.1636], [6.225, 0.1581], [6.293, 0.1542], [6.362, 0.1519], [6.431, 0.1512], [6.5, 0.1519], [6.568, 0.1538], [6.637, 0.1567], [6.706, 0.16], [6.775, 0.1635], [6.843, 0.1665], [6.912, 0.1684], [6.981, 0.1687], [7.05, 0.1668], [7.118, 0.1627], [7.187, 0.1564], [7.256, 0.1481], [7.325, 0.1382], [7.393, 0.127], [7.462, 0.1146], [7.531, 0.1013], [7.6, 0.0872], [7.668, 0.0728], [7.737, 0.0587], [7.806, 0.0457], [7.875, 0.0346], [7.943, 0.0258], [8.012, 0.0191], [8.081, 0.0143], [8.15, 0.0107], [8.218, 0.0081], [8.287, 0.0062], [8.356, 0.0047], [8.425, 0.0036], [8.493, 0.0028], [8.562, 0.0022], [8.631, 0.0017], [8.7, 0.0014], [8.768, 0.0011], [8.837, 0.0009], [8.906, 0.0007], [8.975, 0.0006], [9.043, 0.0005], [9.112, 0.0004], [9.181, 0.0003], [9.25, 0.0002], [9.318, 0.0002], [9.387, 0.0002], [9.456, 0.0001], [9.525, 0.0001], [9.593, 0.0001], [9.662, 0.0001], [9.731, 0.0001]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -66,14 +66,13 @@ function paintTier(el, tier) {
 const BASE_DICE = 5;
 // Every this many floors the elevator hands you one more red die (no upper limit)
 const FLOORS_PER_DIE = 5;
-// From 6 dice the Casino Manager adds a bad d20, plus one more per 5 extra dice (11, 16, ...).
-// A bad d20 costs you a die for good on a 1. From floor 15 one more face loses every 12
-// floors: 1-2 from 15, 1-3 from 27, 1-4 from 39, ... Tuned with tools/simulate.py so about
-// 1 hand-rolled game in 100,000 snowballs practically forever (hand-rollers are the strongest)
-const BAD_FROM_DICE = 6;
+// From 10 dice the Casino Manager adds a bad d20, plus one more per 5 extra dice (15, 20, ...).
+// A bad d20 costs you a die for good on a 1. From floor 25 one more face loses every 18
+// floors: 1-2 from 25, 1-3 from 43, 1-4 from 61, ...
+const BAD_FROM_DICE = 10;
 const BAD_EVERY_DICE = 5;
-const LOSE_FACES_FROM_FLOOR = 15;
-const LOSE_FACE_STEP = 12;
+const LOSE_FACES_FROM_FLOOR = 25;
+const LOSE_FACE_STEP = 18;
 const badDiceFor = (n) => (n < BAD_FROM_DICE ? 0 : 1 + Math.floor((n - BAD_FROM_DICE) / BAD_EVERY_DICE));
 const badLosesOn = () =>
   floor < LOSE_FACES_FROM_FLOOR ? 1 : Math.min(19, 2 + Math.floor((floor - LOSE_FACES_FROM_FLOOR) / LOSE_FACE_STEP));
@@ -836,26 +835,46 @@ async function rollShelf() {
   const shelf = $("d4-shelf");
   const items = [...shelf.children];
   let total = 0;
-  for (const el of items) {
+  const time = reducedMotion ? 200 : 750;
+  items.forEach((el, i) => {
     const v = d(4);
     total += v;
-    el.querySelector(".d4-face").textContent = v;
-    el.animate([{ transform: "rotate(0) translateY(0)" }, { transform: "rotate(240deg) translateY(-10px)" }, { transform: "rotate(360deg) translateY(0)" }], {
-      duration: 450,
-      delay: Math.random() * 200,
-      easing: "ease-out",
-    });
-  }
-  if (items.length) sfx(1200, 0.06, { type: "triangle", vol: 0.04 });
+    const delay = Math.random() * 180;
+    // A little hop and tumble, flicking through faces, landing on its roll
+    el.animate(
+      [
+        { transform: "translateY(0) rotate(0)" },
+        { transform: "translateY(-16px) rotate(200deg) scale(1.15)", offset: 0.4 },
+        { transform: "translateY(0) rotate(330deg) scale(1.1, .9)", offset: 0.75 },
+        { transform: "translateY(-4px) rotate(352deg)", offset: 0.88 },
+        { transform: "translateY(0) rotate(360deg)" },
+      ],
+      { duration: time, delay, easing: "cubic-bezier(.3, .7, .4, 1)" }
+    );
+    let flicks = 0;
+    setTimeout(() => {
+      const timer = setInterval(() => {
+        fillFace(el, ++flicks < 6 ? d(4) : v);
+        if (flicks >= 6) {
+          clearInterval(timer);
+          el.classList.add("landed");
+        }
+      }, time / 7);
+    }, delay);
+    el.classList.remove("landed");
+    if (i < 6) sfx(900 + Math.random() * 400, 0.05, { type: "triangle", vol: 0.035, delay: (delay + time * 0.75) / 1000 });
+  });
+  await wait(time + 200);
   return total;
 }
 
 function addShelfD4(count) {
   const shelf = $("d4-shelf");
   for (let i = 0; i < count; i++) {
+    // A small orange die showing 1-4 pips (same pip masks as the red dice)
     const el = document.createElement("span");
-    el.className = "d4 shelf-d4";
-    el.innerHTML = '<span class="d4-face">?</span>';
+    el.className = "mini shelf-d4";
+    fillFace(el, d(4));
     shelf.appendChild(el);
     el.animate([{ transform: "translateY(-60px) rotate(-300deg) scale(.3)", opacity: 0 }, { transform: "none", opacity: 1 }], {
       duration: 500,
@@ -891,13 +910,14 @@ async function confiscate(count) {
 const live = (o) => o.kind === "red" && !o.gone;
 
 // sides 6: a normal roll; sides 5: the green die (1-5 only) used on a 2
-// A die tapped by hand has a secret extra 5% to land on 6 (1/6 + 5% = 21.7%), and a
-// hand-roller's last chance gets 10% on top
-const HAND_SIX_BONUS = 0.05;
+// Clutch tap: the last die you tap by hand each round has a secret extra 10% to land on 6
+// (1/6 + 10% = 26.7%). A hand-roller's last chance gets 10% on top too
+const CLUTCH_SIX_BONUS = 0.1;
 const HAND_LAST_CHANCE_BONUS = 10;
-async function rollRed(obj, sides = 6, byHand = false) {
+async function rollRed(obj, sides = 6, clutch = false) {
   obj.rolling = true;
-  const value = byHand && sides === 6 ? (Math.random() < 1 / 6 + HAND_SIX_BONUS ? 6 : d(5)) : d(sides);
+  obj.slot.classList.remove("clutch");
+  const value = clutch && sides === 6 ? (Math.random() < 1 / 6 + CLUTCH_SIX_BONUS ? 6 : d(5)) : d(sides);
   const [fx, fy] = FACE_ROTATION[value];
   obj.rx = nearestAbove(obj.rx, fx) + 360 * (2 + d(2));
   obj.ry = nearestAbove(obj.ry, fy) + 360 * (2 + d(2));
@@ -997,14 +1017,16 @@ async function tapDie(obj, byHand = false) {
   if ((phase !== "rolling" && phase !== "choice") || obj.rolling || obj.gone) return;
   if (obj.value === null) {
     if (!byHand) stats.autoUsed = true;
-    await (obj.kind === "red" ? rollRed(obj, 6, byHand) : obj.kind === "gold" ? rollGold(obj) : rollBad(obj));
+    // Clutch tap: the last red die of the round, tapped by hand
+    const clutch = byHand && obj.kind === "red" && !roundDice.some((o) => live(o) && o !== obj && o.value === null);
+    await (obj.kind === "red" ? rollRed(obj, 6, clutch) : obj.kind === "gold" ? rollGold(obj) : rollBad(obj));
   } else if (obj.kind === "red" && !obj.rerolled && ((obj.value === 1 && canRerollOnes()) || (obj.value === 2 && canRerollTwos()))) {
     obj.rerolled = true;
     phase = "rolling";
     setButton("rolling");
     silverBtn.hidden = true;
     if (!byHand) stats.autoUsed = true;
-    await rollRed(obj, obj.value === 2 ? 5 : 6, byHand);
+    await rollRed(obj, obj.value === 2 ? 5 : 6);
   } else {
     return;
   }
@@ -1012,11 +1034,18 @@ async function tapDie(obj, byHand = false) {
 }
 
 function afterRoll() {
+  markClutch();
   if (roundDice.some((o) => o.value === null || o.rolling)) {
     updateHint();
     return;
   }
   roundReady();
+}
+
+// The last unrolled red die glows gold: that's the clutch tap
+function markClutch() {
+  const waiting = roundDice.filter((o) => live(o) && o.value === null && !o.rolling);
+  for (const o of roundDice) if (o.kind === "red") o.slot.classList.toggle("clutch", !insta && waiting.length === 1 && waiting[0] === o);
 }
 
 const rerollable = (o) => live(o) && !o.rerolled && ((o.value === 1 && canRerollOnes()) || (o.value === 2 && canRerollTwos()));
@@ -1959,9 +1988,12 @@ function updateHint() {
     const left = roundDice.filter((o) => o.value === null && !o.gone).length;
     const bad = roundDice.some((o) => o.kind === "bad" && o.value === null);
     const lose = badLosesOn() === 1 ? "a 1" : `1-${badLosesOn()}`;
+    const clutch = !insta && roundDice.filter((o) => live(o) && o.value === null).length === 1;
     setHint(
-      `Tap each die to roll it (${left} left). Every 6 = one floor up. No 6 at all = game over.` +
-        (bad ? ` Bad d20: ${lose} costs you a die!` : "")
+      clutch
+        ? "The golden one is your CLUTCH TAP: hand-rollers' last die feels luckier..."
+        : `Tap each die to roll it (${left} left). Every 6 = one floor up. No 6 at all = game over.` +
+            (bad ? ` Bad d20: ${lose} costs you a die!` : "")
     );
   } else if (phase === "choice") {
     const ones = roundDice.some((o) => rerollable(o) && o.value === 1);
