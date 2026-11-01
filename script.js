@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.1.4";
+const VERSION = "2.1.5";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -1837,7 +1837,7 @@ async function rollEndDie(n = 1, total = 1) {
     <p class="d20-title">${total > 1 ? `END DIE ${n} OF ${total}` : "THE END DIE"}</p>
     <div class="d20-roll"><canvas class="d20" width="360" height="360"></canvas><div class="d20-shadow"></div></div>
     <p class="d20-label">d1</p>
-    <p class="d20-goal">${endDieGoal(sides)}</p>`;
+    <p class="d20-goal">${n === 1 ? endDieGoal(sides) : "bonus die: adds to the multiplier"}</p>`;
   document.body.appendChild(stage);
   const canvasEl = stage.querySelector(".d20");
   const c = canvasEl.getContext("2d");
@@ -1938,7 +1938,7 @@ async function rollEndDie(n = 1, total = 1) {
   mult += value;
   setMult(mult);
   showToast(`END DIE ${total > 1 ? `${n}/${total} ` : ""}d${sides}\n+${value} MULTI`, multTier(mult));
-  if (value >= extraRoundFrom(sides)) {
+  if (n === 1 && value >= extraRoundFrom(sides)) {
     stage.querySelector(".d20-goal").textContent = "★ ONE MORE ROUND ★";
     stage.classList.add("extra");
   }
@@ -2053,7 +2053,9 @@ function logRound(sum, bonus, sixes) {
   chip.className = "chip";
   paintTier(chip, floorTier(floor + sixes));
   chip.innerHTML = `R${round} <b>${sum}</b>` + (bonus ? ` <i>+${bonus}</i>` : "") + (sixes ? ` <u>&#9650;${sixes}</u>` : "");
+  logEl.querySelector(".log-empty")?.remove();
   logEl.appendChild(chip);
+  $("history-count").textContent = `(${logEl.querySelectorAll(".chip").length})`;
 }
 
 function centerOf(el) {
@@ -2142,7 +2144,8 @@ async function startTurn() {
   roundEl.textContent = "0";
   scoreEl.textContent = "0";
   paintTier(scoreEl, 0);
-  logEl.innerHTML = "";
+  logEl.innerHTML = '<p class="modal-sub log-empty">no rounds yet</p>';
+  $("history-count").textContent = "";
   tray.innerHTML = "";
   setDiceCount();
   if (floorLabelEl.textContent !== "0") {
@@ -2638,9 +2641,10 @@ async function endTurn() {
     const sides = totalSixes;
     const k = endDieBar();
     const count = endDiceFor(floor);
-    // Every end die adds to the multiplier; the best one decides the bonus round
-    let value = 0;
-    for (let n = 1; n <= count; n++) value = Math.max(value, await rollEndDie(n, count));
+    // Every end die adds to the multiplier; the first one decides the bonus round (letting the
+    // best of many decide made long games practically endless)
+    const value = await rollEndDie(1, count);
+    for (let n = 2; n <= count; n++) await rollEndDie(n, count);
     const earned = value >= extraRoundFrom(sides);
     stats.endDieRolls++;
     if (earned) {
@@ -3231,6 +3235,8 @@ document.addEventListener("keydown", (e) => {
 
 $("lb-btn").addEventListener("click", () => showLeaderboard());
 $("help-btn").addEventListener("click", () => openModal("help"));
+// The round log lives in its own window so it never squeezes the dice on the table
+$("history-btn").addEventListener("click", () => openModal("history"));
 $("lb-clear").addEventListener("click", () => {
   if (confirm("Clear this device's leaderboard?")) {
     saveBoard([]);

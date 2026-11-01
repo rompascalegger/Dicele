@@ -193,10 +193,10 @@ def game():
         if not sixes:
             # The end die d(total sixes) adds to the multiplier; beating k/(k+1) of its
             # sides (rounded up) earns one more round, with k rising every time: 1/2, 2/3, ...
-            # One end die plus one more per 10 floors; the best one decides the bonus round
+            # One end die plus one more per 10 floors; the first one decides the bonus round
             ends = [d(floor) for _ in range(1 + floor // 10)] if floor else [0]
             mult += sum(ends)
-            end = max(ends)
+            end = ends[0]
             end_rolls += 1
             if floor and end > -(-floor * end_rolls // (end_rolls + 1)):
                 dice = max(1, dice - lost)

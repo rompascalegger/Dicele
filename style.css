@@ -243,7 +243,10 @@ h1 {
   justify-content: center;
   gap: 8px;
   min-height: 30px;
+  margin-top: 10px;
 }
+.btn-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.history-btn span { color: var(--gold); }
 .chip {
   background: rgba(0, 0, 0, .45);
   border: 2px solid rgba(255, 207, 74, .6);
