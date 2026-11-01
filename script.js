@@ -22,32 +22,34 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-// Ten color escalations, from boring to jackpot
+const VERSION = "2.0.0";
+
+// Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
-  { name: "PAPER", color: "#9a8fa8" },
-  { name: "BRONZE", color: "#c98a4b" },
-  { name: "SILVER", color: "#dfe6f0" },
-  { name: "JADE", color: "#3ddc84" },
-  { name: "AQUA", color: "#44f0ff" },
-  { name: "SAPPHIRE", color: "#5b84ff" },
-  { name: "AMETHYST", color: "#b45cff" },
-  { name: "NEON", color: "#ff3d9a" },
-  { name: "INFERNO", color: "#ff7a1a" },
-  { name: "JACKPOT", color: "#ffcf4a" },
+  // Colors match the names: plain grey, metals, gems, then VIP purple, elite crimson and a
+  // legendary blaze (which also gets the rainbow shimmer)
+  { name: "STANDARD", title: "Lifesavings Better", verdict: "Rent Is Due", color: "#9a8fa8" },
+  { name: "BRONZE", title: "Casual Gambler", verdict: "Professional Button Masher", color: "#cd7f32" },
+  { name: "SILVER", title: "Weekend High Roller", verdict: "The Occasional Bad Decision", color: "#d4dae3" },
+  { name: "GOLD", title: "The Risk Addict", verdict: "The ATM's Biggest Fan", color: "#ffcf4a" },
+  { name: "EMERALD", title: "Silver Stake Player", verdict: "Financially Unsupervised", color: "#2ee87a" },
+  { name: "PLATINUM", title: "Gold Table Regular", verdict: "The House's Favorite Charity", color: "#a9d6ff" },
+  { name: "DIAMOND", title: "Diamond High Roller", verdict: "Certified Bad Decision Maker", color: "#5ff4ff" },
+  { name: "VIP", title: "Millionaire Maverick", verdict: "Tax Bracket Speedrunner", color: "#b45cff" },
+  { name: "ELITE", title: "Billionaire Elite", verdict: "Bankruptcy? Never Heard of Her", color: "#ff2f5b" },
+  { name: "LEGENDARY", title: "Trillion Connoisseur", verdict: "Just an Ordinary Trillionaire", color: "#ff8a1f" },
 ];
-// Final scores at or above these reach the matching tier
-// Tier thresholds come from simulating 200,000 games with these rules:
-// bottom 20% Paper, then 40/60/75/85/93/97/99/99.9th percentiles, top 0.1% Jackpot
-const SCORE_TIERS = [0, 1250, 3000, 6500, 12000, 20000, 40000, 85000, 200000, 750000];
-// Same idea for floors: median game reaches floor 2, top 1% floor 30
-const FLOOR_TIERS = [1, 2, 3, 4, 6, 9, 14, 20, 30, 57];
-// Simulated score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [
-  [0, 10], [1, 96], [5, 360], [10, 663], [20, 1260], [30, 1978], [40, 3168], [50, 4445],
-  [60, 6480], [70, 9483], [75, 11832], [80, 15200], [85, 20451], [90, 30094], [93, 41475],
-  [95, 55752], [97, 86686], [98, 123123], [99, 209000], [99.5, 334044], [99.8, 549300],
-  [99.9, 754728], [99.95, 997662], [99.99, 1491105], [100, 3936800],
-];
+// Final scores at or above these reach the matching tier. From 12,000,000 simulated games
+// (tools/simulate.py): bottom 20% Standard, then the 40/60/75/85/93/97/99/99.9th percentiles
+const SCORE_TIERS = [0, 960, 2400, 5100, 9700, 17000, 37000, 82000, 300000, 11000000];
+// Same idea for floors
+const FLOOR_TIERS = [1, 2, 3, 4, 7, 11, 17, 32, 167, 243];
+// Score percentiles [percent of games, score], used to rank each result
+const SCORE_PERCENTILES = [[0, 0], [0.1, 15], [1, 75], [5, 276], [10, 510], [20, 957], [30, 1458], [40, 2418], [50, 3572], [60, 5110], [70, 7722], [75, 9720], [80, 12584], [85, 17290], [90, 26230], [93, 36960], [95, 50547], [97, 82180], [98, 124656], [99, 296931], [99.5, 938080], [99.8, 4973260], [99.9, 11439200], [99.95, 20547252], [99.99, 49976915], [99.999, 189864891], [100, 5319486192]];
+// [percent of games, floors reached], for the end screen
+const FLOOR_PERCENTILES = [[20, 0], [40, 1], [50, 2], [60, 3], [75, 4], [85, 7], [90, 9], [93, 11], [95, 13], [97, 17], [99, 32], [99.9, 167], [99.99, 243]];
+// End-screen curve: [log10(score), share of games relative to the peak]
+const SCORE_CURVE = [[1.0, 0.0034], [1.057, 0.006], [1.115, 0.0081], [1.172, 0.0098], [1.229, 0.0105], [1.287, 0.0102], [1.344, 0.0107], [1.401, 0.0123], [1.458, 0.0152], [1.516, 0.0192], [1.573, 0.0228], [1.63, 0.0263], [1.688, 0.0294], [1.745, 0.033], [1.802, 0.0394], [1.86, 0.0466], [1.917, 0.0555], [1.974, 0.0649], [2.032, 0.0751], [2.089, 0.0866], [2.146, 0.1007], [2.204, 0.1181], [2.261, 0.1369], [2.318, 0.1603], [2.375, 0.1848], [2.433, 0.2119], [2.49, 0.2435], [2.547, 0.279], [2.605, 0.3226], [2.662, 0.3734], [2.719, 0.4311], [2.777, 0.4974], [2.834, 0.571], [2.891, 0.6489], [2.949, 0.7259], [3.006, 0.7874], [3.063, 0.8188], [3.12, 0.8179], [3.178, 0.7915], [3.235, 0.7606], [3.292, 0.752], [3.35, 0.7784], [3.407, 0.8418], [3.464, 0.9188], [3.522, 0.9767], [3.579, 1.0], [3.636, 0.9811], [3.694, 0.9422], [3.751, 0.9069], [3.808, 0.8774], [3.866, 0.8509], [3.923, 0.8137], [3.98, 0.7639], [4.037, 0.7081], [4.095, 0.6496], [4.152, 0.595], [4.209, 0.5425], [4.267, 0.4912], [4.324, 0.4441], [4.381, 0.4003], [4.439, 0.3591], [4.496, 0.3203], [4.553, 0.2837], [4.611, 0.2497], [4.668, 0.2181], [4.725, 0.1894], [4.782, 0.1636], [4.84, 0.1407], [4.897, 0.1206], [4.954, 0.1031], [5.012, 0.088], [5.069, 0.0751], [5.126, 0.064], [5.184, 0.0547], [5.241, 0.0467], [5.298, 0.04], [5.356, 0.0344], [5.413, 0.0297], [5.47, 0.026], [5.528, 0.0228], [5.585, 0.0202], [5.642, 0.018], [5.699, 0.0162], [5.757, 0.0145], [5.814, 0.0131], [5.871, 0.0118], [5.929, 0.0107], [5.986, 0.0097], [6.043, 0.0089], [6.101, 0.0082], [6.158, 0.0076], [6.215, 0.0071], [6.273, 0.0067], [6.33, 0.0063], [6.387, 0.006], [6.445, 0.0058], [6.502, 0.0055], [6.559, 0.0053], [6.616, 0.0051], [6.674, 0.005], [6.731, 0.0048], [6.788, 0.0047], [6.846, 0.0045], [6.903, 0.0043], [6.96, 0.0041], [7.018, 0.0039], [7.075, 0.0036], [7.132, 0.0033], [7.19, 0.0031], [7.247, 0.0028], [7.304, 0.0026], [7.361, 0.0023], [7.419, 0.002], [7.476, 0.0018], [7.533, 0.0015], [7.591, 0.0013], [7.648, 0.001], [7.705, 0.0008], [7.763, 0.0006], [7.82, 0.0005], [7.877, 0.0003], [7.935, 0.0003], [7.992, 0.0002], [8.049, 0.0001], [8.107, 0.0001], [8.164, 0.0001], [8.221, 0.0001], [8.278, 0.0]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -60,11 +62,20 @@ function paintTier(el, tier) {
   el.classList.toggle("jackpot", tier === 9);
 }
 
-const BASE_DICE = 6;
-// Every this many floors the elevator hands you one more red die
+const BASE_DICE = 5;
+// Every this many floors the elevator hands you one more red die (no upper limit)
 const FLOORS_PER_DIE = 5;
-// Without a cap more dice mean more sixes mean more dice: about 1 game in 330 never ends
-const MAX_DICE = 10;
+// From 10 dice the Casino Manager adds a bad d20, plus one more per 5 extra dice (15, 20, ...).
+// A bad d20 costs you a die for good on a 1. From floor 25 one more face loses every 18
+// floors: 1-2 from 25, 1-3 from 43, 1-4 from 61, ... Tuned with tools/simulate.py so about
+// 1 game in 100,000 snowballs practically forever
+const BAD_FROM_DICE = 10;
+const BAD_EVERY_DICE = 5;
+const LOSE_FACES_FROM_FLOOR = 25;
+const LOSE_FACE_STEP = 18;
+const badDiceFor = (n) => (n < BAD_FROM_DICE ? 0 : 1 + Math.floor((n - BAD_FROM_DICE) / BAD_EVERY_DICE));
+const badLosesOn = () =>
+  floor < LOSE_FACES_FROM_FLOOR ? 1 : Math.min(19, 2 + Math.floor((floor - LOSE_FACES_FROM_FLOOR) / LOSE_FACE_STEP));
 // Each extra round is worth this much more than the last: +10, +20, +30...
 const BONUS_STEP = 10;
 // Golden drifting dice add this to the multiplier
@@ -504,112 +515,707 @@ function fillFace(face, n) {
   face.classList.add(`v${n}`);
 }
 
+// Every die on the table this round (red dice and bad d20s)
+let roundDice = [];
+
+// Per-game statistics for the end screen
+let stats = {};
+function resetStats() {
+  stats = { rolls: 0, sixes: 0, expectedSixes: 0, lastChances: 0, lucky: 0, sacrificed: 0, struck: 0, d4: 0, bonusDice: 0, maxDice: BASE_DICE, combos: 0, silver: 0 };
+}
+resetStats();
+
 function createDie() {
   const slot = document.createElement("div");
-  slot.className = "slot";
-  slot.innerHTML = '<div class="shadow"></div><div class="toss"><div class="die"></div></div>';
+  slot.className = "slot waiting";
+  slot.innerHTML = '<div class="shadow"></div><div class="toss"><div class="die"></div></div><span class="die-badge"></span>';
   const die = slot.querySelector(".die");
-
   for (let n = 1; n <= 6; n++) {
     const face = document.createElement("div");
     face.className = `face f${n}`;
     fillFace(face, n);
     die.appendChild(face);
   }
-
-  // Random starting orientation so every die tumbles differently
-  die.style.transform = `rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg)`;
+  // Random resting orientation so every die tumbles differently
+  const obj = { kind: "red", slot, die, value: null, rerolled: false, rolling: false, rx: Math.random() * 360, ry: Math.random() * 360 };
+  die.style.transform = `rotateX(${obj.rx}deg) rotateY(${obj.ry}deg)`;
+  slot.addEventListener("click", () => tapDie(obj));
   tray.appendChild(slot);
-  return { slot, die };
+  return obj;
 }
 
-async function rollDie(value) {
-  const { slot, die } = createDie();
-  const [fx, fy] = FACE_ROTATION[value];
-  const spinsX = 2 + Math.floor(Math.random() * 3);
-  const spinsY = 2 + Math.floor(Math.random() * 3);
+// The Casino Manager's bad d20: a 1 costs you a die for good
+function createBadDie() {
+  const slot = document.createElement("button");
+  slot.type = "button";
+  slot.className = "bad-die waiting";
+  slot.innerHTML = '<span class="bd-value">?</span><span class="bd-label">BAD d20</span>';
+  const obj = { kind: "bad", slot, value: null, rolling: false };
+  slot.addEventListener("click", () => tapDie(obj));
+  tray.appendChild(slot);
+  return obj;
+}
 
-  // Wait a frame so the starting transform is applied before transitioning
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  die.style.transform = `rotateX(${fx + 360 * spinsX}deg) rotateY(${fy + 360 * spinsY}deg)`;
+// Smallest angle >= from that shows the same face as target
+const nearestAbove = (from, target) => target + 360 * Math.ceil((from - target) / 360);
+/* ---------- Yazzy: most of your dice showing the same number ---------- */
+
+// Number bonuses are locked until you roll a yazzy of that number. The Casino Manager can
+// confiscate them again (a bad d20 showing 20)
+const unlocked = { 1: false, 2: false, 3: false, 4: false };
+const BONUS_NAMES = { 1: "REROLL 1s", 2: "GREEN DIE FOR 2s", 3: "SACRIFICE 3s", 4: "d4 SHELF" };
+const canRerollOnes = () => unlocked[1];
+const canRerollTwos = () => unlocked[2];
+const canSacrifice = () => unlocked[3];
+// The golden d10 from a Gold Jackpot: stays on the table, its roll adds to the multiplier
+let goldD10 = false;
+// Permanent little d4s: each rolls every round and adds to the chips
+let shelfD4 = 0;
+
+// Dice needed for a yazzy: 5 of 5 up to 5 of 10, then 6 of 11, 7 of 12, ...
+const yazzyNeed = (n) => Math.min(n, Math.max(5, n - 5));
+
+function renderBonusBar() {
+  const bar = $("bonus-bar");
+  const items = [1, 2, 3, 4].map(
+    (v) => `<span class="bonus-chip v${v} ${unlocked[v] ? "on" : ""}" title="${BONUS_NAMES[v]}">${v}<small>${unlocked[v] ? "✓" : "\u{1F512}"}</small></span>`
+  );
+  items.push(`<span class="bonus-chip gold ${goldD10 ? "on" : ""}" title="Golden d10">d10<small>${goldD10 ? "✓" : "\u{1F512}"}</small></span>`);
+  items.push(`<span class="bonus-chip shelf ${shelfD4 ? "on" : ""}" title="d4 shelf">d4<small>×${shelfD4}</small></span>`);
+  bar.innerHTML = items.join("");
+}
+
+// Slow motion: a die lifts, spins, teeters on the target face and either lands on it
+// (chance in %) or not. missValue: the face it falls on otherwise (null = keeps its value)
+async function slowMoChance(obj, target, chance, missValue) {
+  const tipped = Math.random() < chance / 100;
+  const { slot, die } = obj;
+  tray.classList.add("spotlight");
+  slot.classList.add("last");
+  const slow = rollTime * 1.8;
+  slot.style.setProperty("--roll-time", `${slow}ms`);
+  die.style.transition = `transform ${slow}ms cubic-bezier(.1, .6, .2, 1)`;
+  const [tx, ty] = FACE_ROTATION[target];
+  const aimX = nearestAbove(obj.rx, tx) + 720;
+  const aimY = nearestAbove(obj.ry, ty) + 720;
+  slot.classList.remove("rolling", "landed", "one", "two", "silver", "six");
+  void slot.offsetWidth;
+  slot.classList.add("rolling");
+  die.style.transform = `rotateX(${aimX - 38}deg) rotateY(${aimY}deg)`;
   SOUND.clack();
+  tension(slow / 1000 + 1);
+  await wait(slow);
+  const teeter = reducedMotion ? 300 : 1200;
+  slot.querySelector(".toss").animate(
+    [{ transform: "rotate(0)" }, { transform: "rotate(-7deg)" }, { transform: "rotate(6deg)" }, { transform: "rotate(0)" }],
+    { duration: teeter / 2, iterations: 2, easing: "ease-in-out" }
+  );
+  await wait(teeter);
+  die.style.transition = "transform 380ms cubic-bezier(.5, 0, .8, .4)";
+  if (tipped) {
+    obj.value = target;
+    obj.rx = aimX;
+    obj.ry = aimY;
+  } else {
+    if (missValue !== null) obj.value = missValue;
+    const [fx, fy] = FACE_ROTATION[obj.value];
+    obj.rx = nearestAbove(aimX - 38, fx);
+    obj.ry = nearestAbove(aimY, fy);
+  }
+  die.style.transform = `rotateX(${obj.rx}deg) rotateY(${obj.ry}deg)`;
+  await wait(400);
+  SOUND.land();
+  shakeTray();
+  die.style.transition = "";
+  slot.style.removeProperty("--roll-time");
+  tray.classList.remove("spotlight");
+  slot.classList.remove("last");
+  markDie(obj);
+  if (tipped) {
+    slot.classList.add("lucky");
+    const { x, y } = centerOf(slot);
+    burst(x, y, 80);
+  } else {
+    sfx(330, 0.5, { type: "triangle", vol: 0.06, to: 160 });
+  }
+  await wait(reducedMotion ? 200 : 500);
+  return tipped;
+}
 
+// Most common number on the table (ties go to the higher number) and how many show it
+function bestCount(red) {
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  for (const o of red) counts[o.value]++;
+  let best = 1;
+  for (let v = 1; v <= 6; v++) if (counts[v] >= counts[best]) best = v;
+  return [best, counts[best]];
+}
+
+// Before scoring: a yazzy pays out; one short of it, an odd die gets a slow-motion chance
+async function checkYazzy() {
+  const red = roundDice.filter(live);
+  const need = yazzyNeed(red.length);
+  let [value, count] = bestCount(red);
+  if (count === need - 1) {
+    // Near miss: the odd die (not a 6 if there's a choice) gets 1/6 + wheel luck
+    const odd = red.filter((o) => o.value !== value);
+    const die = odd.filter((o) => o.value !== 6).pop() || null;
+    if (die) {
+      const chance = 100 / 6 + luckChance();
+      setMessage(`> ${count} × ${value}... one more for a YAZZY! (${chance.toFixed(1)}%)`, true);
+      setHint(`Near yazzy: the odd die gets one slow-motion chance to become a ${value}: 1/6 + your wheel luck.`);
+      showToast(`NEAR YAZZY!\n${chance.toFixed(1)}% FOR A ${value}`, 4);
+      if (await slowMoChance(die, value, chance, null)) count++;
+    }
+  }
+  if (count >= need) await yazzy(value, count === red.length);
+}
+
+async function yazzy(value, perfect) {
+  stats.yazzys = (stats.yazzys || 0) + 1;
+  const tier = [0, 1, 4, 6, 3, 2, 9][value];
+  showToast(`YAZZY!\n${perfect ? "PERFECT " : ""}${value}s`, tier);
+  fanfare(4);
+  hype(5);
+  celebrate();
+  setMessage(`> YAZZY of ${value}s!`, true);
+  await wait(reducedMotion ? 400 : 1300);
+
+  if (value <= 4) {
+    if (!unlocked[value]) {
+      unlocked[value] = true;
+      showToast(`UNLOCKED\n${BONUS_NAMES[value]}`, tier);
+      setMessage(`> ${BONUS_NAMES[value].toLowerCase()} unlocked for the rest of the game`, true);
+      arp([523, 659, 784, 1047, 1319, 1568], 0.06, { type: "triangle", vol: 0.06, wet: 0.4 });
+    } else {
+      const bonus = 100 * value;
+      showToast(`ALREADY UNLOCKED\n+${bonus} CHIPS`, tier);
+      addPips(bonus);
+    }
+    renderBonusBar();
+    for (const o of roundDice) if (live(o) && o.value !== null) markDie(o);
+  } else if (value === 5) {
+    mult *= 2;
+    setMult(mult);
+    await jackpotScene("SILVER JACKPOT", `MULTIPLIER DOUBLED · x${mult}`, "silver");
+  } else {
+    if (!goldD10) {
+      goldD10 = true;
+      renderBonusBar();
+      await jackpotScene("GOLD JACKPOT", "A GOLDEN d10 JOINS YOUR TABLE FOR GOOD", "gold");
+    } else {
+      mult += 10;
+      setMult(mult);
+      await jackpotScene("GOLD JACKPOT", `+10 MULTIPLIER · x${mult}`, "gold");
+    }
+  }
+  await wait(reducedMotion ? 300 : 900);
+
+  if (perfect) {
+    // Every single die the same: one more red die, rolled right away and kept
+    diceCount++;
+    setDiceCount();
+    stats.bonusDice++;
+    const obj = createDie();
+    const firstOther = roundDice.find((o) => o.kind !== "red");
+    if (firstOther) tray.insertBefore(obj.slot, firstOther.slot);
+    roundDice.splice(roundDice.filter((o) => o.kind === "red").length, 0, obj);
+    sizeTray(roundDice.length);
+    showToast(`PERFECT YAZZY!\n+1 DIE · NOW ${diceCount}`, 9);
+    obj.slot.animate([{ transform: "translateY(-120px) scale(2)", opacity: 0 }, { transform: "none", opacity: 1 }], {
+      duration: 500,
+      easing: "cubic-bezier(.3, 1.4, .5, 1)",
+    });
+    await rollRed(obj);
+  }
+}
+
+// Full-screen jackpot: the screen always escalates
+async function jackpotScene(title, line, kind) {
+  const scene = document.createElement("div");
+  scene.className = `jackpot-scene ${kind}`;
+  scene.innerHTML = `<div class="jp-rays"></div><p class="jp-title">${title}</p><p class="jp-line">${line}</p>`;
+  document.body.appendChild(scene);
+  victory(kind === "gold" ? 9 : 6);
+  boom(0);
+  diceRain(60);
+  for (let i = 0; i < 4; i++) setTimeout(celebrate, i * 400);
+  document.documentElement.classList.add("mayhem");
+  scene.querySelector(".jp-title").animate(
+    [{ transform: "scale(4) rotate(-10deg)", opacity: 0 }, { transform: "scale(1)", opacity: 1, offset: 0.4 }, { transform: "scale(1.06)" }, { transform: "scale(1)" }],
+    { duration: 1200, easing: "ease-out" }
+  );
+  await wait(reducedMotion ? 1200 : 3400);
+  document.documentElement.classList.remove("mayhem");
+  scene.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+  await wait(420);
+  scene.remove();
+}
+
+/* ---------- Golden d10 and the d4 shelf ---------- */
+
+function createGoldDie() {
+  const slot = document.createElement("button");
+  slot.type = "button";
+  slot.className = "gold-die waiting";
+  slot.innerHTML = '<span class="bd-value">?</span><span class="bd-label">GOLD d10</span>';
+  const obj = { kind: "gold", slot, value: null, rolling: false };
+  slot.addEventListener("click", () => tapDie(obj));
+  tray.appendChild(slot);
+  return obj;
+}
+
+async function rollGold(obj) {
+  obj.rolling = true;
+  const { slot } = obj;
+  const valueEl = slot.querySelector(".bd-value");
+  slot.classList.remove("waiting");
+  slot.classList.add("rolling");
+  const time = reducedMotion ? 250 : 1000;
+  slot.animate(
+    [
+      { transform: "translateY(0) rotateY(0)" },
+      { transform: "translateY(-46px) rotateY(540deg) scale(1.2)", offset: 0.45 },
+      { transform: "translateY(0) rotateY(900deg) scale(1.1, .9)", offset: 0.75 },
+      { transform: "translateY(0) rotateY(1080deg)" },
+    ],
+    { duration: time, easing: "cubic-bezier(.3, .7, .4, 1)" }
+  );
+  let delay = 40;
+  for (let t = 0; t < time; t += delay, delay *= 1.15) {
+    valueEl.textContent = d(10);
+    SOUND.tick();
+    await wait(delay);
+  }
+  const value = d(10);
+  valueEl.textContent = value;
+  slot.classList.remove("rolling");
+  slot.classList.add("done");
+  sfx(1046 + value * 50, 0.2, { type: "triangle", vol: 0.06, wet: 0.3 });
+  obj.value = value;
+  obj.rolling = false;
+  return value;
+}
+
+// Every d4 on the shelf rolls; returns the total
+async function rollShelf() {
+  const shelf = $("d4-shelf");
+  const items = [...shelf.children];
+  let total = 0;
+  for (const el of items) {
+    const v = d(4);
+    total += v;
+    el.querySelector(".d4-face").textContent = v;
+    el.animate([{ transform: "rotate(0) translateY(0)" }, { transform: "rotate(240deg) translateY(-10px)" }, { transform: "rotate(360deg) translateY(0)" }], {
+      duration: 450,
+      delay: Math.random() * 200,
+      easing: "ease-out",
+    });
+  }
+  if (items.length) sfx(1200, 0.06, { type: "triangle", vol: 0.04 });
+  return total;
+}
+
+function addShelfD4(count) {
+  const shelf = $("d4-shelf");
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("span");
+    el.className = "d4 shelf-d4";
+    el.innerHTML = '<span class="d4-face">?</span>';
+    shelf.appendChild(el);
+    el.animate([{ transform: "translateY(-60px) rotate(-300deg) scale(.3)", opacity: 0 }, { transform: "none", opacity: 1 }], {
+      duration: 500,
+      delay: i * 80,
+      easing: "cubic-bezier(.3, 1.4, .5, 1)",
+      fill: "backwards",
+    });
+  }
+  shelfD4 += count;
+  renderBonusBar();
+}
+
+// A bad d20 showing 20: the manager confiscates one unlocked bonus at random
+async function confiscate(count) {
+  for (let i = 0; i < count; i++) {
+    const owned = [1, 2, 3, 4].filter((v) => unlocked[v]);
+    if (!owned.length) {
+      showToast("MANAGER FROWNS\nNOTHING TO TAKE", 7);
+      await wait(reducedMotion ? 300 : 900);
+      return;
+    }
+    const v = pick(owned);
+    unlocked[v] = false;
+    stats.confiscated = (stats.confiscated || 0) + 1;
+    renderBonusBar();
+    showToast(`CONFISCATED!\n${BONUS_NAMES[v]}`, 7);
+    setMessage(`> the Casino Manager pockets your ${BONUS_NAMES[v].toLowerCase()}`);
+    arp([392, 311, 262], 0.14, { type: "sawtooth", vol: 0.05, wet: 0.3 });
+    await wait(reducedMotion ? 400 : 1200);
+  }
+}
+
+const live = (o) => o.kind === "red" && !o.gone;
+
+// sides 6: a normal roll; sides 5: the green die (1-5 only) used on a 2
+async function rollRed(obj, sides = 6) {
+  obj.rolling = true;
+  const value = d(sides);
+  const [fx, fy] = FACE_ROTATION[value];
+  obj.rx = nearestAbove(obj.rx, fx) + 360 * (2 + d(2));
+  obj.ry = nearestAbove(obj.ry, fy) + 360 * (2 + d(2));
+  const { slot, die } = obj;
+  slot.classList.remove("waiting", "landed", "six", "silver", "one", "two", "lucky");
+  slot.classList.toggle("green", sides === 5);
+  delete slot.dataset.value;
+  // Restart the toss animation for rerolls
+  slot.classList.remove("rolling");
+  void slot.offsetWidth;
+  slot.classList.add("rolling");
+  die.style.transform = `rotateX(${obj.rx}deg) rotateY(${obj.ry}deg)`;
+  SOUND.clack();
   await wait(rollTime * 0.45);
   SOUND.land();
   shakeTray();
   await wait(rollTime * 0.55);
-
-  slot.classList.add("landed");
-  return { slot, value };
+  obj.value = value;
+  obj.rolling = false;
+  stats.rolls++;
+  if (sides === 6) stats.expectedSixes += 1 / 6;
+  if (value === 6) stats.sixes++;
+  markDie(obj);
+  return value;
 }
 
-// Nearest angle to `from` that is equivalent to `target` (mod 360)
-const nearest = (from, target) => target + 360 * Math.round((from - target) / 360);
+// Every number has its own glow; actionable ones get a badge:
+// 1 = reroll (cyan), 2 = green d5 (green), 3 = sacrifice (purple, end only), 4 = d4 (orange),
+// 5 = silver, 6 = gold
+function markDie(obj) {
+  const { slot, value } = obj;
+  slot.classList.add("landed");
+  slot.dataset.value = value;
+  slot.classList.toggle("six", value === 6);
+  slot.classList.toggle("silver", value === 5);
+  const one = value === 1 && !obj.rerolled && canRerollOnes();
+  const two = value === 2 && !obj.rerolled && canRerollTwos();
+  slot.classList.toggle("one", one);
+  slot.classList.toggle("two", two);
+  slot.querySelector(".die-badge").textContent = one ? "↻" : two ? "d5" : "";
+}
 
-// The deciding last die: spotlight, slow motion, teeters on the 6 edge, then falls
-async function rollDramatic(value) {
-  const { slot, die } = createDie();
-  slot.classList.add("last");
+/* ---------- The Casino Manager's bad d20 ---------- */
+
+async function rollBad(obj) {
+  obj.rolling = true;
+  const { slot } = obj;
+  const valueEl = slot.querySelector(".bd-value");
+  slot.classList.remove("waiting", "safe", "struck");
+  slot.classList.add("rolling");
+  // A proper tumble: hops, spins in 3D, numbers flicker past, then it lands
+  const time = reducedMotion ? 250 : 1000;
+  slot.animate(
+    [
+      { transform: "translateY(0) rotateX(0) rotateZ(0)" },
+      { transform: "translateY(-40px) rotateX(240deg) rotateZ(-90deg)", offset: 0.35 },
+      { transform: "translateY(0) rotateX(480deg) rotateZ(-160deg) scale(1.1, .9)", offset: 0.6 },
+      { transform: "translateY(-14px) rotateX(620deg) rotateZ(-200deg)", offset: 0.8 },
+      { transform: "translateY(0) rotateX(720deg) rotateZ(-180deg)" },
+    ],
+    { duration: time, easing: "cubic-bezier(.3, .7, .4, 1)" }
+  );
+  let delay = 40;
+  for (let t = 0; t < time; t += delay, delay *= 1.15) {
+    valueEl.textContent = d(20);
+    SOUND.tick();
+    await wait(delay);
+  }
+  const value = d(20);
+  valueEl.textContent = value;
+  slot.classList.remove("rolling");
+  const struck = value <= badLosesOn();
+  slot.classList.add(struck ? "struck" : "safe");
+  if (struck) {
+    sfx(220, 0.6, { type: "sawtooth", vol: 0.06, to: 90, wet: 0.3 });
+    const { x, y } = centerOf(slot);
+    floatText(x, y - 30, "-1 DIE!", "oof");
+  } else {
+    sfx(660, 0.08, { vol: 0.04 });
+  }
+  obj.value = value;
+  obj.rolling = false;
+  return value;
+}
+
+// A tap on a die: roll it; reroll a 1 (normal die, up to 10 dice) or a 2 (green 1-5 die,
+// up to 15 dice), once per die; or, at the very end, sacrifice the 3s
+async function tapDie(obj) {
+  if (phase === "sacrifice" && obj.kind === "red" && obj.value === 3 && !obj.gone) {
+    sacrificeThrees();
+    return;
+  }
+  if ((phase !== "rolling" && phase !== "choice") || obj.rolling || obj.gone) return;
+  if (obj.value === null) {
+    await (obj.kind === "red" ? rollRed(obj) : obj.kind === "gold" ? rollGold(obj) : rollBad(obj));
+  } else if (obj.kind === "red" && !obj.rerolled && ((obj.value === 1 && canRerollOnes()) || (obj.value === 2 && canRerollTwos()))) {
+    obj.rerolled = true;
+    phase = "rolling";
+    setButton("rolling");
+    silverBtn.hidden = true;
+    await rollRed(obj, obj.value === 2 ? 5 : 6);
+  } else {
+    return;
+  }
+  afterRoll();
+}
+
+function afterRoll() {
+  if (roundDice.some((o) => o.value === null || o.rolling)) {
+    updateHint();
+    return;
+  }
+  roundReady();
+}
+
+const rerollable = (o) => live(o) && !o.rerolled && ((o.value === 1 && canRerollOnes()) || (o.value === 2 && canRerollTwos()));
+
+// All dice are down: offer rerolls if any, otherwise score the round
+function roundReady() {
+  if (phase !== "rolling" && phase !== "choice") return;
+  const red = roundDice.filter(live);
+  const sixes = red.filter((o) => o.value === 6).length;
+  const rerolls = red.filter(rerollable);
+  // The old 40%-fives silver reroll is gone: 5s now mean the Silver Jackpot
+  const silver = false;
+
+  if (insta) {
+    // Autopilot: reroll every 1 and 2, take the silver reroll only when there's no 6
+    if (rerolls.length) {
+      rerolls.forEach((o, i) => setTimeout(() => tapDie(o), i * 90));
+    } else if (silver && !sixes) {
+      silverReroll();
+    } else {
+      resolveRound();
+    }
+    return;
+  }
+  if (!rerolls.length && !silver) {
+    resolveRound();
+    return;
+  }
+  phase = "choice";
+  setButton("choice");
+  silverBtn.hidden = !silver;
+  if (silver) silverBtn.animate([{ transform: "scale(0)" }, { transform: "none" }], { duration: 300, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
+  updateHint();
+}
+
+// Enough silver 5s (40%, rounded up): every die on the table is rolled again
+function silverReroll() {
+  silverBtn.hidden = true;
+  stats.silver++;
+  showToast("SILVER REROLL!\nALL DICE AGAIN", 2);
+  arp([1318, 1568, 2093, 2637], 0.05, { type: "triangle", vol: 0.05, wet: 0.3 });
+  for (const o of roundDice) {
+    if (o.gone) continue;
+    o.value = null;
+    if (o.kind === "red") {
+      o.rerolled = false;
+      o.slot.classList.remove("landed", "six", "silver", "one", "two", "green", "rolling");
+      delete o.slot.dataset.value;
+      o.slot.classList.add("waiting");
+      o.slot.querySelector(".die-badge").textContent = "";
+    } else {
+      o.slot.classList.remove("safe", "struck");
+      o.slot.classList.add("waiting");
+      o.slot.querySelector(".bd-value").textContent = "?";
+    }
+  }
+  phase = "rolling";
+  setButton("rolling");
+  updateHint();
+  if (insta) autoRollAll();
+}
+
+/* ---------- The end: sacrifice every 3 to reroll everything else ---------- */
+
+// Only when the round has no 6 and the last chance failed. Destroys ALL 3s for good and
+// rerolls every other red die. Resolves true if that finds a 6 (possibly after repeats)
+let sacrificeDone = null;
+function offerSacrifice() {
+  const red = roundDice.filter(live);
+  const threes = red.filter((o) => o.value === 3);
+  const others = red.length - threes.length;
+  if (!canSacrifice() || !threes.length || !others) return Promise.resolve(false);
+  phase = "sacrifice";
+  for (const o of threes) {
+    o.slot.classList.add("sacrificable");
+    o.slot.querySelector(".die-badge").textContent = "☠";
+  }
+  rollBtn.disabled = false;
+  rollBtn.classList.remove("again");
+  rollBtn.innerHTML = `&#10007; CASH OUT &#10007;<span class="auto">or tap a 3: sacrifice ${threes.length === 1 ? "it" : "all " + threes.length} to reroll the other ${others}</span>`;
+  setMessage(`> game over... unless you sacrifice your 3${threes.length > 1 ? "s" : ""}`, true);
+  setHint(`Tap a glowing 3: ALL your 3s are destroyed for good (-${threes.length} ${threes.length > 1 ? "dice" : "die"}) and your other ${others} dice are rerolled. A 6 saves you.`);
+  showToast(`SACRIFICE?\n${threes.length} × 3 → REROLL ${others}`, 6);
+  arp([196, 185, 175], 0.25, { type: "sawtooth", vol: 0.04, wet: 0.5 });
+  return new Promise((resolve) => {
+    sacrificeDone = resolve;
+    if (insta) setTimeout(sacrificeThrees, 700);
+  });
+}
+
+function cashOut() {
+  for (const o of roundDice) o.slot.classList.remove("sacrificable");
+  const done = sacrificeDone;
+  sacrificeDone = null;
+  phase = "busy";
+  rollBtn.disabled = true;
+  if (done) done(false);
+}
+
+async function sacrificeThrees() {
+  if (phase !== "sacrifice") return;
+  phase = "busy";
+  rollBtn.disabled = true;
+  const red = roundDice.filter(live);
+  const threes = red.filter((o) => o.value === 3);
+  const others = red.filter((o) => o.value !== 3);
+  showToast(`SACRIFICE!\n-${threes.length} ${threes.length > 1 ? "DICE" : "DIE"}`, 6);
+  // Destroy every 3 for good
+  await Promise.all(threes.map((o, i) => wait(i * 200).then(() => destroyDie(o))));
+  for (const o of threes) o.gone = true;
+  diceCount = Math.max(1, diceCount - threes.length);
+  stats.sacrificed += threes.length;
+  setDiceCount();
+  await wait(reducedMotion ? 100 : 400);
+  // Reroll everything else with plain dice
+  setMessage("> the others roll again...", true);
+  for (const o of others) {
+    o.rerolled = true;
+    o.slot.classList.remove("sacrificable");
+  }
+  await Promise.all(others.map((o, i) => wait(i * 110).then(() => rollRed(o))));
+  for (const o of others) o.slot.classList.remove("green");
+  const done = sacrificeDone;
+  sacrificeDone = null;
+  if (others.some((o) => o.value === 6)) {
+    showToast("SAVED BY SACRIFICE!\nA SIX!", 9);
+    victory(4);
+    celebrate();
+    if (done) done(true);
+    return;
+  }
+  // No 6: new 3s can be sacrificed again
+  const again = await offerSacrifice();
+  if (done) done(again);
+}
+
+// You roll by tapping the dice themselves; the big button only points at the waiting ones
+function nudgeDice() {
+  const waiting = roundDice.filter((o) => o.value === null && !o.rolling && !o.gone);
+  waiting.forEach((o, i) =>
+    o.slot.animate([{ transform: "none" }, { transform: "translateY(-14px) scale(1.12)" }, { transform: "none" }], {
+      duration: 380,
+      delay: i * 60,
+      easing: "ease-out",
+    })
+  );
+  setHint("Tap the dice themselves to roll them!");
+  sfx(660, 0.06, { vol: 0.04 });
+}
+
+function autoRollAll() {
+  roundDice
+    .filter((o) => o.value === null && !o.rolling)
+    .forEach((o, i) => setTimeout(() => tapDie(o), (reducedMotion ? 30 : 110) * i));
+}
+
+// Dice shrink when the table gets crowded
+function sizeTray(count) {
+  const base = window.innerWidth < 600 ? 50 : 70;
+  const size = count <= 7 ? base : Math.max(28, Math.round(base * Math.sqrt(7 / count)));
+  tray.style.setProperty("--s", `${size}px`);
+}
+
+// Last chance: no 6 this round, so the last die is rerolled in slow motion and teeters on
+// the 6. It's a fair 1/6 plus the wheel's luck: (100 - wheel) / 10 %. A miss lands on 1-5
+async function lastChance(obj) {
+  const luck = luckChance();
+  const chance = 100 / 6 + luck;
+  const tipped = Math.random() < chance / 100;
+  stats.lastChances++;
+  stats.expectedSixes += chance / 100;
+  if (tipped) {
+    stats.lucky++;
+    stats.sixes++;
+  }
+  const { slot, die } = obj;
   tray.classList.add("spotlight");
+  slot.classList.add("last");
+  setMessage(`> no six... LAST CHANCE: ${chance.toFixed(1)}% for a 6`, true);
+  setHint(`Last chance: the last die is rerolled. A fair 1/6 (16.7%)${luck ? ` + ${luck.toFixed(1)}% from your Wheel of Wealth` : ""}.`);
+  showToast(`LAST CHANCE\n${chance.toFixed(1)}% FOR A 6`, 0);
+
+  // Lift and spin in slow motion, aiming for the 6 face tipped onto an edge
   const slow = rollTime * 1.8;
   slot.style.setProperty("--roll-time", `${slow}ms`);
   die.style.transition = `transform ${slow}ms cubic-bezier(.1, .6, .2, 1)`;
-
-  // Aim for the 6 face, but tipped onto an edge
-  const sixX = 360 * 3;
-  const sixY = 180 + 360 * 3;
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const sixX = nearestAbove(obj.rx, 0) + 720;
+  const sixY = nearestAbove(obj.ry, 180) + 720;
+  slot.classList.remove("rolling", "landed", "one", "silver");
+  void slot.offsetWidth;
+  slot.classList.add("rolling");
   die.style.transform = `rotateX(${sixX - 38}deg) rotateY(${sixY}deg)`;
   SOUND.clack();
-  setMessage("> the last die...");
-  await wait(slow * 0.45);
-  SOUND.land();
-  shakeTray();
-  await wait(slow * 0.55);
+  tension(slow / 1000 + 1);
+  await wait(slow);
 
   // Teeter on the edge with a heartbeat
   setMessage("> it's... teetering... on a 6...", true);
-  const teeter = reducedMotion ? 300 : 1100;
+  const teeter = reducedMotion ? 300 : 1200;
   slot.querySelector(".toss").animate(
-    [{ transform: "rotate(0)" }, { transform: "rotate(-6deg)" }, { transform: "rotate(5deg)" }, { transform: "rotate(0)" }],
+    [{ transform: "rotate(0)" }, { transform: "rotate(-7deg)" }, { transform: "rotate(6deg)" }, { transform: "rotate(0)" }],
     { duration: teeter / 2, iterations: 2, easing: "ease-in-out" }
   );
-  kick(0);
-  kick(0.14);
-  kick(teeter / 2000);
-  kick(teeter / 2000 + 0.14);
   await wait(teeter);
 
-  // Fall: either settle onto the 6 or flop onto the real face
+  // Fall: onto the 6 if luck holds, otherwise onto a fresh 1-5
   die.style.transition = "transform 380ms cubic-bezier(.5, 0, .8, .4)";
-  if (value === 6) {
-    die.style.transform = `rotateX(${sixX}deg) rotateY(${sixY}deg)`;
+  if (tipped) {
+    obj.rx = sixX;
+    obj.ry = sixY;
+    obj.value = 6;
   } else {
-    const [fx, fy] = FACE_ROTATION[value];
-    die.style.transform = `rotateX(${nearest(sixX - 38, fx) - 360}deg) rotateY(${nearest(sixY, fy)}deg)`;
+    obj.value = d(5);
+    const [fx, fy] = FACE_ROTATION[obj.value];
+    obj.rx = nearestAbove(sixX - 38, fx);
+    obj.ry = nearestAbove(sixY, fy);
   }
+  die.style.transform = `rotateX(${obj.rx}deg) rotateY(${obj.ry}deg)`;
   await wait(400);
   SOUND.land();
   shakeTray();
-  if (value !== 6) sfx(330, 0.5, { type: "triangle", vol: 0.06, to: 160 });
-  await wait(reducedMotion ? 100 : 350);
+  die.style.transition = "";
+  slot.style.removeProperty("--roll-time");
   tray.classList.remove("spotlight");
   slot.classList.remove("last");
-  slot.classList.add("landed");
-  return { slot, value };
+  markDie(obj);
+  if (tipped) {
+    slot.classList.add("lucky");
+    showToast("LUCKY TIP!\nIT'S A SIX!", 9);
+    victory(5);
+    celebrate();
+    const { x, y } = centerOf(slot);
+    burst(x, y, 80);
+  } else {
+    sfx(330, 0.5, { type: "triangle", vol: 0.06, to: 160 });
+  }
+  await wait(reducedMotion ? 200 : 700);
+  return tipped;
 }
 
-async function rollRound() {
-  tray.innerHTML = "";
-  const stagger = reducedMotion ? 0 : 110;
-  const values = Array.from({ length: diceCount }, () => d(6));
-  // If the first five have no 6, the last die decides everything
-  const dramatic = !values.slice(0, -1).includes(6);
-  const rolls = values.map((value, i) => {
-    const isLast = i === values.length - 1;
-    return wait(i * stagger).then(() => (isLast && dramatic ? rollDramatic(value) : rollDie(value)));
-  });
-  return Promise.all(rolls);
+// (100 - Wheel of Wealth) / 10 percent, e.g. 99 -> 0.1%, 1 -> 9.9%; 100+ gives none
+function luckChance() {
+  return Math.max(0, 100 - wheelMult) / 10;
 }
 
 /* ---------- How rare is this score? ---------- */
@@ -629,9 +1235,11 @@ function scorePercentile(score) {
 function formatRank(score) {
   const pct = scorePercentile(score);
   const top = 100 - pct;
-  const oneIn = top > 0 ? Math.max(1, Math.round(100 / top)) : null;
-  const beats = pct >= 99.9 ? pct.toFixed(2) : pct.toFixed(1);
-  return `beats ${beats}% · ` + (oneIn ? `1 in ${oneIn.toLocaleString("en-US")} games` : "off the charts");
+  const beats = pct >= 99.99 ? pct.toFixed(4) : pct >= 99.9 ? pct.toFixed(2) : pct.toFixed(1);
+  // "1 in N" only means something for scores in the top half
+  if (top <= 0) return `beats ${beats}% · off the charts`;
+  if (top > 50) return `beats ${beats}% of games`;
+  return `beats ${beats}% · only 1 in ${Math.round(100 / top).toLocaleString("en-US")} games score this high`;
 }
 
 function scoreCombos(values) {
@@ -732,21 +1340,44 @@ function drawWheel() {
 }
 
 // Spins clockwise so slot `value` stops under the top pointer
-// Driven frame by frame from script (no CSS transition, no reading the transform back
-// from the browser): both were unreliable on phones and could freeze the first spin
-async function spinWheel(value) {
-  const theta = (value - 1) * SEG;
-  const jitter = (Math.random() - 0.5) * SEG * 0.7;
-  const from = wheelRot;
-  const base = wheelRot + 360 * (5 + Math.floor(Math.random() * 3));
-  const to = base + mod(-theta - base, 360) + jitter;
-  wheelRot = to;
+// The Wheel of Wealth spins until you press STOP, then coasts to a halt. Slow enough to
+// time your press; a little randomness in the coast keeps it from being a sure thing
+const WHEEL_SPEED = reducedMotion ? 120 : 200; // degrees per second, about 55 slots/s
+const STOP_TIME = reducedMotion ? 0.6 : 1.8; // seconds of coasting after STOP
+const WHEEL_JOKES = [
+  "the Wheel of Wealth accepts tips",
+  "spun by a certified wheel technician (he's 9)",
+  "warning: wheel may contain traces of luck",
+  "the wheel has never paid taxes",
+  "studies show 100% of spins end somewhere",
+  "low number? the dice will pity you later",
+  "this wheel was won in a poker game",
+  "do not feed the wheel after midnight",
+  "the house wheel. the house always wins. hm.",
+  "every spin is a new bad decision",
+  "the wheel is rigged (to be a circle)",
+  "press STOP like you mean it",
+  "100 spins again. the wheel loves drama",
+  "a high roll = big multi. a low roll = more luck",
+];
 
+let stopRequest = null;
+function requestStop() {
+  if (stopRequest) stopRequest();
+}
+
+async function spinWheel() {
+  phase = "wheel";
+  const stopBtn = $("wheel-stop");
+  stopBtn.hidden = false;
+  stopBtn.disabled = false;
+  setHint("Tap STOP (or the wheel) to stop the Wheel of Wealth. A high number = big multiplier.");
+  let angle = wheelRot;
   let lastSeg = null;
-  const show = (angle) => {
-    wheelCanvas.style.transform = `rotate(${angle}deg)`;
+  const show = (a) => {
+    wheelCanvas.style.transform = `rotate(${a}deg)`;
     // Click the pointer every time a slot passes under it
-    const seg = Math.floor(mod(-angle + SEG / 2, 360) / SEG);
+    const seg = Math.floor(mod(-a + SEG / 2, 360) / SEG);
     if (seg !== lastSeg) {
       if (lastSeg !== null) {
         SOUND.tick();
@@ -758,32 +1389,62 @@ async function spinWheel(value) {
       wheelResultEl.textContent = seg + 1;
       paintTier(wheelResultEl, multTier(seg + 1));
     }
+    return seg + 1;
   };
 
+  // Spin freely until STOP (insta-autoroll presses it for you)
+  let stopped = false;
+  const stop = new Promise((resolve) => {
+    stopRequest = () => {
+      if (stopped) return;
+      stopped = true;
+      resolve();
+    };
+  });
+  const autoStop = setTimeout(requestStop, insta ? 700 + Math.random() * 1600 : 30000);
+  let last = performance.now();
+  let raf = 0;
+  const spin = (now) => {
+    angle += (WHEEL_SPEED * Math.min(100, now - last)) / 1000;
+    last = now;
+    show(angle);
+    if (!stopped) raf = requestAnimationFrame(spin);
+  };
+  raf = requestAnimationFrame(spin);
+  await stop;
+  cancelAnimationFrame(raf);
+  clearTimeout(autoStop);
+  stopRequest = null;
+  stopBtn.disabled = true;
+  SOUND.clack();
+
+  // Coast: constant deceleration over STOP_TIME, plus up to +-2.5 slots of slip
+  const from = angle;
+  const dist = (WHEEL_SPEED * STOP_TIME) / 2 + (Math.random() - 0.5) * SEG * 5;
   const start = performance.now();
+  let value = show(from);
   await Promise.race([
-    wait(spinTime + 300),
+    wait(STOP_TIME * 1000 + 300),
     new Promise((resolve) => {
       const frame = (now) => {
-        const t = Math.min(1, (now - start) / spinTime);
-        // Fast start, long slow coast into the pointer
-        show(from + (to - from) * (1 - Math.pow(1 - t, 4)));
+        const t = Math.min(1, (now - start) / (STOP_TIME * 1000));
+        value = show(from + dist * (1 - (1 - t) * (1 - t)));
         if (t < 1) requestAnimationFrame(frame);
         else resolve();
       };
       requestAnimationFrame(frame);
     }),
   ]);
-  show(to);
-  wheelResultEl.textContent = value;
-  paintTier(wheelResultEl, multTier(value));
+  wheelRot = from + dist;
+  value = show(wheelRot);
+  stopBtn.hidden = true;
   bump(wheelResultEl);
+  return value;
 }
 
 async function rollMultiplier() {
-  wheelTitleEl.textContent = "SPIN THE D100";
+  wheelTitleEl.textContent = "WHEEL OF WEALTH";
   wheelResultEl.textContent = "?";
-  wheelOverlay.classList.remove("leave");
   wheelOverlay.classList.add("show");
   drawWheel();
   // Entrance via Web Animations: mobile Safari can skip a CSS transition that starts
@@ -801,26 +1462,38 @@ async function rollMultiplier() {
   // If the browser stalled the entrance, drop it so the wheel is never stuck tiny
   entrance.cancel();
 
+  // Rotating wheel jokes while it spins
+  const jokeLine = $("wheel-joke");
+  let jokeAt = Math.floor(Math.random() * WHEEL_JOKES.length);
+  const showJoke = () => {
+    jokeLine.textContent = WHEEL_JOKES[jokeAt++ % WHEEL_JOKES.length];
+    jokeLine.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+  };
+  showJoke();
+  const jokeTimer = setInterval(showJoke, 2600);
+
   let total = 0;
-  for (let spin = 1; ; spin++) {
-    const value = d(100);
-    await spinWheel(value);
+  for (;;) {
+    const value = await spinWheel();
     total += value;
     SOUND.mult();
-
     if (value !== 100) break;
     showToast(`100!!!\nSPIN AGAIN`, 9);
     wheelTitleEl.textContent = `x${total} SO FAR... SPIN AGAIN!`;
     celebrate();
     diceRain(25);
-    await wait(reducedMotion ? 400 : 1600);
+    await wait(reducedMotion ? 400 : 1400);
   }
+  clearInterval(jokeTimer);
+  phase = "busy";
   mult = total;
   wheelMult = total;
-  $("super-chance").textContent = `super ${superChance().toFixed(1)}%`;
+  $("luck-chance").textContent = `last chance ${(100 / 6 + luckChance()).toFixed(1)}%`;
 
   const tier = multTier(mult);
   wheelTitleEl.textContent = `x${mult} · ${TIERS[tier].name}`;
+  jokeLine.textContent =
+    mult >= 90 ? "big multiplier, tiny luck: last chances stay at a fair 1/6" : mult <= 20 ? `tiny multiplier, but last chances hit ${(100 / 6 + luckChance()).toFixed(1)}% instead of 16.7%` : `last chances hit ${(100 / 6 + luckChance()).toFixed(1)}% instead of 16.7%`;
   if (mult >= 90) {
     setMessage(pick(HIGH_MULT_LINES), true);
     const { x, y } = centerOf(wheelResultEl);
@@ -829,14 +1502,17 @@ async function rollMultiplier() {
     setMessage(pick(LOW_MULT_LINES));
     SOUND.sad();
   }
-  await wait(reducedMotion ? 400 : 1300);
+  // The result stays up a good while before the wheel flies off
+  await wait(reducedMotion ? 900 : 3500);
 
   // Shrink the wheel away toward the multiplier badge
-  await wrap.animate(
+  const exit = wrap.animate(
     [{ transform: "none", opacity: 1 }, { transform: "translate(-42vw, -42vh) scale(.05)", opacity: 0 }],
     { duration: reducedMotion ? 100 : 500, easing: "ease-in" }
-  ).settled;
-  wheelOverlay.classList.remove("show", "leave");
+  );
+  await exit.settled;
+  wheelOverlay.classList.remove("show");
+  exit.cancel();
   setMult(mult);
 }
 
@@ -919,20 +1595,26 @@ function drawD20(ctx, size, q, color, labels, highlight) {
     ctx.closePath();
     ctx.fillStyle = `rgb(${r * shade | 0},${g * shade | 0},${b * shade | 0})`;
     ctx.fill();
+    const px = size / 160;
+    ctx.lineJoin = "round";
     ctx.strokeStyle = i === 0 && highlight ? "#fff" : "rgba(22, 8, 40, .8)";
-    ctx.lineWidth = i === 0 && highlight ? 2 : 1;
+    ctx.lineWidth = (i === 0 && highlight ? 2.5 : 1.2) * px;
     ctx.stroke();
-    // Number on faces turned toward the viewer
-    if (n[2] > 0.45) {
+    // Numbers fade in smoothly as a face turns toward the viewer (no popping), at a
+    // steady size so the text doesn't jitter frame to frame
+    const alpha = Math.min(1, Math.max(0, (n[2] - 0.3) / 0.3));
+    if (alpha > 0) {
       const cx = (pts[0][0] + pts[1][0] + pts[2][0]) / 3;
       const cy = (pts[0][1] + pts[1][1] + pts[2][1]) / 3;
       const label = String(labels[i]);
-      const fs = Math.round(size * (label.length > 2 ? 0.06 : 0.075) * n[2]);
+      const fs = Math.round(size * (label.length > 2 ? 0.05 : 0.065));
+      ctx.globalAlpha = alpha;
       ctx.font = `${fs}px "Press Start 2P", monospace`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillStyle = i === 0 && highlight ? "#fff" : "#160828";
-      ctx.fillText(label, cx, cy + 1);
+      ctx.fillText(label, cx, cy + px);
+      ctx.globalAlpha = 1;
     }
   });
 }
@@ -946,7 +1628,7 @@ async function rollEndDie() {
   stage.className = "d20-stage";
   stage.innerHTML = `
     <p class="d20-title">THE END DIE</p>
-    <div class="d20-roll"><canvas class="d20" width="160" height="160"></canvas><div class="d20-shadow"></div></div>
+    <div class="d20-roll"><canvas class="d20" width="360" height="360"></canvas><div class="d20-shadow"></div></div>
     <p class="d20-label">d1</p>`;
   document.body.appendChild(stage);
   const canvasEl = stage.querySelector(".d20");
@@ -963,7 +1645,7 @@ async function rollEndDie() {
   let color = TIERS[0].color;
   let q = qmul(qaxis(vnorm([1, 1, 0.3]), 0.6), qFinal);
   let raf = 0;
-  let render = () => drawD20(c, 160, q, color, labels, false);
+  let render = () => drawD20(c, 360, q, color, labels, false);
 
   // Idle spin while the die is being forged
   let idleAngle = 0;
@@ -1033,7 +1715,7 @@ async function rollEndDie() {
 
   // Land: the top face lights up with the result
   q = qFinal;
-  render = () => drawD20(c, 160, q, color, labels, true);
+  render = () => drawD20(c, 360, q, color, labels, true);
   render();
   stage.classList.add("landed");
   labelEl.textContent = `d${sides} → ${value}`;
@@ -1151,46 +1833,62 @@ function centerOf(el) {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
-function setButton(mode, countdown = 0) {
-  rollBtn.classList.toggle("again", mode === "again");
-  rollBtn.innerHTML =
-    mode === "again"
-      ? `&#9650; CLIMB &amp; ROLL &#9650;<span class="auto">auto in ${countdown}</span>`
-      : "&#9650; NEW GAME &#9650;";
+// The big button does whatever is next: new game, roll the next die, or continue
+function setButton(mode) {
+  const labels = {
+    idle: "&#9650; NEW GAME &#9650;",
+    rolling: '&#9759; TAP YOUR DICE &#9759;<span class="auto">every die rolls with its own tap</span>',
+    choice: '&#10004; CONTINUE &#10004;<span class="auto">or tap a glowing 1 to reroll it</span>',
+  };
+  rollBtn.classList.toggle("again", mode === "rolling" || mode === "choice");
+  rollBtn.classList.remove("locked");
+  if (labels[mode]) rollBtn.innerHTML = labels[mode];
+  if (mode === "idle") refreshIdleButton();
 }
 
-// After a six the next climb rolls itself after a slow countdown (or press to go now)
-const AUTO_ROLL_SECONDS = 4;
-let autoTimer = null;
+/* ---------- Help hints ---------- */
 
-function startAutoRoll() {
-  // Insta-autoroll: climb straight on after a short beat instead of counting down
-  if (insta) {
-    setButton("again", 0);
-    rollBtn.querySelector(".auto").textContent = "insta!";
-    autoTimer = setTimeout(play, reducedMotion ? 100 : 500);
-    return;
+const hintEl = $("hint");
+function setHint(text) {
+  if (hintEl.textContent === text) return;
+  hintEl.textContent = text;
+  hintEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 });
+}
+
+// Tells new players what to do right now
+function updateHint() {
+  if (phase === "idle") {
+    setHint("Tap NEW GAME to play. New here? The ? button explains everything.");
+  } else if (phase === "rolling") {
+    const left = roundDice.filter((o) => o.value === null && !o.gone).length;
+    const bad = roundDice.some((o) => o.kind === "bad" && o.value === null);
+    const lose = badLosesOn() === 1 ? "a 1" : `1-${badLosesOn()}`;
+    setHint(
+      `Tap each die to roll it (${left} left). Every 6 = one floor up. No 6 at all = game over.` +
+        (bad ? ` Bad d20: ${lose} costs you a die!` : "")
+    );
+  } else if (phase === "choice") {
+    const ones = roundDice.some((o) => rerollable(o) && o.value === 1);
+    const twos = roundDice.some((o) => rerollable(o) && o.value === 2);
+    const silver = !silverBtn.hidden;
+    const parts = [];
+    if (ones) parts.push("Glowing 1s: tap to reroll once.");
+    if (twos) parts.push("Glowing 2s: tap to reroll with the green die (1-5, no 6).");
+    if (silver) parts.push("Enough silver 5s (2 of 5, 3 of 6...): SILVER REROLL rolls every die again.");
+    parts.push("Happy? Tap CONTINUE.");
+    setHint(parts.join(" "));
   }
-  let left = AUTO_ROLL_SECONDS;
-  setButton("again", left);
-  autoTimer = setInterval(() => {
-    left--;
-    if (left > 0) {
-      setButton("again", left);
-      sfx(660, 0.05, { vol: 0.03 });
-    } else {
-      play();
-    }
-  }, 1000);
-}
-
-function stopAutoRoll() {
-  clearInterval(autoTimer);
-  clearTimeout(autoTimer);
-  autoTimer = null;
 }
 
 /* ---------- Turn flow ---------- */
+
+const silverBtn = $("silver");
+silverBtn.addEventListener("click", () => {
+  if (phase === "choice") silverReroll();
+});
+
+// Bad d20s already announced this game, so the alarm only fires for new ones
+let badAnnounced = 0;
 
 async function startTurn() {
   phase = "busy";
@@ -1200,41 +1898,105 @@ async function startTurn() {
   pips = 0;
   totalSixes = 0;
   diceCount = BASE_DICE;
-  superUsed = false;
-  $("super-chance").textContent = "";
+  resetStats();
+  badAnnounced = 0;
+  for (const v of [1, 2, 3, 4]) unlocked[v] = false;
+  goldD10 = false;
+  shelfD4 = 0;
+  $("d4-shelf").innerHTML = "";
+  renderBonusBar();
+  $("luck-chance").textContent = "";
   pipsEl.textContent = "0";
   roundEl.textContent = "0";
   scoreEl.textContent = "0";
   paintTier(scoreEl, 0);
   logEl.innerHTML = "";
   tray.innerHTML = "";
+  setDiceCount();
   if (floorLabelEl.textContent !== "0") {
     setMessage(pick(DROP_LINES));
     sfx(900, 0.8, { to: 80, vol: 0.04 });
     setFloor(0);
     await wait(reducedMotion ? 200 : 1000);
   }
-  setMessage("> spinning the d100...");
-
+  setMessage("> step right up to the Wheel of Wealth...");
   await rollMultiplier();
-  await nextRound();
+  await startRound();
 }
 
-async function nextRound() {
+// Lay out this round's dice unrolled; the player rolls them one tap at a time
+async function startRound() {
+  round++;
+  const bad = badDiceFor(diceCount);
+  if (bad > badAnnounced) {
+    await managerAlarm(bad);
+  }
+  badAnnounced = bad;
+  roundDice = [];
+  tray.innerHTML = "";
+  sizeTray(diceCount + bad + (goldD10 ? 1 : 0));
+  for (let i = 0; i < diceCount; i++) roundDice.push(createDie());
+  if (goldD10) roundDice.push(createGoldDie());
+  for (let i = 0; i < bad; i++) roundDice.push(createBadDie());
+  // Dice drop onto the felt
+  roundDice.forEach((o, i) =>
+    o.slot.animate([{ transform: "translateY(-60px)", opacity: 0 }, { transform: "none", opacity: 1 }], {
+      duration: 300,
+      delay: i * 40,
+      easing: "cubic-bezier(.3, 1.4, .5, 1)",
+      fill: "backwards",
+    })
+  );
+  silverBtn.hidden = true;
+  phase = "rolling";
+  setButton("rolling");
+  rollBtn.disabled = false;
+  setMessage(round === 1 ? `> your ${diceCount} dice are on the table` : `> round ${round} · floor ${floor} · ${diceCount} dice`);
+  updateHint();
+  if (insta) autoRollAll();
+}
+
+// Every die is settled and the player is done: score it
+async function resolveRound() {
   phase = "busy";
   rollBtn.disabled = true;
-  round++;
-  setMessage(round === 1 ? `> rolling ${diceCount} dice` : `> round ${round} on floor ${floor} · ${diceCount} dice`);
+  silverBtn.hidden = true;
+  setHint("");
+  await checkYazzy();
+  phase = "busy";
+  const hasSix = () => roundDice.some((o) => live(o) && o.value === 6);
+  if (!hasSix()) {
+    const table = roundDice.filter(live);
+    await lastChance(table[table.length - 1]);
+    // Still no 6: the very last way out is sacrificing every 3
+    if (!hasSix()) await offerSacrifice();
+    phase = "busy";
+    rollBtn.disabled = true;
+  }
 
-  const results = await rollRound();
-  const values = results.map((r) => r.value);
+  const red = roundDice.filter(live);
+  const values = red.map((o) => o.value);
   const sum = values.reduce((a, b) => a + b, 0);
   addPips(sum);
 
-  // Every 1 gets a little "oof"
-  for (const { slot, value } of results) {
-    if (value !== 1) continue;
-    const { x, y } = centerOf(slot);
+  // d4 shelf: once 4s are unlocked, every 4 adds a permanent little d4; the whole shelf rolls
+  if (unlocked[4]) {
+    const fours = values.filter((v) => v === 4).length;
+    if (fours) addShelfD4(fours);
+  }
+  const d4Total = shelfD4 ? await rollShelf() : 0;
+  stats.d4 += d4Total;
+  if (d4Total) {
+    showToast(`d4 SHELF ×${shelfD4}\n+${d4Total} CHIPS`, 3);
+    arp([659, 784, 988], 0.06, { type: "triangle", vol: 0.05 });
+    addPips(d4Total);
+    await wait(reducedMotion ? 200 : 700);
+  }
+
+  // Every 1 left on the table gets a little "oof"
+  for (const o of red) {
+    if (o.value !== 1) continue;
+    const { x, y } = centerOf(o.slot);
     floatText(x, y - 30, pick(["oof", "yikes", "lol", "1?!", "rip"]), "oof");
   }
 
@@ -1250,6 +2012,7 @@ async function nextRound() {
   }
 
   for (const combo of scoreCombos(values)) {
+    stats.combos++;
     showToast(`${combo.name} +${combo.bonus}`);
     SOUND.combo();
     const { x, y } = centerOf(tray);
@@ -1258,16 +2021,37 @@ async function nextRound() {
     extra += combo.bonus;
     await wait(reducedMotion ? 300 : 1000);
   }
-  const sixes = results.filter((r) => r.value === 6);
-  logRound(sum, extra, sixes.length);
+  const sixes = red.filter((o) => o.value === 6);
+  logRound(sum, extra + d4Total, sixes.length);
 
   if (Math.random() < EVENT_CHANCE) await randomEvent();
+
+  // The golden d10 adds its roll to the multiplier
+  const gold = roundDice.find((o) => o.kind === "gold");
+  if (gold && gold.value) {
+    mult += gold.value;
+    setMult(mult);
+    stats.goldMulti = (stats.goldMulti || 0) + gold.value;
+    showToast(`GOLDEN d10\n+${gold.value} MULTI · x${mult}`, 9);
+    arp([784, 988, 1175, 1568], 0.06, { type: "triangle", vol: 0.06, wet: 0.3 });
+    await wait(reducedMotion ? 300 : 900);
+  }
+
+  // A bad d20 showing 20: the manager confiscates a bonus
+  const twenties = roundDice.filter((o) => o.kind === "bad" && o.value === 20).length;
+  if (twenties) await confiscate(twenties);
+
+  // Bad d20s that showed a 1 take a die away for good
+  const struck = roundDice.filter((o) => o.kind === "bad" && o.value <= badLosesOn()).length;
+  if (struck) {
+    stats.struck += struck;
+    await loseDice(struck);
+  }
 
   if (sixes.length) {
     // Every six grows the end die: X sixes in total earn a dX
     totalSixes += sixes.length;
     for (const { slot } of sixes) {
-      slot.classList.add("six");
       const { x, y } = centerOf(slot);
       burst(x, y, 20 + sixes.length * 10);
       sparkles(x, y, 6 + sixes.length * 2);
@@ -1280,103 +2064,135 @@ async function nextRound() {
     const label = sixes.length === 1 ? "SIX!" : `${sixes.length} SIXES!`;
     showToast(`${label}\nUP ${sixes.length} FLOOR${sixes.length > 1 ? "S" : ""} · END DIE d${totalSixes}`, floorTier(floor + sixes.length));
     await climb(sixes.length);
-
     setMessage(pick(SIX_LINES), true);
-    phase = "again";
-    rollBtn.disabled = false;
-    rollBtn.focus();
-    startAutoRoll();
+    await wait(reducedMotion ? 200 : 600);
+    await startRound();
     return;
   }
 
   setMessage(pick(MISS_LINES));
   SOUND.blub();
   await wait(reducedMotion ? 300 : 900);
-
-  // Last chance: the lower the wheel, the likelier the superbonus die
-  const superP = superUsed ? 0 : superChance() / 100;
-  if (superP > 0 && Math.random() < superP) {
-    superUsed = true;
-    const superValue = await superBonus();
-    if (superValue === 6) {
-      totalSixes += 1;
-      await climb(1);
-      setMessage("> THE SUPERBONUS DIE SAYS: KEEP CLIMBING", true);
-      phase = "again";
-      rollBtn.disabled = false;
-      rollBtn.focus();
-      startAutoRoll();
-      return;
-    }
-  }
   await endTurn();
 }
 
-// Chance in % = (100 - d100 wheel) / 10, so x1 gives 9.9% and x100 gives 0%
-function superChance() {
-  return Math.max(0, 100 - wheelMult) / 10;
+// A struck die shakes, cracks and bursts into shards; a pile of dust stays where it stood
+async function destroyDie(obj) {
+  const { slot } = obj;
+  slot.classList.add("doomed");
+  noise(0.25, { vol: 0.2, lp: 900, wet: 0.2 });
+  await wait(reducedMotion ? 100 : 600);
+  const { x, y } = centerOf(slot);
+  // Shards in the die's own red, plus grey grit
+  const before = particles.length;
+  burst(x, y, 36);
+  for (let i = before; i < particles.length; i++) {
+    particles[i].color = ["#d61f35", "#7a0d1c", "#ff5d6e", "#8a8396", "#5a5466"][i % 5];
+    particles[i].vy -= 2;
+  }
+  noise(0.6, { vol: 0.25, lp: 2500, wet: 0.35 });
+  sfx(140, 0.5, { type: "sawtooth", vol: 0.08, to: 40, wet: 0.3 });
+  for (let i = 0; i < 6; i++) noise(0.05, { vol: 0.06, delay: 0.15 + i * 0.07 + Math.random() * 0.05, hp: 3000 });
+  slot.classList.remove("doomed", "six", "silver", "one", "landed", "rolling", "lucky");
+  slot.classList.add("dust-pile");
+  obj.gone = true;
+  slot.innerHTML = '<div class="dust"></div>';
+  floatText(x, y - 20, pick(["poof", "*crunch*", "rip die", "gone"]), "oof");
 }
 
-// A giant golden die rolls in from the side for one last shot at a 6
-async function superBonus() {
-  showToast(`SUPERBONUS DIE!\n${superChance().toFixed(1)}% CHANCE`, 9);
-  setMessage("> wait... what's that rolling in?!", true);
-  flashScreen("#ffcf4a");
-  SOUND.combo();
-  await wait(reducedMotion ? 300 : 900);
+async function loseDice(count) {
+  // The last red dice on the table are the ones that crumble
+  const victims = roundDice.filter(live).slice(-count);
+  await Promise.all(victims.map((o, i) => wait(i * 250).then(() => destroyDie(o))));
+  diceCount = Math.max(1, diceCount - count);
+  setDiceCount();
+  showToast(`BAD d20 STRUCK!\n-${count} DIE${count > 1 ? "S" : ""} · NOW ${diceCount}`, 7);
+  setMessage(`> the Casino Manager pockets ${count === 1 ? "a die" : count + " dice"} with a smile`);
+  arp([392, 330, 262, 196], 0.14, { type: "sawtooth", vol: 0.05, wet: 0.3 });
+  await wait(reducedMotion ? 400 : 1400);
+}
 
-  const stage = document.createElement("div");
-  stage.className = "super-stage";
-  stage.innerHTML = '<div class="super-roll"><div class="die super-die"></div></div><p class="super-label">LAST CHANCE FOR A 6</p>';
-  const die = stage.querySelector(".super-die");
-  for (let n = 1; n <= 6; n++) {
-    const face = document.createElement("div");
-    face.className = `face f${n}`;
-    fillFace(face, n);
-    die.appendChild(face);
+function setDiceCount() {
+  $("dice-count").textContent = diceCount;
+  stats.maxDice = Math.max(stats.maxDice || 0, diceCount);
+}
+
+// Red alarm: the Casino Manager adds a bad d20. Slow pulse by default, real strobe in flashy mode
+async function managerAlarm(badTotal) {
+  const alarm = document.createElement("div");
+  alarm.className = "alarm";
+  alarm.innerHTML = `
+    <div class="alarm-box">
+      <p class="alarm-title">&#128680; ALARM &#128680;</p>
+      <p class="alarm-text">Casino Manager notices your winstreak, he is adding a bad dice on the table, don't roll a ${badLosesOn() === 1 ? "1" : "1-" + badLosesOn()}!</p>
+      <p class="alarm-sub">bad d20s on the table: ${badTotal}</p>
+    </div>`;
+  document.body.appendChild(alarm);
+  // Siren: two tones sweeping up and down
+  for (let i = 0; i < 4; i++) {
+    sfx(620, 0.35, { type: "sawtooth", vol: 0.05, to: 920, delay: i * 0.7, wet: 0.2 });
+    sfx(920, 0.35, { type: "sawtooth", vol: 0.05, to: 620, delay: i * 0.7 + 0.35, wet: 0.2 });
   }
-  document.body.appendChild(stage);
+  boom(0);
+  setMessage("> uh oh. management is watching", true);
+  alarm.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, fill: "forwards" });
+  await wait(reducedMotion ? 1200 : 3000);
+  alarm.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
+  await wait(320);
+  alarm.remove();
+}
 
-  const value = d(6);
-  const [fx, fy] = FACE_ROTATION[value];
-  const time = reducedMotion ? 600 : 2600;
-  die.style.transition = `transform ${time}ms cubic-bezier(.2, .7, .25, 1)`;
-  die.style.transform = "rotateX(-30deg) rotateY(40deg)";
+// Every floor has a name; every 5th floor is a milestone with its own scene
+const FLOOR_NAMES = [
+  "The Lobby Bar", "Penny Slot Swamp", "The Buffet of Regret", "Chip Laundromat", null,
+  "Craps Canyon", "Lucky Seven Alley", "The Mint Room", "Poker Face Gym", null,
+  "Tip Jar Tower", "The Dice Spa", "Floor 13 (Don't Ask)", "Roulette Roundabout", null,
+  "Jackpot Junction", "The Velvet Rope", "Comp Drinks Club", "The Cashier Cage", null,
+];
+const MILESTONES = [
+  { name: "The Neon Lounge", icon: "\u{1F378}" },
+  { name: "The High Roller Suite", icon: "\u{1F4BC}" },
+  { name: "The Sky Bar", icon: "\u{1F307}" },
+  { name: "The Golden Vault", icon: "\u{1F3E6}" },
+  { name: "The Penthouse", icon: "\u{1F6CE}️" },
+  { name: "The Helipad", icon: "\u{1F681}" },
+  { name: "Cloud Nine Casino", icon: "☁️" },
+  { name: "Low Orbit Lounge", icon: "\u{1F6F0}️" },
+  { name: "Space Station Slots", icon: "\u{1F680}" },
+  { name: "Moon Base Blackjack", icon: "\u{1F315}" },
+  { name: "Mars Poker Room", icon: "\u{1F534}" },
+  { name: "Asteroid Belt Bingo", icon: "☄️" },
+  { name: "Jupiter's Jackpot", icon: "\u{1FA90}" },
+  { name: "The Comet Club", icon: "\u{1F320}" },
+  { name: "Neutron Star Nightclub", icon: "⭐" },
+  { name: "Black Hole Baccarat", icon: "\u{1F573}️" },
+  { name: "The Edge of the Universe", icon: "\u{1F30C}" },
+  { name: "The Multiverse Lobby", icon: "\u{1F300}" },
+  { name: "The House Itself", icon: "\u{1F3E0}" },
+];
+const floorName = (f) =>
+  f % FLOORS_PER_DIE === 0
+    ? (MILESTONES[f / FLOORS_PER_DIE - 1] || { name: `Beyond Reason ${f}` }).name
+    : FLOOR_NAMES[(f - 1) % FLOOR_NAMES.length] || `Floor ${f}`;
 
-  // Roll across the floor from off-screen left, bouncing to a stop
-  stage.querySelector(".super-roll").animate(
-    [
-      { transform: "translateX(-75vw) translateY(0) rotate(-1080deg)" },
-      { transform: "translateX(-10vw) translateY(-60px) rotate(-200deg)", offset: 0.55 },
-      { transform: "translateX(4vw) translateY(0) rotate(20deg)", offset: 0.75 },
-      { transform: "translateX(-1vw) translateY(-14px) rotate(-6deg)", offset: 0.88 },
-      { transform: "translateX(0) translateY(0) rotate(0)" },
-    ],
-    { duration: time, easing: "cubic-bezier(.25, .8, .3, 1)", fill: "forwards" }
-  );
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  die.style.transform = `rotateX(${fx + 360 * 4}deg) rotateY(${fy + 360 * 3}deg)`;
-  tension(time / 1000);
-  await wait(time + 100);
-
-  const { x, y } = centerOf(die);
-  if (value === 6) {
-    stage.classList.add("won");
-    reveal(9);
-    fanfare(3);
-    celebrate();
-    diceRain(40);
-    showToast("SUPER SIX!!!\nKEEP CLIMBING", 9);
-    burst(x, y, 120);
-  } else {
-    stage.classList.add("lost");
-    SOUND.sad();
-    showToast(`${value}...\nSO CLOSE`, 0);
-    floatText(x, y - 100, pick(["noooo", "the house wins", "rigged!!", "next time"]), "oof");
-  }
-  await wait(reducedMotion ? 600 : 1800);
-  stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).onfinish = () => stage.remove();
-  return value;
+// A banner zips across the table for every floor passed
+function floorBanner(f) {
+  const banner = document.createElement("div");
+  banner.className = "floor-banner";
+  paintTier(banner, floorTier(f));
+  banner.innerHTML = `<b>FLOOR ${f}</b> ${floorName(f)}`;
+  document.body.appendChild(banner);
+  banner
+    .animate(
+      [
+        { transform: "translate(-120vw, -50%) skewX(-12deg)", opacity: 1 },
+        { transform: "translate(-50%, -50%) skewX(0)", opacity: 1, offset: 0.3 },
+        { transform: "translate(-50%, -50%) skewX(0)", opacity: 1, offset: 0.7 },
+        { transform: "translate(120vw, -50%) skewX(12deg)", opacity: 1 },
+      ],
+      { duration: reducedMotion ? 500 : 1100, easing: "cubic-bezier(.3, .8, .4, 1)" }
+    )
+    .settled.then(() => banner.remove());
 }
 
 // Ride the elevator up one floor at a time with a ding each
@@ -1387,25 +2203,37 @@ async function climb(floors) {
     roundEl.textContent = floor;
     bump(roundEl);
     SOUND.floorDing(i);
-    await wait(reducedMotion ? 60 : 260);
-    if (floor % FLOORS_PER_DIE === 0) await milestone();
+    if (floor % FLOORS_PER_DIE === 0) {
+      await milestone();
+    } else {
+      floorBanner(floor);
+      await wait(reducedMotion ? 120 : 420);
+    }
   }
   const tier = floorTier(floor);
-  setMessage(`> *ding* floor ${floor} · ${TIERS[tier].name}`, true);
+  setMessage(`> *ding* floor ${floor} · ${floorName(floor)} · ${TIERS[tier].name}`, true);
 }
 
-// Every 5th floor: elevator doors slam shut, a new red die is handed over, doors fly open
+// Every 5th floor: a scene of its own. The elevator doors slam, the new place is revealed
+// with its icon and color, a fresh red die is handed over, and the doors burst open
 async function milestone() {
-  const gift = diceCount < MAX_DICE;
-  if (gift) diceCount++;
+  diceCount++;
+  setDiceCount();
+  const index = floor / FLOORS_PER_DIE - 1;
+  const place = MILESTONES[index] || { name: `Beyond Reason ${floor}`, icon: "✨" };
+  const tier = Math.min(9, index);
   const doors = document.createElement("div");
   doors.className = "doors";
+  paintTier(doors, tier);
   doors.innerHTML = `
     <div class="door left"></div><div class="door right"></div>
+    <div class="door-lights"></div>
     <div class="door-sign">
       <span class="door-floor">FLOOR ${floor}</span>
+      <span class="door-icon">${place.icon}</span>
+      <span class="door-name">${place.name}</span>
       <div class="mini door-die"></div>
-      <span class="door-gift">${gift ? `+1 RED DIE · NOW ${diceCount}` : `TABLE FULL · ${MAX_DICE} DICE MAX`}</span>
+      <span class="door-gift">+1 RED DIE · NOW ${diceCount}</span>
     </div>`;
   fillFace(doors.querySelector(".door-die"), 6);
   document.body.appendChild(doors);
@@ -1414,34 +2242,45 @@ async function milestone() {
   const sign = doors.querySelector(".door-sign");
   const t = reducedMotion ? 0.3 : 1;
 
-  // Slam shut
+  // Slam shut, the floor counter rolls up
   const close = { duration: 320 * t, easing: "cubic-bezier(.6, 0, 1, .6)", fill: "forwards" };
   left.animate([{ transform: "translateX(-100%)" }, { transform: "translateX(0)" }], close);
   await right.animate([{ transform: "translateX(100%)" }, { transform: "translateX(0)" }], close).settled;
-  kick(0);
+  boom(0);
   noise(0.4, { vol: 0.15, hp: 400 });
   shakeTray();
 
-  // The gift: sign pops, the die spins in, big fanfare
+  // Reveal: sign spins in, the icon bounces, the die drops, the place's own fanfare
   sign.animate(
     [{ transform: "scale(0) rotate(-20deg)", opacity: 0 }, { transform: "scale(1.15) rotate(4deg)", opacity: 1, offset: 0.7 }, { transform: "none", opacity: 1 }],
     { duration: 500 * t, easing: "ease-out", fill: "forwards" }
   );
+  doors.querySelector(".door-icon").animate(
+    [{ transform: "scale(0) translateY(40px)" }, { transform: "scale(1.5) translateY(-10px)", offset: 0.6 }, { transform: "none" }],
+    { duration: 700 * t, delay: 200 * t, easing: "ease-out", fill: "backwards" }
+  );
   doors.querySelector(".door-die").animate(
     [{ transform: "translateY(-200px) rotate(-720deg)" }, { transform: "translateY(0) rotate(0)" }],
-    { duration: 900 * t, easing: "cubic-bezier(.3, 1.4, .5, 1)" }
+    { duration: 900 * t, delay: 400 * t, easing: "cubic-bezier(.3, 1.4, .5, 1)", fill: "backwards" }
   );
-  fanfare(4);
-  arp([1046, 1318, 1568, 2093], 0.12, { type: "triangle", vol: 0.06, delay: 0.2 });
-  setMessage(gift ? `> floor ${floor}! the elevator gifts you die #${diceCount}` : `> floor ${floor}! the table can't fit more dice`, true);
-  await wait(1800 * t);
+  const root = semis(196, index * 2);
+  brassChord(root, [0, 4, 7, 12], 0.5, 0.1);
+  brassChord(root, [5, 9, 12, 17], 0.5, 0.55);
+  brassChord(root, [7, 11, 14, 19], 1.4, 1.0);
+  timpani(semis(root, -12), { delay: 0.1 });
+  timpani(semis(root, -7), { delay: 1.0 });
+  if (index >= 2) choir(root, [12, 16, 19], 2, 0.5);
+  setMessage(`> floor ${floor}: ${place.name}! the elevator gifts you die #${diceCount}`, true);
+  const { x, y } = centerOf(sign);
+  for (let i = 0; i < 4; i++) setTimeout(() => burst(x + (Math.random() - 0.5) * 300, y + (Math.random() - 0.5) * 200, 40), i * 300 * t);
+  await wait(2100 * t);
 
-  // Doors fly open and dice pour out
+  // Doors burst open and dice pour out
   const open = { duration: 450 * t, easing: "cubic-bezier(.2, .8, .3, 1)", fill: "forwards" };
   sign.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.6)" }], open);
-  left.animate([{ transform: "translateX(0)" }, { transform: "translateX(-105%)" }], open);
-  await right.animate([{ transform: "translateX(0)" }, { transform: "translateX(105%)" }], open).settled;
-  diceRain(30);
+  left.animate([{ transform: "translateX(0)" }, { transform: "translateX(-105%) rotate(-8deg)" }], open);
+  await right.animate([{ transform: "translateX(0)" }, { transform: "translateX(105%) rotate(8deg)" }], open).settled;
+  diceRain(30 + index * 5);
   celebrate();
   doors.remove();
 }
@@ -1583,7 +2422,7 @@ async function cinematic(final, tier) {
     <div class="cine-rays"></div>
     <div class="cine-eq"><span class="c">${pips.toLocaleString("en-US")}</span><span class="x">×</span><span class="m">${mult}</span></div>
     <div class="cine-score"></div>
-    <div class="cine-tier">${TIERS[tier].name}</div>
+    <div class="cine-tier">${TIERS[tier].name}<small>${TIERS[tier].title}</small></div>
     <div class="cine-rank">${formatRank(final)}</div>`;
   document.body.appendChild(cine);
   paintTier(cine, multTier(mult));
@@ -1706,58 +2545,226 @@ async function showGameOver(final) {
   ladder.forEach((p) => p.classList.remove("on"));
   goScoreEl.textContent = "0";
   goTierEl.textContent = TIERS[0].name;
+  $("go-title").textContent = "";
+  $("go-verdict").textContent = "";
   paintTier(goCard, 0);
   paintTier(goScoreEl, 0);
   paintTier(goTierEl, 0);
-  $("go-chips").textContent = pips;
+  $("go-chips").textContent = pips.toLocaleString("en-US");
   $("go-mult").textContent = "x" + mult;
   $("go-floors").textContent = floor;
   $("go-rounds").textContent = round;
   $("go-odds").textContent = "...";
+  $("go-curve").innerHTML = "";
+  $("go-statgrid").innerHTML = "";
+  $("go-entry").hidden = true;
   gameoverEl.classList.add("show");
+  setHint("Tap NEW GAME to play again. The trophy at the top shows your leaderboard.");
   await wait(reducedMotion ? 100 : 600);
 
   // Quick recap: the cinematic already did the big reveal
   const duration = reducedMotion ? 300 : 1100;
   const start = performance.now();
   let shownTier = -1;
-  await new Promise((resolve) => {
-    function step(now) {
-      const t = Math.min(1, (now - start) / duration);
-      // Ease in hard so the big tiers arrive with a rush at the end
-      const value = Math.round(final * Math.pow(t, 2.2));
-      goScoreEl.textContent = value.toLocaleString("en-US");
-      const tier = scoreTier(value);
-      while (shownTier < tier) {
-        shownTier++;
-        ladder[shownTier].classList.add("on");
-        paintTier(goCard, shownTier);
-        paintTier(goScoreEl, shownTier);
-        paintTier(goTierEl, shownTier);
-        goTierEl.textContent = TIERS[shownTier].name;
-        sfx(440 * Math.pow(2, (shownTier * 2) / 12), 0.15, { type: "triangle", vol: 0.06 });
-        bump(goTierEl);
-      }
-      if (t < 1) requestAnimationFrame(step);
-      else resolve();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    // Ease in hard so the big tiers arrive with a rush at the end
+    const value = Math.round(final * Math.pow(t, 2.2));
+    goScoreEl.textContent = value.toLocaleString("en-US");
+    const tier = scoreTier(value);
+    while (shownTier < tier) {
+      shownTier++;
+      ladder[shownTier].classList.add("on");
+      paintTier(goCard, shownTier);
+      paintTier(goScoreEl, shownTier);
+      paintTier(goTierEl, shownTier);
+      goTierEl.textContent = TIERS[shownTier].name;
+      sfx(440 * Math.pow(2, (shownTier * 2) / 12), 0.15, { type: "triangle", vol: 0.06 });
+      bump(goTierEl);
     }
-    requestAnimationFrame(step);
-  });
+    return t < 1;
+  };
+  await Promise.race([
+    wait(duration + 300),
+    new Promise((resolve) => {
+      const frame = (now) => (step(now) ? requestAnimationFrame(frame) : resolve());
+      requestAnimationFrame(frame);
+    }),
+  ]);
+  step(start + duration);
+  goScoreEl.textContent = final.toLocaleString("en-US");
 
+  const tier = scoreTier(final);
+  $("go-title").textContent = TIERS[tier].title;
+  $("go-verdict").textContent = `“${TIERS[tier].verdict}”`;
   SOUND.combo();
   goCard.animate([{ transform: "scale(1.08)" }, { transform: "none" }], { duration: 350, easing: "ease-out" });
   const { x, y } = centerOf(goScoreEl);
   burst(x, y, 30 + shownTier * 10);
 
-  // Type out how this score ranks against 200,000 simulated games
+  drawCurve(final, tier);
+  drawStatGrid(final);
+
+  // Type out how this score ranks against 12 million simulated games
   const text = formatRank(final);
   const oddsEl = $("go-odds");
   for (let i = 1; i <= text.length; i++) {
     oddsEl.textContent = text.slice(0, i);
     if (i % 2) SOUND.tick();
-    await wait(reducedMotion ? 0 : 25);
+    await wait(reducedMotion ? 0 : 20);
   }
-  $("new-game").focus();
+
+  offerLeaderboard(final, tier);
+}
+
+// Score at a given percentile, interpolated on a log scale (inverse of scorePercentile)
+function scoreAtPercentile(pct) {
+  const t = SCORE_PERCENTILES;
+  if (pct <= t[0][0]) return t[0][1];
+  for (let i = 1; i < t.length; i++) {
+    if (pct <= t[i][0]) {
+      const [p0, s0] = t[i - 1];
+      const [p1, s1] = t[i];
+      const f = (pct - p0) / (p1 - p0 || 1);
+      return Math.exp(Math.log(Math.max(s0, 1)) + f * (Math.log(Math.max(s1, 1)) - Math.log(Math.max(s0, 1))));
+    }
+  }
+  return t[t.length - 1][1];
+}
+
+// Percent of games ending below `f` floors
+function floorPercentile(f) {
+  const t = FLOOR_PERCENTILES;
+  let pct = 0;
+  for (const [p, fl] of t) if (f > fl) pct = p;
+  return pct;
+}
+
+const shortNum = (v) =>
+  v >= 1e9 ? `${+(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `${+(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${+(v / 1e3).toFixed(1)}k` : `${Math.round(v)}`;
+
+// Catmull-Rom spline through the points, as a smooth SVG path
+function smoothPath(pts) {
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+// The big statistics curve: 12 million simulated games, tier bands behind it,
+// percentile markers, and you on it
+function drawCurve(final, tier) {
+  const W = 340;
+  const H = 168;
+  const L = 6;
+  const R = W - 6;
+  const TOP = 30;
+  const BASE = 128;
+  const x0 = SCORE_CURVE[0][0];
+  const x1 = SCORE_CURVE[SCORE_CURVE.length - 1][0];
+  const px = (lx) => L + ((Math.min(Math.max(lx, x0), x1) - x0) / (x1 - x0)) * (R - L);
+  const py = (dens) => BASE - dens * (BASE - TOP);
+  const pts = SCORE_CURVE.map(([lx, dens]) => [px(lx), py(dens)]);
+  const line = smoothPath(pts);
+  const area = `${line} L${R},${BASE} L${L},${BASE} Z`;
+  const youLx = Math.log10(Math.max(final, 1));
+  const you = px(youLx);
+  // Height of the curve at your score
+  let youY = BASE;
+  for (let i = 0; i < SCORE_CURVE.length - 1; i++) {
+    const [a, da] = SCORE_CURVE[i];
+    const [b, db] = SCORE_CURVE[i + 1];
+    if (youLx >= a && youLx <= b) youY = py(da + ((youLx - a) / (b - a)) * (db - da));
+  }
+  const color = TIERS[tier].color;
+
+  // Tier bands behind the curve
+  const bands = TIERS.map((t, i) => {
+    const a = px(Math.log10(Math.max(SCORE_TIERS[i], 10)));
+    const b = i < 9 ? px(Math.log10(SCORE_TIERS[i + 1])) : R;
+    return b > a ? `<rect x="${a.toFixed(1)}" y="${TOP - 6}" width="${(b - a).toFixed(1)}" height="${BASE - TOP + 6}" fill="${t.color}" opacity=".13"/>` : "";
+  }).join("");
+
+  // Percentile markers
+  const marks = [
+    [50, "MEDIAN"],
+    [90, "TOP 10%"],
+    [99, "TOP 1%"],
+    [99.9, "0.1%"],
+  ]
+    .map(([p, label], i) => {
+      const x = px(Math.log10(scoreAtPercentile(p)));
+      return `<line x1="${x.toFixed(1)}" y1="${TOP - 4}" x2="${x.toFixed(1)}" y2="${BASE}" class="curve-mark"/>
+        <text x="${x.toFixed(1)}" y="${TOP - 10 - (i % 2) * 9}" text-anchor="middle" class="curve-mark-label">${label}</text>`;
+    })
+    .join("");
+
+  // Log-scale axis
+  const ticks = [10, 100, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9]
+    .filter((v) => Math.log10(v) >= x0 && Math.log10(v) <= x1)
+    .map((v) => {
+      const x = px(Math.log10(v)).toFixed(1);
+      return `<line x1="${x}" y1="${BASE}" x2="${x}" y2="${BASE + 4}" class="curve-axis"/><text x="${x}" y="${BASE + 14}" text-anchor="middle" class="curve-tick">${shortNum(v)}</text>`;
+    })
+    .join("");
+
+  const flagX = Math.min(R - 46, Math.max(L + 46, you));
+  $("go-curve").innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Where your score sits among 12 million simulated games">
+      <defs>
+        <linearGradient id="curve-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#c7a8e8" stop-opacity=".35"/>
+          <stop offset="1" stop-color="#c7a8e8" stop-opacity=".02"/>
+        </linearGradient>
+        <linearGradient id="you-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="${color}" stop-opacity=".85"/>
+          <stop offset="1" stop-color="${color}" stop-opacity=".15"/>
+        </linearGradient>
+        <clipPath id="you-clip"><rect x="0" y="0" width="${you.toFixed(1)}" height="${H}" class="you-clip-rect"/></clipPath>
+      </defs>
+      ${bands}
+      <path d="${area}" fill="url(#curve-fill)"/>
+      <path d="${area}" fill="url(#you-fill)" clip-path="url(#you-clip)" class="you-area"/>
+      <path d="${line}" class="curve-line" pathLength="1"/>
+      ${marks}
+      <line x1="${L}" y1="${BASE}" x2="${R}" y2="${BASE}" class="curve-axis"/>
+      ${ticks}
+      <line x1="${you.toFixed(1)}" y1="${youY.toFixed(1)}" x2="${you.toFixed(1)}" y2="${BASE}" stroke="${color}" stroke-width="2"/>
+      <circle cx="${you.toFixed(1)}" cy="${youY.toFixed(1)}" r="4" fill="${color}" class="you-dot"/>
+      <circle cx="${you.toFixed(1)}" cy="${youY.toFixed(1)}" r="4" fill="none" stroke="${color}" class="you-ping"/>
+      <g class="you-flag">
+        <rect x="${(flagX - 44).toFixed(1)}" y="${BASE + 20}" width="88" height="16" rx="2" fill="${color}"/>
+        <text x="${flagX.toFixed(1)}" y="${BASE + 31}" text-anchor="middle" class="curve-you">YOU ${shortNum(final)}</text>
+      </g>
+    </svg>`;
+}
+
+// The statistics grid: how lucky you were and where you stand
+function drawStatGrid(final) {
+  const pct = scorePercentile(final);
+  const top = 100 - pct;
+  const luckRatio = stats.expectedSixes > 0 ? stats.sixes / stats.expectedSixes : 1;
+  const luckText = luckRatio >= 1.15 ? "lucky!" : luckRatio <= 0.85 ? "unlucky" : "about average";
+  const tiles = [
+    ["Rank", `beats ${pct >= 99.9 ? pct.toFixed(3) : pct.toFixed(1)}%`, top <= 50 ? `only 1 in ${Math.round(100 / Math.max(top, 1e-9)).toLocaleString("en-US")} games score this` : "of all games"],
+    ["Sixes", `${stats.sixes}`, `expected ${stats.expectedSixes.toFixed(1)}: ${luckText}`],
+    ["Floors", `${floor}`, `beats ${floorPercentile(floor)}% of games`],
+    ["Biggest table", `${stats.maxDice} dice`, stats.bonusDice ? `${stats.bonusDice} from five of a kind` : `${stats.rolls} rolls in total`],
+    ["Wheel", `${wheelMult}`, `last chance ${(100 / 6 + luckChance()).toFixed(1)}%${stats.lastChances ? `, ${stats.lucky}/${stats.lastChances} hit` : ""}`],
+    ["Losses", `${stats.sacrificed + stats.struck} dice`, `${stats.sacrificed} sacrificed, ${stats.struck} to bad d20s`],
+    ["Bonus chips", `+${stats.d4}`, `from d4s · ${stats.combos} combo${stats.combos === 1 ? "" : "s"}`],
+    ["Expected game", shortNum(scoreAtPercentile(50)), `median score · you got ${(final / Math.max(1, scoreAtPercentile(50))).toFixed(1)}x`],
+  ];
+  $("go-statgrid").innerHTML = tiles
+    .map(([label, value, sub]) => `<div class="stat-tile"><span class="st-label">${label}</span><b class="st-value">${value}</b><span class="st-sub">${sub}</span></div>`)
+    .join("");
 }
 
 $("new-game").addEventListener("click", () => {
@@ -1765,14 +2772,254 @@ $("new-game").addEventListener("click", () => {
   play();
 });
 
+/* ---------- Leaderboard (this device) ---------- */
+
+const LB_KEY = "dicele-leaderboard";
+const LB_SIZE = 10;
+
+function loadBoard() {
+  try {
+    const list = JSON.parse(localStorage.getItem(LB_KEY) || "[]");
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveBoard(list) {
+  try {
+    localStorage.setItem(LB_KEY, JSON.stringify(list));
+  } catch {
+    // Storage unavailable; the board just won't persist
+  }
+}
+
+// Top-10 score? Ask for 3-letter initials right on the game-over card
+function offerLeaderboard(final, tier) {
+  const board = loadBoard();
+  const rank = board.filter((e) => e.score >= final).length + 1;
+  if (rank > LB_SIZE || final <= 0) return;
+  const entry = $("go-entry");
+  const input = $("go-initials");
+  $("go-entry-title").textContent = rank === 1 ? "NEW #1 HIGH SCORE!" : `HIGH SCORE #${rank}!`;
+  entry.hidden = false;
+  entry.dataset.score = final;
+  entry.dataset.tier = tier;
+  try {
+    input.value = localStorage.getItem("dicele-initials") || "";
+  } catch {
+    input.value = "";
+  }
+  input.focus();
+  input.select();
+  entry.animate([{ transform: "scale(.6)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
+  arp([523, 659, 784, 1047], 0.08, { type: "triangle", vol: 0.05 });
+}
+
+$("go-initials").addEventListener("input", (e) => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3);
+});
+
+function submitInitials() {
+  const entry = $("go-entry");
+  const name = ($("go-initials").value || "???").padEnd(3, "?");
+  try {
+    localStorage.setItem("dicele-initials", name);
+  } catch {
+    // ignore
+  }
+  const board = loadBoard();
+  const record = {
+    name,
+    score: Number(entry.dataset.score),
+    tier: Number(entry.dataset.tier),
+    floor,
+    mult,
+    date: new Date().toISOString().slice(0, 10),
+  };
+  board.push(record);
+  board.sort((a, b) => b.score - a.score);
+  saveBoard(board.slice(0, LB_SIZE));
+  entry.hidden = true;
+  SOUND.combo();
+  showLeaderboard(record);
+}
+
+$("go-save").addEventListener("click", submitInitials);
+$("go-initials").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") submitInitials();
+});
+
+function showLeaderboard(highlight) {
+  const board = loadBoard();
+  const rows = board.length
+    ? board
+        .map((e, i) => {
+          const t = TIERS[Math.min(9, Math.max(0, e.tier || 0))];
+          const mine = highlight && e.name === highlight.name && e.score === highlight.score && e.date === highlight.date;
+          return `<tr class="${mine ? "mine" : ""}" style="--tc:${t.color}">
+            <td>${i + 1}</td><td class="lb-name">${e.name}</td>
+            <td class="lb-score">${Number(e.score).toLocaleString("en-US")}</td>
+            <td class="lb-tier">${t.name}</td><td>FL ${e.floor ?? "-"}</td></tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="5" class="lb-empty">No scores yet. Go make some bad decisions!</td></tr>`;
+  $("lb-rows").innerHTML = rows;
+  openModal("leaderboard");
+}
+
+/* ---------- Modals: help and leaderboard ---------- */
+
+function openModal(id) {
+  const m = $(id);
+  m.hidden = false;
+  // Only the box pops in; the backdrop is never faded, so it can't get stuck see-through
+  m.querySelector(".modal-box").animate([{ transform: "scale(.9)" }, { transform: "none" }], { duration: 200 });
+  m.querySelector(".modal-close").focus();
+}
+
+function closeModal(id) {
+  $(id).hidden = true;
+}
+
+for (const m of document.querySelectorAll(".modal")) {
+  m.querySelector(".modal-close").addEventListener("click", () => closeModal(m.id));
+  m.addEventListener("click", (e) => {
+    if (e.target === m) closeModal(m.id);
+  });
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") document.querySelectorAll(".modal").forEach((m) => (m.hidden = true));
+});
+
+$("lb-btn").addEventListener("click", () => showLeaderboard());
+$("help-btn").addEventListener("click", () => openModal("help"));
+$("lb-clear").addEventListener("click", () => {
+  if (confirm("Clear this device's leaderboard?")) {
+    saveBoard([]);
+    showLeaderboard();
+  }
+});
+
+// The tier table in the help screen, with how often each one happens
+(function fillTierTable() {
+  const rows = TIERS.map((t, i) => {
+    const from = SCORE_TIERS[i];
+    const share = i < 9 ? scorePercentile(SCORE_TIERS[i + 1]) - scorePercentile(from) : 100 - scorePercentile(from);
+    return `<tr style="--tc:${t.color}"><td class="lb-tier">${t.name}</td><td>${t.title}<br><i>“${t.verdict}”</i></td>
+      <td class="lb-score">${from.toLocaleString("en-US")}+</td><td>${share < 1 ? share.toFixed(2) : share.toFixed(0)}%</td></tr>`;
+  });
+  $("tier-rows").innerHTML = rows.join("");
+})();
+
+// "How the table grows": built from the rule constants, so it always matches the game
+(function fillProgression() {
+  // What a yazzy needs and how many bad d20s sit on the table, by table size
+  const sizes = [5, 6, 8, 10, 11, 12, 15, 20, 25, 30];
+  const rows = sizes.map((n) => {
+    const notes = [];
+    if (n === BASE_DICE) notes.push("start: every bonus locked");
+    if (n === BAD_FROM_DICE) notes.push("\u{1F6A8} the Casino Manager arrives");
+    else if (n > BAD_FROM_DICE && (n - BAD_FROM_DICE) % BAD_EVERY_DICE === 0) notes.push("\u{1F6A8} another bad d20");
+    if (n === 11) notes.push("yazzy now needs dice − 5");
+    return [`${n} dice`, `${yazzyNeed(n)} of ${n}`, notes.join(" · "), String(badDiceFor(n))];
+  });
+  $("prog-rows").innerHTML =
+    `<tr><td><b>table</b></td><td><b>yazzy</b></td><td><b>what changes</b></td><td><b>bad d20s</b></td></tr>` +
+    rows.map((r) => `<tr><td class="lb-score">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+
+  const faces = [`<tr><td class="lb-score">floor 0–${LOSE_FACES_FROM_FLOOR - 1}</td><td>a 1 destroys a red die</td><td>5% each</td></tr>`];
+  for (let f = 2; f <= 4; f++) {
+    const from = LOSE_FACES_FROM_FLOOR + (f - 2) * LOSE_FACE_STEP;
+    faces.push(`<tr><td class="lb-score">floor ${from}–${from + LOSE_FACE_STEP - 1}</td><td>1–${f} destroys a red die</td><td>${f * 5}% each</td></tr>`);
+  }
+  faces.push(`<tr><td class="lb-score">always</td><td>a 20 confiscates one unlocked bonus</td><td>5% each</td></tr>`);
+  $("face-rows").innerHTML = faces.join("");
+})();
+
+$("version").textContent = "v" + VERSION;
+renderBonusBar();
+
+/* ---------- One game a day (plus a secret door) ---------- */
+
+const DAY_KEY = "dicele-played-day";
+const todayKey = () => {
+  const d0 = new Date();
+  return `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, "0")}-${String(d0.getDate()).padStart(2, "0")}`;
+};
+function playedToday() {
+  try {
+    return localStorage.getItem(DAY_KEY) === todayKey();
+  } catch {
+    return false;
+  }
+}
+function markPlayedToday() {
+  try {
+    localStorage.setItem(DAY_KEY, todayKey());
+  } catch {
+    // Storage unavailable: no daily limit then
+  }
+}
+// The secret door: tap the DICELE logo 3 times quickly for one more game today
+let secretGame = false;
+
+function untilMidnight() {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const s = Math.max(0, Math.floor((next - now) / 1000));
+  return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((v) => String(v).padStart(2, "0")).join(":");
+}
+
+// While idle and out of games, the button counts down to tomorrow's game
+function refreshIdleButton() {
+  if (phase !== "idle") return;
+  const locked = playedToday() && !secretGame;
+  rollBtn.classList.toggle("locked", locked);
+  rollBtn.innerHTML = locked
+    ? `NEXT GAME IN ${untilMidnight()}<span class="auto">one game a day, like a good habit</span>`
+    : "&#9650; NEW GAME &#9650;";
+  $("new-game").innerHTML = locked ? `SEE YOU IN ${untilMidnight()}` : "&#9650; NEW GAME &#9650;";
+}
+setInterval(refreshIdleButton, 1000);
+
+let logoTaps = [];
+document.querySelector("header h1").addEventListener("click", () => {
+  const now = performance.now();
+  logoTaps = logoTaps.filter((t) => now - t < 1500).concat(now);
+  sfx(300 + logoTaps.length * 200, 0.08, { vol: 0.04 });
+  if (logoTaps.length < 3 || phase !== "idle" || secretGame || !playedToday()) return;
+  logoTaps = [];
+  secretGame = true;
+  showToast("SECRET DOOR!\nONE MORE GAME", 9);
+  setMessage("> psst. the bouncer looks the other way...", true);
+  arp([392, 523, 659, 784, 1047], 0.07, { type: "triangle", vol: 0.06, wet: 0.4 });
+  celebrate();
+  refreshIdleButton();
+});
+
+// The big button / space bar: whatever comes next
 function play() {
-  stopAutoRoll();
   if (phase === "idle") {
+    if (playedToday() && !secretGame) {
+      setMessage(`> the casino is closed for you today. come back in ${untilMidnight()}`);
+      setHint("One game a day. Rumor says the logo hides a secret door...");
+      rollBtn.animate([{ transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "none" }], { duration: 250 });
+      SOUND.sad();
+      return;
+    }
+    secretGame = false;
+    markPlayedToday();
     gameoverEl.classList.remove("show");
     startTurn();
-  } else if (phase === "again") {
-    setButton("idle");
-    nextRound();
+  } else if (phase === "wheel") {
+    requestStop();
+  } else if (phase === "rolling") {
+    nudgeDice();
+  } else if (phase === "choice") {
+    resolveRound();
+  } else if (phase === "sacrifice") {
+    cashOut();
   }
 }
 
@@ -1805,13 +3052,39 @@ instaBtn.addEventListener("click", () => {
   save("dicele-insta", insta ? 1 : 0);
   applyInsta();
   SOUND.pop();
-  // Switching on mid-countdown skips the rest of the wait
-  if (insta && phase === "again") play();
+  // Switching on mid-game takes over right away
+  if (!insta) return;
+  if (phase === "wheel") requestStop();
+  else if (phase === "rolling") autoRollAll();
+  else if (phase === "choice") roundReady();
 });
+
+$("wheel-stop").addEventListener("click", requestStop);
+wheelCanvas.addEventListener("click", requestStop);
+
+/* ---------- Keep the screen awake ---------- */
+
+// Screen Wake Lock: the phone doesn't dim or sleep while the casino is open. Browsers
+// release it when the tab is hidden, so it's requested again on every return
+let wakeLock = null;
+async function keepAwake() {
+  if (!("wakeLock" in navigator) || document.visibilityState !== "visible" || wakeLock) return;
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => (wakeLock = null));
+  } catch {
+    // Not allowed right now (battery saver, no gesture yet): try again on the next tap
+    wakeLock = null;
+  }
+}
+document.addEventListener("visibilitychange", keepAwake);
+window.addEventListener("pointerdown", keepAwake);
+keepAwake();
 
 const splashEl = $("splash");
 splashEl.addEventListener("click", () => {
   audio();
+  keepAwake();
   SOUND.combo();
   splashEl.style.pointerEvents = "none";
   splashEl.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.1)" }], { duration: 400, fill: "forwards" });
@@ -1822,9 +3095,13 @@ splashEl.addEventListener("click", () => {
 
 rollBtn.addEventListener("click", play);
 document.addEventListener("keydown", (e) => {
-  if ((e.code === "Space" || e.code === "Enter") && !rollBtn.disabled && document.activeElement !== rollBtn) {
+  if (e.code !== "Space" && e.code !== "Enter") return;
+  // Typing initials or using another button: leave the key alone
+  const el = document.activeElement;
+  if (el && (el.tagName === "INPUT" || (el.tagName === "BUTTON" && el !== rollBtn))) return;
+  if (phase === "wheel" || !rollBtn.disabled) {
     e.preventDefault();
-    play();
+    if (document.activeElement !== rollBtn || phase === "wheel") play();
   }
 });
 

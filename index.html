@@ -2,31 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Dicele</title>
-  <meta name="description" content="Dicele: a retro pixel dice game. Spin the d100, roll sixes, climb the infinite casino tower.">
+  <meta name="description" content="Dicele: a retro pixel dice game. Spin the Wheel of Wealth, roll sixes, climb the infinite casino tower.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='14' height='14' fill='%23d61f35' stroke='%237a0d1c' stroke-width='1'/%3E%3Crect x='3' y='3' width='3' height='3' fill='%23fff'/%3E%3Crect x='10' y='3' width='3' height='3' fill='%23fff'/%3E%3Crect x='3' y='10' width='3' height='3' fill='%23fff'/%3E%3Crect x='10' y='10' width='3' height='3' fill='%23fff'/%3E%3Crect x='6.5' y='6.5' width='3' height='3' fill='%23fff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=2.0.0">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
   <div class="stars" aria-hidden="true"></div>
   <div id="tower" class="tower" aria-hidden="true"></div>
 
-  <div id="mult" class="panel mult" title="Multiplier die (d100)">
+  <div id="mult" class="panel mult" title="Multiplier from the Wheel of Wealth">
     <div class="d100"><span>%</span></div>
     <div class="mult-text">
       <span class="label">Multi</span>
       <span id="mult-value" class="mult-value">x?</span>
-      <span id="super-chance" class="super-chance"></span>
+      <span id="luck-chance" class="luck-chance"></span>
     </div>
   </div>
 
-  <button id="mute" class="panel mute" type="button" aria-label="Toggle sound">&#9834;</button>
-  <button id="flashy" class="panel flashy-btn" type="button" aria-label="Toggle flashy animations" title="Flashy animations (screen flashes &amp; strobing)">&#9889;</button>
+  <div class="top-buttons">
+    <button id="lb-btn" class="panel icon-btn" type="button" aria-label="Leaderboard" title="Leaderboard">&#127942;</button>
+    <button id="help-btn" class="panel icon-btn" type="button" aria-label="How to play" title="How to play">?</button>
+    <button id="flashy" class="panel icon-btn flashy-btn" type="button" aria-label="Toggle flashy animations" title="Flashy animations (screen flashes &amp; strobing)">&#9889;</button>
+    <button id="mute" class="panel icon-btn mute" type="button" aria-label="Toggle sound">&#9834;</button>
+  </div>
 
   <div id="splash" class="splash">
     <div class="sign">
@@ -34,23 +38,74 @@
       <p class="subtitle">THE INFINITE CASINO TOWER</p>
     </div>
     <button id="enter" class="roll-btn" type="button">&#9650; ENTER &#9650;</button>
-    <p class="splash-hint">click to enter &middot; sound on &middot; &#9889; for flashy mode</p>
+    <p class="splash-hint">tap to enter &middot; sound on &middot; ? explains the rules</p>
   </div>
 
   <div id="gameover" class="gameover" aria-live="polite">
     <div id="go-card" class="panel go-card">
-      <p class="go-title">CASHING OUT</p>
+      <p class="go-head">CASHING OUT</p>
       <span id="go-score" class="go-score">0</span>
-      <span id="go-tier" class="go-tier">PAPER</span>
+      <span id="go-tier" class="go-tier">STANDARD</span>
+      <span id="go-title" class="go-player-title"></span>
+      <span id="go-verdict" class="go-verdict"></span>
       <div id="go-ladder" class="go-ladder"></div>
+      <p class="go-odds">vs. 12 million simulated games<strong id="go-odds">?</strong></p>
       <div class="go-stats">
         <span>Chips <b id="go-chips">0</b></span>
         <span>Multi <b id="go-mult">x0</b></span>
         <span>Floors <b id="go-floors">0</b></span>
         <span>Rounds <b id="go-rounds">0</b></span>
       </div>
-      <p class="go-odds">vs. 200,000 simulated games<strong id="go-odds">?</strong></p>
+      <p class="go-section">WHERE YOU LANDED</p>
+      <div id="go-curve" class="go-curve"></div>
+      <div id="go-statgrid" class="go-statgrid"></div>
+      <div id="go-entry" class="go-entry" hidden>
+        <p id="go-entry-title" class="go-entry-title">HIGH SCORE!</p>
+        <label class="go-entry-label" for="go-initials">your initials</label>
+        <div class="go-entry-row">
+          <input id="go-initials" class="go-initials" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAA">
+          <button id="go-save" class="panel go-save" type="button">SAVE</button>
+        </div>
+      </div>
       <button id="new-game" class="roll-btn" type="button">&#9650; NEW GAME &#9650;</button>
+    </div>
+  </div>
+
+  <div id="leaderboard" class="modal" hidden role="dialog" aria-label="Leaderboard">
+    <div class="panel modal-box">
+      <button class="modal-close" type="button" aria-label="Close">&#10005;</button>
+      <h2>&#127942; LEADERBOARD</h2>
+      <p class="modal-sub">top 10 on this device</p>
+      <table class="lb-table"><tbody id="lb-rows"></tbody></table>
+      <button id="lb-clear" class="lb-clear" type="button">clear leaderboard</button>
+    </div>
+  </div>
+
+  <div id="help" class="modal" hidden role="dialog" aria-label="How to play">
+    <div class="panel modal-box help-box">
+      <button class="modal-close" type="button" aria-label="Close">&#10005;</button>
+      <h2>HOW TO PLAY</h2>
+      <ol class="help-steps">
+        <li><b>Wheel of Wealth.</b> Tap STOP to stop the wheel. The number is your multiplier. 100 spins again and adds up.</li>
+        <li><b>Roll your dice.</b> Tap each die itself to roll it. You start with 5 red dice.</li>
+        <li><b>Sixes climb.</b> Every 6 = one floor up and another round. No 6 at all = game over.</li>
+        <li><b>YAZZY:</b> most of your dice showing the same number: 5 of 5, 5 of 6 &hellip; 5 of 10, then 6 of 11, 7 of 12 and so on. One short? The odd die gets a slow-motion chance (1/6 + wheel luck) to complete it.</li>
+        <li><b>Yazzy of 1s</b> unlocks rerolling 1s &middot; <b>2s</b> the green 1&ndash;5 die for 2s &middot; <b>3s</b> the end-game sacrifice &middot; <b>4s</b> the d4 shelf: every 4 adds a permanent little d4 that adds chips each round.</li>
+        <li><b>Yazzy of 5s = SILVER JACKPOT:</b> your multiplier doubles. <b>Yazzy of 6s = GOLD JACKPOT:</b> a golden d10 joins your table for good and adds its roll to the multiplier every round.</li>
+        <li><b>Perfect yazzy</b> (every die the same): one more red die, right away.</li>
+        <li><b>Last chance:</b> no 6? The last die is rerolled in slow motion: a fair 1/6 (16.7%) plus your wheel luck of (100 &minus; wheel) &divide; 10 %. Wheel 1 = 26.6%, wheel 99 = 16.8%, wheel 100+ = 16.7%.</li>
+        <li><b>Every 5 floors</b> the elevator gives you one more red die.</li>
+        <li><b>From 10 dice</b> the Casino Manager puts a bad d20 on the table, one more for every 5 dice. A <b>1</b> destroys a red die for good (from floor 25 one more losing face every 18 floors: 1&ndash;2, 1&ndash;3, ...). A <b>20</b> confiscates one of your unlocked bonuses.</li>
+        <li><b>3s, once unlocked</b>, are the last way out: no 6 and the last chance failed? Sacrifice ALL your 3s (destroyed for good) to reroll every other die.</li>
+        <li><b>Score</b> = chips &times; multiplier. At the end you roll a d(total sixes) that adds to the multiplier.</li>
+        <li><b>Extras:</b> combos (three of a kind and up, 1&ndash;6 straight), random casino events, and falling dice you can tap for bonus chips.</li>
+      </ol>
+      <h3>HOW THE TABLE GROWS</h3>
+      <table class="lb-table prog-table"><tbody id="prog-rows"></tbody></table>
+      <table class="lb-table prog-table"><tbody id="face-rows"></tbody></table>
+      <h3>TIERS</h3>
+      <table class="lb-table tier-table"><tbody id="tier-rows"></tbody></table>
+      <p class="modal-sub">Shares come from 12,000,000 simulated games (tools/simulate.py).</p>
     </div>
   </div>
 
@@ -59,7 +114,6 @@
       <h1>DICELE</h1>
       <p class="subtitle">THE INFINITE CASINO TOWER</p>
     </div>
-    <p class="rules">6 dice &middot; any 6 climbs a floor &middot; d100 multiplies it all</p>
   </header>
 
   <div id="drift" class="drift"></div>
@@ -68,21 +122,26 @@
     <section class="scoreboard">
       <div class="panel stat"><span class="label">Chips</span><span id="pips" class="value">0</span></div>
       <div class="panel stat"><span class="label">Floor</span><span id="round" class="value">0</span></div>
+      <div class="panel stat"><span class="label">Dice</span><span id="dice-count" class="value">5</span></div>
       <div class="panel stat"><span class="label">Score</span><span id="score" class="value">0</span></div>
       <div class="panel stat"><span class="label">Best</span><span id="best" class="value">0</span></div>
     </section>
+    <div id="bonus-bar" class="bonus-bar" title="Bonuses: unlocked by rolling a yazzy of that number"></div>
 
     <div class="table">
       <div id="tray" class="tray" aria-live="polite"></div>
+      <div id="d4-shelf" class="d4-shelf" aria-label="d4 shelf"></div>
       <div id="log" class="log"></div>
     </div>
 
     <p id="message" class="message">&gt; place your bets</p>
+    <p id="hint" class="hint">Tap NEW GAME to play. New here? The ? button explains everything.</p>
 
+    <button id="silver" class="silver-btn" type="button" hidden>&#9733; SILVER REROLL &#9733;</button>
     <button id="roll" class="roll-btn" type="button">&#9650; NEW GAME &#9650;</button>
     <button id="insta" class="panel insta-btn" type="button" aria-pressed="false">&#9193; INSTA-AUTOROLL: OFF</button>
 
-    <p class="footer">TOP FLOOR <span id="top-floor">0</span> &middot; tap the falling dice</p>
+    <p class="footer">TOP FLOOR <span id="top-floor">0</span> &middot; tap the falling dice &middot; <span id="version" class="version"></span></p>
     <p id="joke" class="joke"></p>
   </main>
 
@@ -92,17 +151,19 @@
   </aside>
 
   <div id="wheel-overlay" class="wheel-overlay" aria-live="polite">
-    <p id="wheel-title" class="wheel-title">SPIN THE D100</p>
+    <p id="wheel-title" class="wheel-title">WHEEL OF WEALTH</p>
     <div class="wheel-wrap">
       <div id="pointer" class="pointer"></div>
       <canvas id="wheel" class="wheel"></canvas>
       <div class="hub"><span class="hub-label">MULTI</span><span id="wheel-result" class="hub-value">?</span></div>
     </div>
+    <button id="wheel-stop" class="roll-btn wheel-stop" type="button" hidden>&#9632; STOP &#9632;</button>
+    <p id="wheel-joke" class="wheel-joke"></p>
   </div>
 
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=5"></script>
+  <script src="script.js?v=2.0.0"></script>
 </body>
 </html>
