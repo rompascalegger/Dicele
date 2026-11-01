@@ -860,6 +860,8 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   transition: opacity .3s;
 }
 .d20-stage.landed .d20-roll::before { opacity: 1; }
+.d20-goal { margin: 0; font-family: var(--pixel-bold); font-size: clamp(.6rem, 2.6vw, .9rem); color: #d4dae3; text-align: center; letter-spacing: .1em; min-height: 1.2em; }
+.d20-stage.extra .d20-goal { color: var(--gold); font-size: clamp(.9rem, 4vw, 1.4rem); text-shadow: 0 0 12px var(--gold); }
 
 /* ---------- Cinematic final score ---------- */
 .cine {

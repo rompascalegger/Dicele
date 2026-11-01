@@ -22,14 +22,14 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.0.7";
+const VERSION = "2.0.8";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
   // Colors match the names: plain grey, metals, gems, then VIP purple, elite crimson and a
   // legendary blaze (which also gets the rainbow shimmer)
   { name: "STANDARD", title: "Lifesavings Better", verdict: "Rent Is Due", color: "#9a8fa8" },
-  { name: "BRONZE", title: "Casual Gambler", verdict: "Professional Button Masher", color: "#cd7f32" },
+  { name: "BRONZE", title: "Casual Gambler", verdict: "Professional Button Masher", color: "#a9744a" },
   { name: "SILVER", title: "Weekend High Roller", verdict: "The Occasional Bad Decision", color: "#d4dae3" },
   { name: "GOLD", title: "The Risk Addict", verdict: "The ATM's Biggest Fan", color: "#ffcf4a" },
   { name: "EMERALD", title: "Silver Stake Player", verdict: "Financially Unsupervised", color: "#2ee87a" },
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 12,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 6600, 19000, 51000, 140000, 610000, 6000000, 19000000, 43000000, 160000000];
+const SCORE_TIERS = [0, 12000, 36000, 110000, 460000, 3000000, 15000000, 35000000, 70000000, 290000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 8, 13, 23, 44, 133, 203, 246, 289, 298];
+const FLOOR_TIERS = [1, 10, 19, 37, 90, 183, 229, 263, 294, 299];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 0], [0.1, 65], [1, 364], [5, 1344], [10, 2934], [20, 6600], [30, 11660], [40, 19100], [50, 30576], [60, 50880], [70, 95404], [75, 143616], [80, 253890], [85, 605160], [90, 2362033], [93, 5973132], [95, 10482075], [97, 18899928], [98, 26893080], [99, 42882864], [99.5, 63081195], [99.8, 106737020], [99.9, 162729040], [99.95, 259036074], [99.99, 862583200], [99.999, 5380193312], [100, 74718806400]];
+const SCORE_PERCENTILES = [[0, 0], [0.1, 72], [1, 483], [5, 2259], [10, 5256], [20, 12084], [30, 21535], [40, 35820], [50, 60318], [60, 109917], [70, 250396], [75, 461646], [80, 1047378], [85, 3001608], [90, 8363490], [93, 14751600], [95, 21979026], [97, 34575483], [98, 45880320], [99, 69723464], [99.5, 104654736], [99.8, 184290786], [99.9, 292293376], [99.95, 472662456], [99.99, 1572284412], [99.999, 10232316848], [100, 225971289020]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 4], [40, 8], [50, 10], [60, 13], [75, 23], [85, 44], [90, 83], [93, 133], [95, 169], [97, 203], [99, 246], [99.9, 289], [99.99, 298]];
+const FLOOR_PERCENTILES = [[20, 6], [40, 10], [50, 14], [60, 19], [75, 37], [85, 90], [90, 150], [93, 183], [95, 204], [97, 229], [99, 263], [99.9, 294], [99.99, 299]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0007], [1.069, 0.001], [1.137, 0.0013], [1.206, 0.0014], [1.275, 0.0015], [1.344, 0.0016], [1.412, 0.002], [1.481, 0.0026], [1.55, 0.0032], [1.619, 0.004], [1.687, 0.0048], [1.756, 0.0059], [1.825, 0.0071], [1.894, 0.0089], [1.962, 0.0109], [2.031, 0.0133], [2.1, 0.0164], [2.169, 0.0203], [2.237, 0.0249], [2.306, 0.031], [2.375, 0.038], [2.444, 0.0462], [2.512, 0.0563], [2.581, 0.0682], [2.65, 0.0827], [2.719, 0.1004], [2.787, 0.1217], [2.856, 0.1461], [2.925, 0.1723], [2.994, 0.1974], [3.062, 0.2197], [3.131, 0.2405], [3.2, 0.2628], [3.269, 0.293], [3.337, 0.3362], [3.406, 0.3906], [3.475, 0.4499], [3.544, 0.5091], [3.612, 0.564], [3.681, 0.6167], [3.75, 0.6716], [3.819, 0.7293], [3.887, 0.7859], [3.956, 0.8371], [4.025, 0.8837], [4.094, 0.9223], [4.162, 0.954], [4.231, 0.9802], [4.3, 0.9956], [4.369, 1.0], [4.437, 0.9929], [4.506, 0.9723], [4.575, 0.9406], [4.644, 0.9], [4.712, 0.8535], [4.781, 0.8039], [4.85, 0.7527], [4.919, 0.7004], [4.987, 0.6469], [5.056, 0.5923], [5.125, 0.5377], [5.194, 0.4849], [5.262, 0.4355], [5.331, 0.3915], [5.4, 0.3534], [5.469, 0.321], [5.537, 0.2937], [5.606, 0.2703], [5.675, 0.25], [5.744, 0.2323], [5.812, 0.2165], [5.881, 0.2025], [5.95, 0.1903], [6.018, 0.1796], [6.087, 0.1708], [6.156, 0.1636], [6.225, 0.1581], [6.293, 0.1542], [6.362, 0.1519], [6.431, 0.1512], [6.5, 0.1519], [6.568, 0.1538], [6.637, 0.1567], [6.706, 0.16], [6.775, 0.1635], [6.843, 0.1665], [6.912, 0.1684], [6.981, 0.1687], [7.05, 0.1668], [7.118, 0.1627], [7.187, 0.1564], [7.256, 0.1481], [7.325, 0.1382], [7.393, 0.127], [7.462, 0.1146], [7.531, 0.1013], [7.6, 0.0872], [7.668, 0.0728], [7.737, 0.0587], [7.806, 0.0457], [7.875, 0.0346], [7.943, 0.0258], [8.012, 0.0191], [8.081, 0.0143], [8.15, 0.0107], [8.218, 0.0081], [8.287, 0.0062], [8.356, 0.0047], [8.425, 0.0036], [8.493, 0.0028], [8.562, 0.0022], [8.631, 0.0017], [8.7, 0.0014], [8.768, 0.0011], [8.837, 0.0009], [8.906, 0.0007], [8.975, 0.0006], [9.043, 0.0005], [9.112, 0.0004], [9.181, 0.0003], [9.25, 0.0002], [9.318, 0.0002], [9.387, 0.0002], [9.456, 0.0001], [9.525, 0.0001], [9.593, 0.0001], [9.662, 0.0001], [9.731, 0.0001]];
+const SCORE_CURVE = [[1.0, 0.0006], [1.071, 0.001], [1.142, 0.0012], [1.213, 0.0014], [1.284, 0.0015], [1.355, 0.0018], [1.426, 0.0021], [1.497, 0.0027], [1.568, 0.0033], [1.639, 0.0038], [1.709, 0.0046], [1.78, 0.0054], [1.851, 0.0063], [1.922, 0.0077], [1.993, 0.0092], [2.064, 0.0111], [2.135, 0.0138], [2.206, 0.0168], [2.277, 0.0205], [2.348, 0.0253], [2.419, 0.0308], [2.49, 0.038], [2.561, 0.0467], [2.632, 0.0569], [2.703, 0.0695], [2.774, 0.0843], [2.845, 0.1016], [2.916, 0.1199], [2.986, 0.1364], [3.057, 0.1489], [3.128, 0.1576], [3.199, 0.1652], [3.27, 0.1775], [3.341, 0.1991], [3.412, 0.2305], [3.483, 0.2701], [3.554, 0.3156], [3.625, 0.3664], [3.696, 0.4227], [3.767, 0.4856], [3.838, 0.5537], [3.909, 0.6226], [3.98, 0.6898], [4.051, 0.7544], [4.122, 0.8139], [4.193, 0.8684], [4.263, 0.917], [4.334, 0.9559], [4.405, 0.9838], [4.476, 0.9991], [4.547, 1.0], [4.618, 0.9882], [4.689, 0.9654], [4.76, 0.9341], [4.831, 0.8969], [4.902, 0.8548], [4.973, 0.8085], [5.044, 0.7578], [5.115, 0.704], [5.186, 0.6485], [5.257, 0.5936], [5.328, 0.5421], [5.399, 0.495], [5.47, 0.4535], [5.54, 0.4178], [5.611, 0.387], [5.682, 0.3607], [5.753, 0.3377], [5.824, 0.3175], [5.895, 0.2995], [5.966, 0.2837], [6.037, 0.2698], [6.108, 0.2582], [6.179, 0.2488], [6.25, 0.2419], [6.321, 0.2374], [6.392, 0.2353], [6.463, 0.2355], [6.534, 0.2378], [6.605, 0.2421], [6.676, 0.2475], [6.747, 0.2536], [6.817, 0.2594], [6.888, 0.2642], [6.959, 0.2674], [7.03, 0.2683], [7.101, 0.2668], [7.172, 0.2626], [7.243, 0.2558], [7.314, 0.2463], [7.385, 0.234], [7.456, 0.2187], [7.527, 0.1998], [7.598, 0.1779], [7.669, 0.1535], [7.74, 0.1282], [7.811, 0.1036], [7.882, 0.0812], [7.953, 0.0622], [8.024, 0.0469], [8.094, 0.0352], [8.165, 0.0264], [8.236, 0.0199], [8.307, 0.0151], [8.378, 0.0115], [8.449, 0.0088], [8.52, 0.0068], [8.591, 0.0053], [8.662, 0.0041], [8.733, 0.0032], [8.804, 0.0025], [8.875, 0.002], [8.946, 0.0016], [9.017, 0.0012], [9.088, 0.001], [9.159, 0.0008], [9.23, 0.0006], [9.301, 0.0005], [9.371, 0.0004], [9.442, 0.0003], [9.513, 0.0003], [9.584, 0.0002], [9.655, 0.0002], [9.726, 0.0001], [9.797, 0.0001], [9.868, 0.0001], [9.939, 0.0001], [10.01, 0.0]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -526,12 +526,15 @@ function resetStats() {
     bonusDice: 0, maxDice: BASE_DICE, combos: 0, silver: 0,
     // Hand-roller perks: lost once any die was rolled automatically this game
     autoUsed: false, handRetryUsed: false,
+    // The end die's bonus round, once per game
+    extraRoundUsed: false,
   };
 }
 
 // Hand-rollers' second chance: the losing round is laid out again, once per game
 async function handRetry() {
   silverUsed = false;
+  silverLeft = 0;
   showToast("HAND-ROLLER'S\nSECOND CHANCE", 4);
   setMessage("> you rolled it all by hand. the house respects that: roll the round again", true);
   arp([392, 523, 659, 784, 1047], 0.08, { type: "triangle", vol: 0.06, wet: 0.4 });
@@ -539,6 +542,7 @@ async function handRetry() {
   for (const o of roundDice) {
     if (o.gone) continue;
     o.value = null;
+    o.held = false;
     if (o.kind === "red") {
       o.rerolled = false;
       o.slot.classList.remove("landed", "six", "silver", "one", "two", "green", "rolling", "lucky", "sacrificable");
@@ -555,6 +559,7 @@ async function handRetry() {
   setButton("rolling");
   rollBtn.disabled = false;
   updateHint();
+  autoRollBad();
 }
 resetStats();
 
@@ -1015,11 +1020,13 @@ async function tapDie(obj, byHand = false) {
     return;
   }
   if ((phase !== "rolling" && phase !== "choice") || obj.rolling || obj.gone) return;
+  // The Casino Manager rolls his own dice
+  if (obj.kind === "bad") return;
   if (obj.value === null) {
     if (!byHand) stats.autoUsed = true;
     // Clutch tap: the last red die of the round, tapped by hand
     const clutch = byHand && obj.kind === "red" && !roundDice.some((o) => live(o) && o !== obj && o.value === null);
-    await (obj.kind === "red" ? rollRed(obj, 6, clutch) : obj.kind === "gold" ? rollGold(obj) : rollBad(obj));
+    await (obj.kind === "red" ? rollRed(obj, 6, clutch) : rollGold(obj));
   } else if (obj.kind === "red" && !obj.rerolled && ((obj.value === 1 && canRerollOnes()) || (obj.value === 2 && canRerollTwos()))) {
     obj.rerolled = true;
     phase = "rolling";
@@ -1057,7 +1064,8 @@ function roundReady() {
   const sixes = red.filter((o) => o.value === 6).length;
   const rerolls = red.filter(rerollable);
   // Silver: at least 40% of the red dice show 5 (2 of 5, 3 of 6, 4 of 10)
-  const silver = !silverUsed && 5 * red.filter((o) => o.value === 5).length >= 2 * red.length;
+  // or rerolls are still left from it this round
+  const silver = silverUsed ? silverLeft > 0 : 5 * red.filter((o) => o.value === 5).length >= 2 * red.length;
 
   if (insta) {
     // Autopilot: reroll every 1 and 2, take the silver reroll only when there's no 6
@@ -1077,30 +1085,42 @@ function roundReady() {
   phase = "choice";
   setButton("choice");
   silverBtn.hidden = !silver;
+  if (silver && silverUsed) silverBtn.innerHTML = `&#9733; SILVER REROLL (${silverLeft} LEFT) &#9733;`;
   if (silver) silverBtn.animate([{ transform: "scale(0)" }, { transform: "none" }], { duration: 300, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
   updateHint();
 }
 
-// Enough silver 5s (40%, rounded up): a Yahtzee-style reroll. Tap the dice you want to
-// keep (HOLD), then every unheld red die goes back to "?" and is rolled again. Once a round
+// Enough silver 5s (40%, rounded up): Yahtzee-style rerolls. Tap the dice you want to
+// keep (HOLD; sixes are kept automatically), then every unheld red die goes back to "?" and
+// is rolled again. Two rerolls a round, so three rolls in all to chase a yazzy
+const SILVER_REROLLS = 2;
 let silverUsed = false;
+let silverLeft = 0;
 
 function enterSilverHold() {
-  silverUsed = true;
-  stats.silver++;
+  if (!silverUsed) {
+    silverUsed = true;
+    silverLeft = SILVER_REROLLS;
+    stats.silver++;
+    showToast(`SILVER REROLL!
+${SILVER_REROLLS} REROLLS · TAP TO KEEP`, 2);
+    arp([1318, 1568, 2093, 2637], 0.05, { type: "triangle", vol: 0.05, wet: 0.3 });
+  }
   phase = "hold";
   for (const o of roundDice) {
     if (!live(o)) continue;
-    o.held = false;
+    // Sixes are saved for you
+    if (o.value === 6) o.held = true;
     o.slot.classList.add("holdable");
+    o.slot.classList.toggle("held", !!o.held);
+    o.slot.querySelector(".die-badge").textContent = o.held ? "HOLD" : "";
   }
-  showToast("SILVER REROLL!\nTAP DICE TO KEEP", 2);
-  arp([1318, 1568, 2093, 2637], 0.05, { type: "triangle", vol: 0.05, wet: 0.3 });
-  setMessage("> keep what you like, reroll the rest", true);
+  setMessage(`> keep what you like, reroll the rest (${silverLeft} left)`, true);
   updateSilverButtons();
 }
 
 function toggleHold(obj) {
+  if (obj.value === 6) return;
   obj.held = !obj.held;
   obj.slot.classList.toggle("held", obj.held);
   obj.slot.querySelector(".die-badge").textContent = obj.held ? "HOLD" : "";
@@ -1111,12 +1131,12 @@ function toggleHold(obj) {
 function updateSilverButtons() {
   const unheld = roundDice.filter((o) => live(o) && !o.held).length;
   silverBtn.hidden = false;
-  silverBtn.innerHTML = `&#8635; REROLL ${unheld} UNHELD &#8635;`;
+  silverBtn.innerHTML = `&#8635; REROLL ${unheld} UNHELD (${silverLeft} LEFT) &#8635;`;
   silverBtn.disabled = unheld === 0;
   rollBtn.disabled = false;
   rollBtn.classList.add("again");
   rollBtn.innerHTML = '&#10004; KEEP ALL &amp; CONTINUE &#10004;<span class="auto">tap dice to hold them</span>';
-  setHint(`Silver reroll: tap the dice you want to KEEP (they show HOLD), then reroll the ${unheld} others. Once per round.`);
+  setHint(`Silver reroll: tap the dice you want to KEEP (they show HOLD, sixes are kept for you), then reroll the ${unheld} others. ${silverLeft} reroll${silverLeft > 1 ? "s" : ""} left this round.`);
 }
 
 function leaveSilverHold() {
@@ -1129,9 +1149,11 @@ function leaveSilverHold() {
   silverBtn.innerHTML = "&#9733; SILVER REROLL &#9733;";
 }
 
-// Unheld red dice go back to "?" for a fresh roll (by hand, or insta-autoroll)
+// Unheld red dice go back to "?" for a fresh roll (by hand, or insta-autoroll). Holds stay
+// for the next reroll
 function silverReroll() {
   const unheld = roundDice.filter((o) => live(o) && !o.held);
+  silverLeft--;
   leaveSilverHold();
   for (const o of unheld) {
     o.value = null;
@@ -1141,7 +1163,6 @@ function silverReroll() {
     o.slot.classList.add("waiting");
     o.slot.querySelector(".die-badge").textContent = "";
   }
-  for (const o of roundDice) o.held = false;
   phase = "rolling";
   setButton("rolling");
   updateHint();
@@ -1154,7 +1175,7 @@ function autoSilver() {
   const red = roundDice.filter(live);
   const [value, count] = bestCount(red);
   for (const o of red) {
-    if (o.value === 6 || (count >= 3 && o.value === value)) toggleHold(o);
+    if (!o.held && count >= 3 && o.value === value) toggleHold(o);
   }
   setTimeout(silverReroll, reducedMotion ? 100 : 700);
 }
@@ -1249,8 +1270,21 @@ function nudgeDice() {
 
 function autoRollAll() {
   roundDice
-    .filter((o) => o.value === null && !o.rolling)
+    .filter((o) => o.kind !== "bad" && o.value === null && !o.rolling)
     .forEach((o, i) => setTimeout(() => tapDie(o), (reducedMotion ? 30 : 110) * i));
+}
+
+// The bad d20s always roll themselves, shortly after the dice hit the table
+function autoRollBad() {
+  roundDice
+    .filter((o) => o.kind === "bad" && o.value === null && !o.rolling)
+    .forEach((o, i) =>
+      setTimeout(async () => {
+        if (o.value !== null || o.rolling || phase !== "rolling") return;
+        await rollBad(o);
+        afterRoll();
+      }, (reducedMotion ? 100 : 500) + i * 250)
+    );
 }
 
 // Dice shrink when the table gets crowded
@@ -1754,7 +1788,8 @@ async function rollEndDie() {
   stage.innerHTML = `
     <p class="d20-title">THE END DIE</p>
     <div class="d20-roll"><canvas class="d20" width="360" height="360"></canvas><div class="d20-shadow"></div></div>
-    <p class="d20-label">d1</p>`;
+    <p class="d20-label">d1</p>
+    <p class="d20-goal">${stats.extraRoundUsed ? "" : `roll ${extraRoundFrom(sides)}+ for ONE MORE ROUND`}</p>`;
   document.body.appendChild(stage);
   const canvasEl = stage.querySelector(".d20");
   const c = canvasEl.getContext("2d");
@@ -1855,10 +1890,18 @@ async function rollEndDie() {
   mult += value;
   setMult(mult);
   showToast(`END DIE d${sides}\n+${value} MULTI`, multTier(mult));
+  if (!stats.extraRoundUsed && value >= extraRoundFrom(sides)) {
+    stage.querySelector(".d20-goal").textContent = "★ ONE MORE ROUND ★";
+    stage.classList.add("extra");
+  }
   await wait(reducedMotion ? 600 : 2000);
   await stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).settled;
   stage.remove();
+  return value;
 }
+
+// The end die earns one more round (once per game) when it rolls more than 2/3 of its sides
+const extraRoundFrom = (sides) => Math.floor((2 * sides) / 3) + 1;
 
 /* ---------- UI helpers ---------- */
 
@@ -2002,7 +2045,7 @@ function updateHint() {
     const parts = [];
     if (ones) parts.push("Glowing 1s: tap to reroll once.");
     if (twos) parts.push("Glowing 2s: tap to reroll with the green die (1-5, no 6).");
-    if (silver) parts.push("Enough silver 5s (2 of 5, 3 of 6...): SILVER REROLL rolls every die again.");
+    if (silver) parts.push(silverUsed ? `SILVER REROLL: ${silverLeft} more reroll left, your holds are kept.` : "Enough silver 5s (2 of 5, 3 of 6...): SILVER REROLL gives you 2 rerolls, Yahtzee style.");
     parts.push("Happy? Tap CONTINUE.");
     setHint(parts.join(" "));
   }
@@ -2063,6 +2106,7 @@ async function startRound() {
   badAnnounced = bad;
   roundDice = [];
   silverUsed = false;
+  silverLeft = 0;
   tray.innerHTML = "";
   sizeTray(diceCount + bad + (goldD10 ? 1 : 0));
   for (let i = 0; i < diceCount; i++) roundDice.push(createDie());
@@ -2083,6 +2127,7 @@ async function startRound() {
   rollBtn.disabled = false;
   setMessage(round === 1 ? `> your ${diceCount} dice are on the table` : `> round ${round} · floor ${floor} · ${diceCount} dice`);
   updateHint();
+  autoRollBad();
   if (insta) autoRollAll();
 }
 
@@ -2507,7 +2552,19 @@ async function randomEvent() {
 
 async function endTurn() {
   phase = "busy";
-  if (totalSixes) await rollEndDie();
+  if (totalSixes) {
+    const sides = totalSixes;
+    const value = await rollEndDie();
+    if (!stats.extraRoundUsed && value >= extraRoundFrom(sides)) {
+      stats.extraRoundUsed = true;
+      showToast(`END DIE ${value} OF ${sides}\nONE MORE ROUND!`, 8);
+      setMessage(`> more than 2/3 of the end die: the house lets you roll one more round`, true);
+      arp([523, 659, 784, 1047, 1319], 0.08, { type: "triangle", vol: 0.06, wet: 0.4 });
+      await wait(reducedMotion ? 400 : 1400);
+      await startRound();
+      return;
+    }
+  }
 
   const final = pips * mult;
   const tier = scoreTier(final);
@@ -3310,7 +3367,10 @@ document.addEventListener("keydown", (e) => {
 
 /* ---------- Drifting dice you can tap ---------- */
 
-const MAX_DRIFTERS = reducedMotion ? 4 : 10;
+// Rare on purpose: a die drifts by every ~7 seconds, a golden one about every 8 minutes
+const MAX_DRIFTERS = reducedMotion ? 2 : 3;
+const DRIFT_EVERY_MS = 7000;
+const GOLDEN_CHANCE = 0.015;
 
 function spawnDrifter(fast = false) {
   if (!fast && driftEl.childElementCount >= MAX_DRIFTERS) return;
@@ -3318,7 +3378,8 @@ function spawnDrifter(fast = false) {
   el.type = "button";
   el.className = "drifter";
   el.setAttribute("aria-label", "Drifting die");
-  if (Math.random() < 0.06) el.classList.add("golden");
+  // Celebration rains are never golden
+  if (!fast && Math.random() < GOLDEN_CHANCE) el.classList.add("golden");
 
   const size = 26 + Math.floor(Math.random() * 4) * 6;
   el.style.left = `${Math.random() * 94}vw`;
@@ -3375,8 +3436,8 @@ function diceRain(count) {
 
 setInterval(() => {
   if (!document.hidden) spawnDrifter();
-}, 1300);
-for (let i = 0; i < 4; i++) setTimeout(spawnDrifter, i * 300);
+}, DRIFT_EVERY_MS);
+setTimeout(spawnDrifter, 1500);
 
 /* ---------- Confetti particles ---------- */
 

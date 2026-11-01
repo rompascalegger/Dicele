@@ -16,14 +16,14 @@ A retro pixel dice game in plain HTML, CSS and JavaScript. No build step, no dep
    - 6s: **Gold Jackpot**, a golden d10 joins the table and adds its roll to the multiplier every round
    - Perfect yazzy (every die the same): one more red die
 5. **Last chance:** no 6? The last die is rerolled in slow motion: 1/6 + (100 &minus; wheel) &divide; 10 %.
-6. **Casino Manager:** from 10 dice a bad d20, one more per 5 dice. A 1 destroys a die (from floor 25 one more losing face every 18 floors); a 20 confiscates a bonus.
-7. **Score = chips &times; multiplier**, plus an end die d(total sixes) on the multiplier. The end screen ranks you against 12 million simulated games.
+6. **Casino Manager:** from 10 dice a bad d20 (it rolls itself), one more per 5 dice. A 1 destroys a die (from floor 25 one more losing face every 18 floors); a 20 confiscates a bonus.
+7. **Score = chips &times; multiplier**, plus an end die d(total sixes) on the multiplier. Roll more than 2/3 of it and you play one more round (once per game). The end screen ranks you against 12 million simulated games.
 
 Buttons: 🏆 leaderboard (this device), ? rules, ⚡ flashy animations (off by default), ♪ sound, ⏩ insta-autoroll.
 
 ## Balance
 
-With the Casino Manager arriving at 10 dice, about 1 hand-rolled game in 240 breaks past it and snowballs practically forever (auto-rolled games far fewer). That rate is tuned with `BAD_FROM_DICE`, `LOSE_FACES_FROM_FLOOR` and `LOSE_FACE_STEP` in `script.js`.
+With the Casino Manager arriving at 10 dice, about 1 hand-rolled game in 110 breaks past it and snowballs practically forever (auto-rolled games about 1 in 7,500). That rate is tuned with `BAD_FROM_DICE`, `LOSE_FACES_FROM_FLOOR` and `LOSE_FACE_STEP` in `script.js`.
 
 ## Files
 

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.7">
+  <link rel="stylesheet" href="style.css?v=2.0.8">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -99,13 +99,13 @@
         <li><b>Yazzy of 1s</b> unlocks rerolling 1s &middot; <b>2s</b> the green 1&ndash;5 die for 2s &middot; <b>3s</b> the end-game sacrifice &middot; <b>4s</b> the d4 shelf: every 4 adds a permanent little d4 that adds chips each round.</li>
         <li><b>Yazzy of 5s = SILVER JACKPOT:</b> your multiplier doubles. <b>Yazzy of 6s = GOLD JACKPOT:</b> a golden d10 joins your table for good and adds its roll to the multiplier every round.</li>
         <li><b>Perfect yazzy</b> (every die the same): one more red die, right away.</li>
-        <li><b>Silver 5s:</b> if 2 of 5 dice show a 5 (40%, rounded up), you may SILVER REROLL once per round: tap the dice you want to keep, then reroll the rest, like a yazzy turn.</li>
+        <li><b>Silver 5s:</b> if 2 of 5 dice show a 5 (40%, rounded up), you get a SILVER REROLL: 2 rerolls this round, so 3 rolls in all to chase a yazzy. Tap the dice you want to keep (sixes are kept for you), then reroll the rest.</li>
         <li><b>Hand-rollers:</b> roll every die yourself (no insta-autoroll): your last die each round is the golden CLUTCH TAP, your last chance gets luckier, and the house gives you one second chance per game when you would lose.</li>
         <li><b>Last chance:</b> no 6? The last die is rerolled in slow motion: a fair 1/6 (16.7%) plus your wheel luck of (100 &minus; wheel) &divide; 10 %. Wheel 1 = 26.6%, wheel 99 = 16.8%, wheel 100+ = 16.7%.</li>
         <li><b>Every 5 floors</b> the elevator gives you one more red die.</li>
-        <li><b>From 10 dice</b> the Casino Manager puts a bad d20 on the table, one more for every 5 dice. A <b>1</b> destroys a red die for good (from floor 25 one more losing face every 18 floors: 1&ndash;2, 1&ndash;3, ...). A <b>20</b> confiscates one of your unlocked bonuses.</li>
+        <li><b>From 10 dice</b> the Casino Manager puts a bad d20 on the table, one more for every 5 dice. They roll themselves. A <b>1</b> destroys a red die for good (from floor 25 one more losing face every 18 floors: 1&ndash;2, 1&ndash;3, ...). A <b>20</b> confiscates one of your unlocked bonuses.</li>
         <li><b>3s, once unlocked</b>, are the last way out: no 6 and the last chance failed? Sacrifice ALL your 3s (destroyed for good) to reroll every other die.</li>
-        <li><b>Score</b> = chips &times; multiplier. At the end you roll a d(total sixes) that adds to the multiplier.</li>
+        <li><b>Score</b> = chips &times; multiplier. At the end you roll a d(total sixes) that adds to the multiplier. Roll more than 2/3 of it (a 9+ on a d12) and you play <b>one more round</b>, once per game.</li>
         <li><b>Extras:</b> combos (three of a kind and up, 1&ndash;6 straight), random casino events, and falling dice you can tap for bonus chips.</li>
       </ol>
       <h3>HOW THE TABLE GROWS</h3>
@@ -174,6 +174,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.0.7"></script>
+  <script src="script.js?v=2.0.8"></script>
 </body>
 </html>

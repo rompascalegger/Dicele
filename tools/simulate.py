@@ -34,6 +34,7 @@ HAND_RETRY = os.environ.get("HAND_RETRY", "1") == "1"
 # Games past this floor are counted as practically endless
 TRACK_TOP = 300
 BONUS_STEP = 10
+SILVER_REROLLS = 2
 EVENT_CHANCE = 0.2
 # (chips, multiplier) for each random event in script.js
 EVENTS = [(15, 0), (-5, 0), (0, 3), (25, 0), (10, 0), (0, 1), (0, 0), (7, 0), (1, 0), (0, 2)]
@@ -107,6 +108,7 @@ def game():
     rnd = 0
     dice = BASE_DICE
     retry_used = False
+    extra_used = False
     while True:
         rnd += 1
         # Roll, then the free rerolls of unlocked 1s (d6) and 2s (green d5)
@@ -119,14 +121,16 @@ def game():
             return x
 
         values = [roll_one(not HAND_CLUTCH or i == dice - 1) for i in range(dice)]
-        # Silver 5s (40%), once a round, taken when there is no 6: keep the biggest
-        # matching group (3+), reroll the rest
+        # Silver 5s (40%), once a round, taken when there is no 6: two rerolls, each
+        # keeping the sixes and the biggest matching group (3+), rerolling the rest
         if 6 not in values and 5 * values.count(5) >= 2 * len(values):
-            keep_v, keep_n = best_count(values)
-            if keep_n >= 3:
+            for _ in range(SILVER_REROLLS):
+                if 6 in values:
+                    break
+                keep_v, keep_n = best_count(values)
+                if keep_n < 3:
+                    keep_n = 0
                 values = [keep_v] * keep_n + [roll_one() for _ in range(len(values) - keep_n)]
-            else:
-                values = [roll_one() for _ in range(len(values))]
         gold_roll = d(10) if gold else 0
         bad = [d(20) for _ in range(bad_dice_for(dice))]
 
@@ -185,14 +189,20 @@ def game():
                     unlocked[random.choice(owned)] = False
         lost = sum(1 for b in bad if b <= lose_faces(floor))
         if not sixes:
+            # The end die d(total sixes) adds to the multiplier; more than 2/3 of its
+            # sides earns one more round, once per game
+            end = d(floor) if floor else 0
+            mult += end
+            if floor and not extra_used and end >= 2 * floor // 3 + 1:
+                extra_used = True
+                dice = max(1, dice - lost)
+                continue
             break
         gained = (floor + sixes) // FLOORS_PER_DIE - floor // FLOORS_PER_DIE
         floor += sixes
         dice = max(1, dice + gained - lost)
         if floor >= TRACK_TOP:
             return None
-    if floor:
-        mult += d(floor)
     return pips * mult, floor, rnd
 
 
