@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.8">
+  <link rel="stylesheet" href="style.css?v=2.0.9">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -105,7 +105,7 @@
         <li><b>Every 5 floors</b> the elevator gives you one more red die.</li>
         <li><b>From 10 dice</b> the Casino Manager puts a bad d20 on the table, one more for every 5 dice. They roll themselves. A <b>1</b> destroys a red die for good (from floor 25 one more losing face every 18 floors: 1&ndash;2, 1&ndash;3, ...). A <b>20</b> confiscates one of your unlocked bonuses.</li>
         <li><b>3s, once unlocked</b>, are the last way out: no 6 and the last chance failed? Sacrifice ALL your 3s (destroyed for good) to reroll every other die.</li>
-        <li><b>Score</b> = chips &times; multiplier. At the end you roll a d(total sixes) that adds to the multiplier. Roll more than 2/3 of it (a 9+ on a d12) and you play <b>one more round</b>, once per game.</li>
+        <li><b>Score</b> = chips &times; multiplier. At the end you roll a d(total sixes) that adds to the multiplier. Roll higher than half of it (rounded up: 7+ on a d12) and you play <b>one more round</b>. Every time you're back at the end die the bar rises: 2/3, then 3/4, 4/5 and so on.</li>
         <li><b>Extras:</b> combos (three of a kind and up, 1&ndash;6 straight), random casino events, and falling dice you can tap for bonus chips.</li>
       </ol>
       <h3>HOW THE TABLE GROWS</h3>
@@ -174,6 +174,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.0.8"></script>
+  <script src="script.js?v=2.0.9"></script>
 </body>
 </html>

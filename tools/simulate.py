@@ -108,7 +108,7 @@ def game():
     rnd = 0
     dice = BASE_DICE
     retry_used = False
-    extra_used = False
+    end_rolls = 0
     while True:
         rnd += 1
         # Roll, then the free rerolls of unlocked 1s (d6) and 2s (green d5)
@@ -189,12 +189,12 @@ def game():
                     unlocked[random.choice(owned)] = False
         lost = sum(1 for b in bad if b <= lose_faces(floor))
         if not sixes:
-            # The end die d(total sixes) adds to the multiplier; more than 2/3 of its
-            # sides earns one more round, once per game
+            # The end die d(total sixes) adds to the multiplier; beating k/(k+1) of its
+            # sides (rounded up) earns one more round, with k rising every time: 1/2, 2/3, ...
             end = d(floor) if floor else 0
             mult += end
-            if floor and not extra_used and end >= 2 * floor // 3 + 1:
-                extra_used = True
+            end_rolls += 1
+            if floor and end > -(-floor * end_rolls // (end_rolls + 1)):
                 dice = max(1, dice - lost)
                 continue
             break
