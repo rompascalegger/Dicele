@@ -1661,3 +1661,16 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
   text-shadow: 0 0 30px var(--jp), 6px 6px 0 var(--red-dark);
 }
 .jp-line { position: relative; margin: 0; font-family: var(--pixel-bold); font-size: clamp(.7rem, 3.5vw, 1.1rem); color: #fff; }
+
+/* "How to play" on the start screen; the rules open above the splash */
+.splash-help {
+  padding: 10px 22px 8px;
+  font-family: var(--pixel-bold);
+  font-size: .85rem;
+  letter-spacing: .1em;
+  color: var(--neon-cyan);
+  border-color: var(--neon-cyan);
+  cursor: pointer;
+}
+.splash-help:hover { box-shadow: 0 0 0 3px var(--night2), 0 0 18px var(--neon-cyan); }
+.modal { z-index: 26; }

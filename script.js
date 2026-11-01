@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.0.0";
+const VERSION = "2.0.1";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -3082,6 +3082,13 @@ window.addEventListener("pointerdown", keepAwake);
 keepAwake();
 
 const splashEl = $("splash");
+// The rules, before entering; the splash stays until ENTER
+$("splash-help").addEventListener("click", (e) => {
+  e.stopPropagation();
+  audio();
+  SOUND.pop();
+  openModal("help");
+});
 splashEl.addEventListener("click", () => {
   audio();
   keepAwake();

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.0">
+  <link rel="stylesheet" href="style.css?v=2.0.1">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -38,7 +38,8 @@
       <p class="subtitle">THE INFINITE CASINO TOWER</p>
     </div>
     <button id="enter" class="roll-btn" type="button">&#9650; ENTER &#9650;</button>
-    <p class="splash-hint">tap to enter &middot; sound on &middot; ? explains the rules</p>
+    <button id="splash-help" class="panel splash-help" type="button">? HOW TO PLAY</button>
+    <p class="splash-hint">tap to enter &middot; sound on &middot; one game a day</p>
   </div>
 
   <div id="gameover" class="gameover" aria-live="polite">
@@ -164,6 +165,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.0.0"></script>
+  <script src="script.js?v=2.0.1"></script>
 </body>
 </html>
