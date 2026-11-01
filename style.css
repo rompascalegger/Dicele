@@ -1149,7 +1149,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
 /* Dice waiting to be tapped: a "?" and a gentle bob */
 .slot { cursor: pointer; transition: opacity .4s, transform .4s; }
 .slot.waiting .toss { animation: bob 1.4s ease-in-out infinite; }
-.slot.waiting .face { filter: brightness(.75); }
+.slot.waiting .face { background: #a8182a; }
 .slot.waiting::after {
   content: "?";
   position: absolute;
@@ -1206,13 +1206,12 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   color: #ff9aa8;
   background: linear-gradient(160deg, #3a0612, #12020a);
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  filter: drop-shadow(0 0 8px rgba(214, 31, 53, .7));
 }
 .bad-die .bd-value { font-family: var(--pixel-bold); font-size: calc(var(--s) * .34); }
 .bad-die .bd-label { font-family: var(--pixel); font-size: .8rem; letter-spacing: .05em; }
 .bad-die.waiting { animation: bob 1.4s ease-in-out infinite; }
 .bad-die.rolling { animation: wobble .15s steps(2) infinite; }
-.bad-die.safe { color: #8f98a8; filter: none; opacity: .7; }
+.bad-die.safe { color: #8f98a8; opacity: .7; }
 .bad-die.struck { color: #fff; background: linear-gradient(160deg, var(--red), var(--red-dark)); animation: struck .5s ease-out 2; }
 @keyframes struck { 50% { transform: scale(1.25) rotate(8deg); } }
 
@@ -1434,7 +1433,7 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
 
 /* A die destroyed by a bad d20: shake, crack, red flash, then a pile of dust stays */
 .slot.doomed { animation: doom-shake .08s steps(2) infinite; }
-.slot.doomed .face { background: #ff5d6e; filter: brightness(1.4); }
+.slot.doomed .face { background: #ff7a8a; }
 .slot.doomed::after {
   content: "";
   position: absolute;
@@ -1482,7 +1481,8 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
 }
 
 /* ---------- Every number has its own glow ---------- */
-.slot[data-value] .toss { filter: drop-shadow(0 0 10px var(--glow)); }
+/* Glow lives on the shadow under the die: a filter on a 3D die redraws it every frame */
+.slot[data-value] .shadow { background: var(--glow); box-shadow: 0 0 16px 4px var(--glow); opacity: .55; }
 .slot[data-value="1"] { --glow: #44f0ff; }
 .slot[data-value="2"] { --glow: #2ee87a; }
 .slot[data-value="3"] { --glow: #b45cff; }
@@ -1520,11 +1520,10 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
   padding-bottom: 8%;
   background: linear-gradient(160deg, #ffb35c, #ff8a1f 55%, #b85a0a);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .4));
   pointer-events: none;
 }
 .d4-face { font-family: var(--pixel-bold); font-size: calc(var(--s) * .2); color: #3a1a02; }
-.d4.done { filter: drop-shadow(0 0 8px #ff8a1f); }
+.d4.done .d4-face { color: #fff; }
 
 /* The bad d20 tumbles in 3D */
 .bad-die { transform-style: preserve-3d; backface-visibility: visible; }
@@ -1615,7 +1614,6 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
   color: #3a2602;
   background: linear-gradient(160deg, #fff2b0, var(--gold) 45%, #b8860b);
   clip-path: polygon(50% 0, 95% 35%, 80% 100%, 20% 100%, 5% 35%);
-  filter: drop-shadow(0 0 12px var(--gold));
 }
 .gold-die .bd-value { font-family: var(--pixel-bold); font-size: calc(var(--s) * .34); }
 .gold-die .bd-label { font-family: var(--pixel); font-size: .75rem; }
