@@ -19,14 +19,15 @@ from pathlib import Path
 BASE_DICE = 5
 FLOORS_PER_DIE = 5
 # Balance knobs can be overridden from the environment to try variants
-BAD_FROM_DICE = int(os.environ.get("BAD_FROM_DICE", 10))
+BAD_FROM_DICE = int(os.environ.get("BAD_FROM_DICE", 6))
 BAD_EVERY_DICE = int(os.environ.get("BAD_EVERY_DICE", 5))
-LOSE_FACES_FROM_FLOOR = int(os.environ.get("LOSE_FACES_FROM_FLOOR", 25))
-LOSE_FACE_STEP = int(os.environ.get("LOSE_FACE_STEP", 18))
+LOSE_FACES_FROM_FLOOR = int(os.environ.get("LOSE_FACES_FROM_FLOOR", 15))
+LOSE_FACE_STEP = int(os.environ.get("LOSE_FACE_STEP", 12))
 # MANUAL=1 plays like a hand-roller: every tapped d6 has a secret extra 10% to be a 6, and
 # one second chance per game when a round would end it. Default: insta-autoroll
 MANUAL = os.environ.get("MANUAL") == "1"
-HAND_SIX_BONUS = float(os.environ.get("HAND_SIX_BONUS", 0.1))
+HAND_SIX_BONUS = float(os.environ.get("HAND_SIX_BONUS", 0.05))
+HAND_LAST_CHANCE_BONUS = float(os.environ.get("HAND_LAST_CHANCE_BONUS", 0.10))
 # Games past this floor are counted as practically endless
 TRACK_TOP = 300
 BONUS_STEP = 10
@@ -105,19 +106,24 @@ def game():
     retry_used = False
     while True:
         rnd += 1
-        # Roll, then the free rerolls of unlocked 1s (d6) and 2s (green d5); silver 5s (40%)
-        # reroll the whole table when there is no 6
-        while True:
-            values = []
-            for _ in range(dice):
+        # Roll, then the free rerolls of unlocked 1s (d6) and 2s (green d5)
+        def roll_one():
+            x = tap_d6()
+            if x == 1 and unlocked[1]:
                 x = tap_d6()
-                if x == 1 and unlocked[1]:
-                    x = tap_d6()
-                elif x == 2 and unlocked[2]:
-                    x = d(5)
-                values.append(x)
-            if 6 in values or 5 * values.count(5) < 2 * len(values):
-                break
+            elif x == 2 and unlocked[2]:
+                x = d(5)
+            return x
+
+        values = [roll_one() for _ in range(dice)]
+        # Silver 5s (40%), once a round, taken when there is no 6: keep the biggest
+        # matching group (3+), reroll the rest
+        if 6 not in values and 5 * values.count(5) >= 2 * len(values):
+            keep_v, keep_n = best_count(values)
+            if keep_n >= 3:
+                values = [keep_v] * keep_n + [roll_one() for _ in range(len(values) - keep_n)]
+            else:
+                values = [roll_one() for _ in range(len(values))]
         gold_roll = d(10) if gold else 0
         bad = [d(20) for _ in range(bad_dice_for(dice))]
 
@@ -147,7 +153,8 @@ def game():
 
         # Last chance, then the 3-sacrifice
         if 6 not in values:
-            values[-1] = 6 if random.random() < 1 / 6 + luck else d(5)
+            hit = 1 / 6 + luck + (HAND_LAST_CHANCE_BONUS if MANUAL else 0)
+            values[-1] = 6 if random.random() < hit else d(5)
         while unlocked[3] and 6 not in values and 3 in values and len(values) > values.count(3):
             lost = values.count(3)
             dice -= lost

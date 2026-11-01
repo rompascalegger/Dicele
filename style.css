@@ -1703,3 +1703,11 @@ body { touch-action: manipulation; }
   header { padding-top: 4px; }
   .stage { margin-top: 56px; }
 }
+
+/* Silver reroll: tap dice to hold them */
+.slot.holdable { animation: hold-pulse 1.4s ease-in-out infinite; }
+@keyframes hold-pulse { 50% { transform: translateY(-3px); } }
+.slot.held { animation: none; transform: translateY(-10px); }
+.slot.held .face { box-shadow: inset 0 0 0 3px #fff, 0 0 18px #d4dae3; }
+.slot.held .die-badge { background: #d4dae3; color: #160828; font-size: .55rem; }
+.silver-btn:disabled { opacity: .5; cursor: default; }
