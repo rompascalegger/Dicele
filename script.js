@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.1.2";
+const VERSION = "2.1.4";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 12,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 11000, 42000, 180000, 1300000, 7800000, 27000000, 57000000, 120000000, 540000000];
+const SCORE_TIERS = [0, 11000, 45000, 250000, 2500000, 11000000, 30000000, 59000000, 120000000, 480000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 12, 23, 56, 141, 209, 246, 275, 297, 299];
+const FLOOR_TIERS = [1, 12, 28, 81, 163, 218, 252, 279, 297, 299];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 0], [0.1, 70], [1, 408], [5, 1720], [10, 4032], [20, 11130], [30, 22644], [40, 42198], [50, 80738], [60, 175284], [70, 555768], [75, 1252224], [80, 3232470], [85, 7791056], [90, 16929654], [93, 26942586], [95, 37605106], [97, 56631180], [98, 75345165], [99, 119560746], [99.5, 187056870], [99.8, 340557300], [99.9, 544193020], [99.95, 891692641], [99.99, 2833602554], [99.999, 16811607851], [100, 732677316532]];
+const SCORE_PERCENTILES = [[0, 4], [0.1, 72], [1, 408], [5, 1716], [10, 4032], [20, 11284], [30, 23400], [40, 45298], [50, 93744], [60, 246200], [70, 1059767], [75, 2473040], [80, 5473632], [85, 10742096], [90, 20285447], [93, 30154096], [95, 40584285], [97, 59259651], [98, 77622909], [99, 120030054], [99.5, 182308695], [99.8, 317365028], [99.9, 481725528], [99.95, 735559188], [99.99, 2000260545], [99.999, 8110034358], [100, 124461542980]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 5], [40, 12], [50, 16], [60, 23], [75, 56], [85, 141], [90, 185], [93, 209], [95, 227], [97, 246], [99, 275], [99.9, 297], [99.99, 299]];
+const FLOOR_PERCENTILES = [[20, 5], [40, 12], [50, 17], [60, 28], [75, 81], [85, 163], [90, 197], [93, 218], [95, 234], [97, 252], [99, 279], [99.9, 297], [99.99, 299]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0008], [1.073, 0.0012], [1.145, 0.0015], [1.218, 0.0017], [1.291, 0.0018], [1.363, 0.0021], [1.436, 0.0026], [1.508, 0.0034], [1.581, 0.0042], [1.654, 0.0052], [1.726, 0.0063], [1.799, 0.0078], [1.872, 0.0098], [1.944, 0.0124], [2.017, 0.0153], [2.09, 0.0189], [2.162, 0.0233], [2.235, 0.0286], [2.308, 0.0353], [2.38, 0.0432], [2.453, 0.0525], [2.525, 0.064], [2.598, 0.0775], [2.671, 0.0946], [2.743, 0.1152], [2.816, 0.1389], [2.889, 0.1655], [2.961, 0.1909], [3.034, 0.213], [3.107, 0.2313], [3.179, 0.2481], [3.252, 0.2703], [3.325, 0.3043], [3.397, 0.3499], [3.47, 0.3994], [3.542, 0.4481], [3.615, 0.4924], [3.688, 0.5318], [3.76, 0.5753], [3.833, 0.6238], [3.906, 0.673], [3.978, 0.7246], [4.051, 0.7764], [4.124, 0.8251], [4.196, 0.8728], [4.269, 0.9164], [4.342, 0.9519], [4.414, 0.9787], [4.487, 0.995], [4.559, 1.0], [4.632, 0.9941], [4.705, 0.9788], [4.777, 0.9556], [4.85, 0.9264], [4.923, 0.892], [4.995, 0.8531], [5.068, 0.8098], [5.141, 0.7627], [5.213, 0.7134], [5.286, 0.6639], [5.359, 0.6163], [5.431, 0.5726], [5.504, 0.5335], [5.576, 0.499], [5.649, 0.469], [5.722, 0.4427], [5.794, 0.4196], [5.867, 0.3991], [5.94, 0.3811], [6.012, 0.3655], [6.085, 0.3523], [6.158, 0.3419], [6.23, 0.3342], [6.303, 0.3293], [6.376, 0.3275], [6.448, 0.3287], [6.521, 0.3332], [6.593, 0.3406], [6.666, 0.3503], [6.739, 0.3615], [6.811, 0.373], [6.884, 0.3838], [6.957, 0.3928], [7.029, 0.3996], [7.102, 0.4038], [7.175, 0.4055], [7.247, 0.4045], [7.32, 0.4001], [7.393, 0.3911], [7.465, 0.3761], [7.538, 0.3542], [7.61, 0.3255], [7.683, 0.291], [7.756, 0.2529], [7.828, 0.2138], [7.901, 0.1763], [7.974, 0.1423], [8.046, 0.1132], [8.119, 0.0891], [8.192, 0.0696], [8.264, 0.0541], [8.337, 0.0418], [8.41, 0.0321], [8.482, 0.0247], [8.555, 0.0189], [8.627, 0.0145], [8.7, 0.0112], [8.773, 0.0086], [8.845, 0.0067], [8.918, 0.0052], [8.991, 0.0041], [9.063, 0.0033], [9.136, 0.0026], [9.209, 0.002], [9.281, 0.0016], [9.354, 0.0013], [9.427, 0.001], [9.499, 0.0008], [9.572, 0.0006], [9.644, 0.0005], [9.717, 0.0004], [9.79, 0.0003], [9.862, 0.0002], [9.935, 0.0002], [10.008, 0.0002], [10.08, 0.0001], [10.153, 0.0001], [10.226, 0.0001]];
+const SCORE_CURVE = [[1.0, 0.0008], [1.07, 0.0013], [1.14, 0.0017], [1.21, 0.0019], [1.281, 0.002], [1.351, 0.0022], [1.421, 0.0027], [1.491, 0.0033], [1.561, 0.0041], [1.631, 0.0049], [1.701, 0.0059], [1.772, 0.0074], [1.842, 0.0093], [1.912, 0.0118], [1.982, 0.0147], [2.052, 0.018], [2.122, 0.0219], [2.193, 0.0268], [2.263, 0.0325], [2.333, 0.0398], [2.403, 0.0486], [2.473, 0.0588], [2.543, 0.0712], [2.613, 0.0861], [2.684, 0.1039], [2.754, 0.1256], [2.824, 0.1513], [2.894, 0.179], [2.964, 0.2061], [3.034, 0.2291], [3.104, 0.2465], [3.175, 0.2624], [3.245, 0.2825], [3.315, 0.3146], [3.385, 0.3606], [3.455, 0.412], [3.525, 0.4629], [3.596, 0.5085], [3.666, 0.5476], [3.736, 0.5879], [3.806, 0.6338], [3.876, 0.6823], [3.946, 0.7318], [4.016, 0.7823], [4.087, 0.8299], [4.157, 0.8745], [4.227, 0.9169], [4.297, 0.9519], [4.367, 0.9781], [4.437, 0.995], [4.507, 1.0], [4.578, 0.9939], [4.648, 0.9781], [4.718, 0.9542], [4.788, 0.9245], [4.858, 0.8903], [4.928, 0.8522], [4.999, 0.8104], [5.069, 0.7654], [5.139, 0.718], [5.209, 0.6698], [5.279, 0.6234], [5.349, 0.5806], [5.419, 0.543], [5.49, 0.5121], [5.56, 0.487], [5.63, 0.4672], [5.7, 0.4517], [5.77, 0.4388], [5.84, 0.4278], [5.91, 0.4182], [5.981, 0.4097], [6.051, 0.4025], [6.121, 0.3968], [6.191, 0.393], [6.261, 0.3915], [6.331, 0.3926], [6.402, 0.3971], [6.472, 0.4046], [6.542, 0.4153], [6.612, 0.4289], [6.682, 0.4443], [6.752, 0.4612], [6.822, 0.4777], [6.893, 0.4926], [6.963, 0.5048], [7.033, 0.5138], [7.103, 0.5191], [7.173, 0.5207], [7.243, 0.5183], [7.313, 0.5107], [7.384, 0.4971], [7.454, 0.4762], [7.524, 0.447], [7.594, 0.4097], [7.664, 0.366], [7.734, 0.3181], [7.805, 0.2695], [7.875, 0.2229], [7.945, 0.1806], [8.015, 0.1441], [8.085, 0.1135], [8.155, 0.0887], [8.225, 0.0687], [8.296, 0.0529], [8.366, 0.0406], [8.436, 0.031], [8.506, 0.0237], [8.576, 0.0181], [8.646, 0.0138], [8.716, 0.0106], [8.787, 0.0081], [8.857, 0.0062], [8.927, 0.0047], [8.997, 0.0036], [9.067, 0.0028], [9.137, 0.0021], [9.208, 0.0016], [9.278, 0.0012], [9.348, 0.001], [9.418, 0.0007], [9.488, 0.0006], [9.558, 0.0005], [9.628, 0.0004], [9.699, 0.0003], [9.769, 0.0002], [9.839, 0.0001], [9.909, 0.0001]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -364,6 +364,37 @@ function boom(delay = 0) {
   noise(0.6, { vol: 0.3, delay, lp: 200, wet: 0.4 });
 }
 
+// The elevator going up: a low motor hum that rises and swells, with a soft rumble under it
+function elevatorHum(dur) {
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime;
+  const osc = ac.createOscillator();
+  const filter = ac.createBiquadFilter();
+  const gain = ac.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(55, t);
+  osc.frequency.exponentialRampToValueAtTime(95, t + dur);
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(250, t);
+  filter.frequency.exponentialRampToValueAtTime(600, t + dur);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.09, t + Math.min(0.25, dur / 3));
+  gain.gain.setValueAtTime(0.09, t + dur * 0.8);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(filter).connect(gain).connect(master);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+  noise(dur, { vol: 0.05, lp: 300, attack: Math.min(0.3, dur / 3) });
+}
+
+// The elevator bell: a bright chime with a long ring
+function ding(vol = 0.1, delay = 0) {
+  sfx(1319, 1.4, { type: "sine", vol, delay, wet: 0.4 });
+  sfx(1319 * 2.76, 0.5, { type: "sine", vol: vol * 0.25, delay, wet: 0.4 });
+  sfx(1319 * 5.4, 0.18, { type: "sine", vol: vol * 0.12, delay });
+}
+
 // Choir: soft detuned triangles fading in, mostly reverb
 function choir(root, chord, dur, delay = 0) {
   for (const s of chord) {
@@ -491,7 +522,7 @@ const SOUND = {
   tick: () => sfx(900 + Math.random() * 500, 0.03, { vol: 0.025 }),
   clack: () => sfx(180 + Math.random() * 140, 0.06, { type: "triangle", vol: 0.07 }),
   land: () => sfx(150, 0.12, { type: "triangle", vol: 0.1, to: 60 }),
-  floorDing: (i) => sfx(1046 + i * 120, 0.25, { type: "triangle", vol: 0.06, delay: i * 0.12 }),
+  floorDing: (i) => ding(0.05, i * 0.12),
   combo: () => arp([523, 659, 784, 1047, 1319], 0.06),
   mult: () => arp([392, 523, 659, 784], 0.05, { vol: 0.05 }),
   pop: () => sfx(400, 0.12, { to: 1200, vol: 0.05 }),
@@ -750,6 +781,12 @@ async function yazzy(value, perfect) {
   }
   await wait(reducedMotion ? 300 : 900);
 
+  // A yazzy is always worth a 6: one more floor, and the game goes on
+  bankedSixes++;
+  showToast("YAZZY = +1 SIX\nYOU CLIMB ON", tier);
+  ding(0.08);
+  await wait(reducedMotion ? 300 : 900);
+
   if (perfect) {
     // Every single die the same: one more red die, rolled right away and kept
     diceCount++;
@@ -915,7 +952,9 @@ async function confiscate(count) {
 
 const live = (o) => o.kind === "red" && !o.gone;
 
-// sides 6: a normal roll; sides 5: the green die (1-5 only) used on a 2
+// Every red die is a fair d6. sides 5: the green die used on a 2, which has no 2 on it: 1, 3, 4,
+// 5 or 6 (a 6 is 1 in 5, never below a fair 1/6)
+const GREEN_FACES = [1, 3, 4, 5, 6];
 // Clutch tap: the last die you tap by hand each round has a secret extra 10% to land on 6
 // (1/6 + 10% = 26.7%). A hand-roller's last chance gets 10% on top too
 const CLUTCH_SIX_BONUS = 0.1;
@@ -923,7 +962,7 @@ const HAND_LAST_CHANCE_BONUS = 10;
 async function rollRed(obj, sides = 6, clutch = false) {
   obj.rolling = true;
   obj.slot.classList.remove("clutch");
-  const value = clutch && sides === 6 ? (Math.random() < 1 / 6 + CLUTCH_SIX_BONUS ? 6 : d(5)) : d(sides);
+  const value = sides === 5 ? pick(GREEN_FACES) : clutch ? (Math.random() < 1 / 6 + CLUTCH_SIX_BONUS ? 6 : d(5)) : d(6);
   const [fx, fy] = FACE_ROTATION[value];
   obj.rx = nearestAbove(obj.rx, fx) + 360 * (2 + d(2));
   obj.ry = nearestAbove(obj.ry, fy) + 360 * (2 + d(2));
@@ -951,7 +990,7 @@ async function rollRed(obj, sides = 6, clutch = false) {
 }
 
 // Every number has its own glow; actionable ones get a badge:
-// 1 = reroll (cyan), 2 = green d5 (green), 3 = sacrifice (purple, end only), 4 = d4 (orange),
+// 1 = reroll (cyan), 2 = green die without a 2 (green), 3 = sacrifice (purple, end only), 4 = d4 (orange),
 // 5 = silver, 6 = gold
 function markDie(obj) {
   const { slot, value } = obj;
@@ -963,7 +1002,7 @@ function markDie(obj) {
   const two = value === 2 && !obj.rerolled && canRerollTwos();
   slot.classList.toggle("one", one);
   slot.classList.toggle("two", two);
-  slot.querySelector(".die-badge").textContent = one ? "↻" : two ? "d5" : "";
+  slot.querySelector(".die-badge").textContent = one ? "↻" : two ? "no 2" : "";
 }
 
 /* ---------- The Casino Manager's bad d20 ---------- */
@@ -1009,8 +1048,8 @@ async function rollBad(obj) {
   return value;
 }
 
-// A tap on a die: roll it; reroll a 1 (normal die, up to 10 dice) or a 2 (green 1-5 die,
-// up to 15 dice), once per die; or, at the very end, sacrifice the 3s
+// A tap on a die: roll it; reroll a 1 (normal die) or a 2 (green die: 1, 3, 4, 5, 6), once per die; or,
+// at the very end, sacrifice the 3s
 async function tapDie(obj, byHand = false) {
   if (phase === "hold") {
     if (live(obj)) toggleHold(obj);
@@ -1784,15 +1823,18 @@ function drawD20(ctx, size, q, color, labels, highlight) {
   });
 }
 
-async function rollEndDie() {
+// n of total: every 10 floors earn one more end die; the extra ones roll quicker
+async function rollEndDie(n = 1, total = 1) {
   const sides = totalSixes;
   const value = d(sides);
-  setMessage(sides === 1 ? "> a d1?! it's a 1. it's always a 1." : `> ${sides} sixes forged a d${sides}!`, true);
+  const pace = n > 1 ? 0.45 : 1;
+  if (n === 1) setMessage(sides === 1 ? "> a d1?! it's a 1. it's always a 1." : `> ${sides} sixes forged a d${sides}!`, true);
+  else setMessage(`> end die ${n} of ${total}: one more for every 10 floors`, true);
 
   const stage = document.createElement("div");
   stage.className = "d20-stage";
   stage.innerHTML = `
-    <p class="d20-title">THE END DIE</p>
+    <p class="d20-title">${total > 1 ? `END DIE ${n} OF ${total}` : "THE END DIE"}</p>
     <div class="d20-roll"><canvas class="d20" width="360" height="360"></canvas><div class="d20-shadow"></div></div>
     <p class="d20-label">d1</p>
     <p class="d20-goal">${endDieGoal(sides)}</p>`;
@@ -1825,10 +1867,10 @@ async function rollEndDie() {
   stage.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" });
   rollEl.animate([{ transform: "scale(0) rotate(-180deg)" }, { transform: "none" }], { duration: reducedMotion ? 150 : 600, easing: "cubic-bezier(.3, 1.5, .5, 1)" });
   boom(0);
-  await wait(reducedMotion ? 150 : 600);
+  await wait((reducedMotion ? 150 : 600) * pace);
 
   // Forge: one side per six, climbing the tier colors
-  const step = reducedMotion ? 20 : Math.max(50, 700 / sides);
+  const step = (reducedMotion ? 20 : Math.max(50, 700 / sides)) * (n > 1 ? 0.2 : 1);
   for (let n = 1; n <= sides; n++) {
     labelEl.textContent = `d${n}`;
     color = TIERS[Math.min(9, n - 1)].color;
@@ -1837,11 +1879,11 @@ async function rollEndDie() {
     await wait(step);
   }
   brassChord(semis(196, Math.min(sides, 12)), [0, 7, 12], 0.5, 0, 0.03);
-  await wait(reducedMotion ? 100 : 500);
+  await wait((reducedMotion ? 100 : 500) * pace);
   cancelAnimationFrame(raf);
 
   // The roll: flung off-screen left, tumbling across the floor, bouncing, settling on face 0
-  const time = reducedMotion ? 700 : 3200;
+  const time = (reducedMotion ? 700 : 3200) * pace;
   const tumbleAxis = vnorm([Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5]);
   const turns = Math.PI * 2 * (5 + Math.random() * 2);
   const start = performance.now();
@@ -1895,13 +1937,13 @@ async function rollEndDie() {
 
   mult += value;
   setMult(mult);
-  showToast(`END DIE d${sides}\n+${value} MULTI`, multTier(mult));
+  showToast(`END DIE ${total > 1 ? `${n}/${total} ` : ""}d${sides}\n+${value} MULTI`, multTier(mult));
   if (value >= extraRoundFrom(sides)) {
     stage.querySelector(".d20-goal").textContent = "★ ONE MORE ROUND ★";
     stage.classList.add("extra");
   }
-  await wait(reducedMotion ? 600 : 2000);
-  await stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).settled;
+  await wait((reducedMotion ? 600 : 2000) * pace);
+  await stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400 * pace, fill: "forwards" }).settled;
   stage.remove();
   return value;
 }
@@ -1909,6 +1951,9 @@ async function rollEndDie() {
 // The end die earns one more round when it rolls higher than a share of its sides (rounded
 // up), and the bar rises every time: 1/2 the first time, then 2/3, 3/4, 4/5, ...
 const endDieBar = () => stats.endDieRolls + 1;
+// One end die, plus one more for every 10 floors reached
+const END_DIE_FLOORS = 10;
+const endDiceFor = (f) => 1 + Math.floor(f / END_DIE_FLOORS);
 const extraRoundFrom = (sides) => Math.ceil((sides * endDieBar()) / (endDieBar() + 1)) + 1;
 function endDieGoal(sides) {
   const k = endDieBar();
@@ -2059,7 +2104,7 @@ function updateHint() {
     const silver = !silverBtn.hidden;
     const parts = [];
     if (ones) parts.push("Glowing 1s: tap to reroll once.");
-    if (twos) parts.push("Glowing 2s: tap to reroll with the green die (1-5, no 6).");
+    if (twos) parts.push("Glowing 2s: tap to reroll with the green die (1, 3, 4, 5, 6: no 2s).");
     if (silver) parts.push(silverUsed ? `SILVER REROLL: ${silverLeft} more reroll left, your holds are kept${bankedSixes ? ` and ${bankedSixes} banked six${bankedSixes > 1 ? "es" : ""} still count` : ""}.` : "Enough silver 5s (2 of 5, 3 of 6...): SILVER REROLL gives you 2 rerolls, Yahtzee style.");
     parts.push("Happy? Tap CONTINUE.");
     setHint(parts.join(" "));
@@ -2401,10 +2446,10 @@ async function climb(floors) {
     setFloor(floor);
     roundEl.textContent = floor;
     bump(roundEl);
-    SOUND.floorDing(i);
     if (floor % FLOORS_PER_DIE === 0) {
       await milestone();
     } else {
+      SOUND.floorDing(i);
       floorBanner(floor);
       await wait(reducedMotion ? 120 : 420);
     }
@@ -2413,8 +2458,8 @@ async function climb(floors) {
   setMessage(`> *ding* floor ${floor} · ${floorName(floor)} · ${TIERS[tier].name}`, true);
 }
 
-// Every 5th floor: a scene of its own. The elevator doors slam, the new place is revealed
-// with its icon and color, a fresh red die is handed over, and the doors burst open
+// Every 5th floor: a little elevator car rides up (hum, tremble, the indicator ticks over),
+// dings, and its doors slide open on the new place with a fresh red die
 async function milestone() {
   diceCount++;
   setDiceCount();
@@ -2425,61 +2470,80 @@ async function milestone() {
   doors.className = "doors";
   paintTier(doors, tier);
   doors.innerHTML = `
-    <div class="door left"></div><div class="door right"></div>
-    <div class="door-lights"></div>
-    <div class="door-sign">
-      <span class="door-floor">FLOOR ${floor}</span>
-      <span class="door-icon">${place.icon}</span>
-      <span class="door-name">${place.name}</span>
-      <div class="mini door-die"></div>
-      <span class="door-gift">+1 RED DIE · NOW ${diceCount}</span>
+    <div class="elev-box">
+      <div class="door-lights"></div>
+      <div class="elev-top"><span class="elev-arrow">▲</span><span class="elev-num">${floor - 1}</span></div>
+      <div class="elev-car">
+        <div class="door-sign">
+          <span class="door-floor">FLOOR ${floor}</span>
+          <span class="door-icon">${place.icon}</span>
+          <span class="door-name">${place.name}</span>
+          <div class="mini door-die"></div>
+          <span class="door-gift">+1 RED DIE · NOW ${diceCount}</span>
+        </div>
+        <div class="door left"></div><div class="door right"></div>
+      </div>
     </div>`;
   fillFace(doors.querySelector(".door-die"), 6);
   document.body.appendChild(doors);
+  const box = doors.querySelector(".elev-box");
+  const num = doors.querySelector(".elev-num");
   const left = doors.querySelector(".left");
   const right = doors.querySelector(".right");
-  const sign = doors.querySelector(".door-sign");
   const t = reducedMotion ? 0.3 : 1;
 
-  // Slam shut, the floor counter rolls up
-  const close = { duration: 320 * t, easing: "cubic-bezier(.6, 0, 1, .6)", fill: "forwards" };
-  left.animate([{ transform: "translateX(-100%)" }, { transform: "translateX(0)" }], close);
-  await right.animate([{ transform: "translateX(100%)" }, { transform: "translateX(0)" }], close).settled;
-  boom(0);
-  noise(0.4, { vol: 0.15, hp: 400 });
-  shakeTray();
+  // The car pops in, doors shut
+  await box.animate([{ transform: "scale(.5)", opacity: 0 }, { transform: "none", opacity: 1 }], {
+    duration: 260 * t,
+    easing: "cubic-bezier(.3, 1.4, .5, 1)",
+    fill: "backwards",
+  }).settled;
 
-  // Reveal: sign spins in, the icon bounces, the die drops, the place's own fanfare
-  sign.animate(
-    [{ transform: "scale(0) rotate(-20deg)", opacity: 0 }, { transform: "scale(1.15) rotate(4deg)", opacity: 1, offset: 0.7 }, { transform: "none", opacity: 1 }],
-    { duration: 500 * t, easing: "ease-out", fill: "forwards" }
+  // Going up: the motor hums and rises, the car trembles
+  const ride = 1100 * t;
+  elevatorHum(ride / 1000 + 0.15);
+  box.animate(
+    [{ transform: "translateY(0)" }, { transform: "translateY(-2px)" }, { transform: "translateY(1px)" }, { transform: "translateY(0)" }],
+    { duration: 140, iterations: Math.max(1, Math.round(ride / 140)) }
   );
+  await wait(ride);
+
+  // *ding!* the indicator ticks over
+  num.textContent = floor;
+  num.animate([{ transform: "scale(1.8)" }, { transform: "none" }], { duration: 300, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
+  doors.querySelector(".elev-arrow").style.animation = "none";
+  ding(0.12);
+  await wait(350 * t);
+
+  // Doors slide open: the new place, its fanfare and the gift die
+  const open = { duration: 520 * t, easing: "cubic-bezier(.4, 0, .2, 1)", fill: "forwards" };
+  left.animate([{ transform: "none" }, { transform: "translateX(-100%)" }], open);
+  right.animate([{ transform: "none" }, { transform: "translateX(100%)" }], open);
   doors.querySelector(".door-icon").animate(
-    [{ transform: "scale(0) translateY(40px)" }, { transform: "scale(1.5) translateY(-10px)", offset: 0.6 }, { transform: "none" }],
-    { duration: 700 * t, delay: 200 * t, easing: "ease-out", fill: "backwards" }
+    [{ transform: "scale(0)" }, { transform: "scale(1.4)", offset: 0.6 }, { transform: "none" }],
+    { duration: 600 * t, delay: 250 * t, easing: "ease-out", fill: "backwards" }
   );
   doors.querySelector(".door-die").animate(
-    [{ transform: "translateY(-200px) rotate(-720deg)" }, { transform: "translateY(0) rotate(0)" }],
-    { duration: 900 * t, delay: 400 * t, easing: "cubic-bezier(.3, 1.4, .5, 1)", fill: "backwards" }
+    [{ transform: "translateY(-80px) rotate(-540deg)" }, { transform: "none" }],
+    { duration: 700 * t, delay: 400 * t, easing: "cubic-bezier(.3, 1.4, .5, 1)", fill: "backwards" }
   );
   const root = semis(196, index * 2);
-  brassChord(root, [0, 4, 7, 12], 0.5, 0.1);
-  brassChord(root, [5, 9, 12, 17], 0.5, 0.55);
-  brassChord(root, [7, 11, 14, 19], 1.4, 1.0);
-  timpani(semis(root, -12), { delay: 0.1 });
-  timpani(semis(root, -7), { delay: 1.0 });
-  if (index >= 2) choir(root, [12, 16, 19], 2, 0.5);
-  setMessage(`> floor ${floor}: ${place.name}! the elevator gifts you die #${diceCount}`, true);
-  const { x, y } = centerOf(sign);
-  for (let i = 0; i < 4; i++) setTimeout(() => burst(x + (Math.random() - 0.5) * 300, y + (Math.random() - 0.5) * 200, 40), i * 300 * t);
-  await wait(2100 * t);
+  brassChord(root, [0, 4, 7, 12], 0.5, 0.1, 0.03);
+  brassChord(root, [7, 11, 14, 19], 1.2, 0.5, 0.03);
+  timpani(semis(root, -12), { delay: 0.1, vol: 0.25 });
+  if (index >= 2) choir(root, [12, 16, 19], 1.6, 0.4);
+  setMessage(`> *ding* floor ${floor}: ${place.name}! the elevator gifts you die #${diceCount}`, true);
+  const { x, y } = centerOf(box);
+  for (let i = 0; i < 3; i++) setTimeout(() => burst(x + (Math.random() - 0.5) * 200, y + (Math.random() - 0.5) * 160, 30), (300 + i * 250) * t);
+  await wait(2000 * t);
 
-  // Doors burst open and dice pour out
-  const open = { duration: 450 * t, easing: "cubic-bezier(.2, .8, .3, 1)", fill: "forwards" };
-  sign.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(1.6)" }], open);
-  left.animate([{ transform: "translateX(0)" }, { transform: "translateX(-105%) rotate(-8deg)" }], open);
-  await right.animate([{ transform: "translateX(0)" }, { transform: "translateX(105%) rotate(8deg)" }], open).settled;
-  diceRain(30 + index * 5);
+  // The car slides away up the shaft
+  await box.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(-40px) scale(.8)", opacity: 0 }], {
+    duration: 350 * t,
+    easing: "ease-in",
+    fill: "forwards",
+  }).settled;
+  diceRain(12 + index * 2);
   celebrate();
   doors.remove();
 }
@@ -2573,7 +2637,10 @@ async function endTurn() {
   if (totalSixes) {
     const sides = totalSixes;
     const k = endDieBar();
-    const value = await rollEndDie();
+    const count = endDiceFor(floor);
+    // Every end die adds to the multiplier; the best one decides the bonus round
+    let value = 0;
+    for (let n = 1; n <= count; n++) value = Math.max(value, await rollEndDie(n, count));
     const earned = value >= extraRoundFrom(sides);
     stats.endDieRolls++;
     if (earned) {
@@ -3043,7 +3110,16 @@ $("go-comp-btn").addEventListener("click", () => {
   play();
 });
 
-// Top-10 score? Ask for 3-letter initials right on the game-over card
+function rememberedInitials() {
+  try {
+    return localStorage.getItem("dicele-initials") || "";
+  } catch {
+    return "";
+  }
+}
+
+// Top-10 score? The game-over card offers SAVE (under the remembered initials), EDIT (type
+// new ones) or SKIP (back to the table)
 function offerLeaderboard(final, tier) {
   const board = loadBoard();
   const rank = board.filter((e) => e.score >= final).length + 1;
@@ -3054,13 +3130,10 @@ function offerLeaderboard(final, tier) {
   entry.hidden = false;
   entry.dataset.score = final;
   entry.dataset.tier = tier;
-  try {
-    input.value = localStorage.getItem("dicele-initials") || "";
-  } catch {
-    input.value = "";
-  }
-  input.focus();
-  input.select();
+  input.value = rememberedInitials();
+  $("go-entry-name").textContent = input.value || "???";
+  $("go-entry-actions").hidden = false;
+  $("go-edit-row").hidden = true;
   entry.animate([{ transform: "scale(.6)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
   arp([523, 659, 784, 1047], 0.08, { type: "triangle", vol: 0.05 });
 }
@@ -3094,7 +3167,22 @@ function submitInitials() {
   showLeaderboard(record);
 }
 
-$("go-save").addEventListener("click", submitInitials);
+function editInitials() {
+  $("go-entry-actions").hidden = true;
+  $("go-edit-row").hidden = false;
+  const input = $("go-initials");
+  input.focus();
+  input.select();
+}
+
+// SAVE uses the remembered initials; with none yet, it asks for them first
+$("go-save").addEventListener("click", () => (rememberedInitials() ? submitInitials() : editInitials()));
+$("go-edit").addEventListener("click", editInitials);
+$("go-edit-save").addEventListener("click", submitInitials);
+$("go-skip").addEventListener("click", () => {
+  $("go-entry").hidden = true;
+  gameoverEl.classList.remove("show");
+});
 $("go-initials").addEventListener("keydown", (e) => {
   if (e.key === "Enter") submitInitials();
 });

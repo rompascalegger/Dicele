@@ -111,13 +111,13 @@ def game():
     end_rolls = 0
     while True:
         rnd += 1
-        # Roll, then the free rerolls of unlocked 1s (d6) and 2s (green d5)
+        # Roll, then the free rerolls of unlocked 1s (fair d6) and 2s (green die: 1, 3, 4, 5, 6)
         def roll_one(bonus=True):
             x = tap_d6(bonus)
             if x == 1 and unlocked[1]:
-                x = tap_d6()
+                x = d(6)
             elif x == 2 and unlocked[2]:
-                x = d(5)
+                x = random.choice((1, 3, 4, 5, 6))
             return x
 
         values = [roll_one(not HAND_CLUTCH or i == dice - 1) for i in range(dice)]
@@ -145,6 +145,7 @@ def game():
                 values[odd[-1]] = value
                 count += 1
         if count >= need:
+            banked += 1  # a yazzy is always worth a 6
             if value <= 4:
                 if unlocked[value]:
                     pips += 100 * value
@@ -192,8 +193,10 @@ def game():
         if not sixes:
             # The end die d(total sixes) adds to the multiplier; beating k/(k+1) of its
             # sides (rounded up) earns one more round, with k rising every time: 1/2, 2/3, ...
-            end = d(floor) if floor else 0
-            mult += end
+            # One end die plus one more per 10 floors; the best one decides the bonus round
+            ends = [d(floor) for _ in range(1 + floor // 10)] if floor else [0]
+            mult += sum(ends)
+            end = max(ends)
             end_rolls += 1
             if floor and end > -(-floor * end_rolls // (end_rolls + 1)):
                 dice = max(1, dice - lost)

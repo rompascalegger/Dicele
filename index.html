@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.1.2">
+  <link rel="stylesheet" href="style.css?v=2.1.4">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -67,10 +67,15 @@
       </div>
       <div id="go-entry" class="go-entry" hidden>
         <p id="go-entry-title" class="go-entry-title">HIGH SCORE!</p>
-        <label class="go-entry-label" for="go-initials">your initials</label>
-        <div class="go-entry-row">
-          <input id="go-initials" class="go-initials" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAA">
+        <p class="go-entry-label">save as <b id="go-entry-name" class="go-entry-name">???</b></p>
+        <div id="go-entry-actions" class="go-entry-row">
           <button id="go-save" class="panel go-save" type="button">SAVE</button>
+          <button id="go-edit" class="panel go-save" type="button">EDIT</button>
+          <button id="go-skip" class="panel go-save go-skip" type="button">SKIP</button>
+        </div>
+        <div id="go-edit-row" class="go-entry-row" hidden>
+          <input id="go-initials" class="go-initials" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAA" aria-label="your initials">
+          <button id="go-edit-save" class="panel go-save" type="button">SAVE</button>
         </div>
       </div>
       <button id="new-game" class="roll-btn" type="button">&#9650; NEW GAME &#9650;</button>
@@ -92,21 +97,22 @@
       <button class="modal-close" type="button" aria-label="Close">&#10005;</button>
       <h2>HOW TO PLAY</h2>
       <ol class="help-steps">
-        <li><b>Wheel of Wealth.</b> Tap STOP to stop the wheel. The number is your multiplier. 100 spins again and adds up.</li>
-        <li><b>Roll your dice.</b> Tap each die itself to roll it. You start with 5 red dice.</li>
-        <li><b>Sixes climb.</b> Every 6 = one floor up and another round. No 6 at all = game over.</li>
-        <li><b>YAZZY:</b> most of your dice showing the same number: 5 of 5, 5 of 6 &hellip; 5 of 10, then 6 of 11, 7 of 12 and so on. One short? The odd die gets a slow-motion chance (1/6 + wheel luck) to complete it.</li>
-        <li><b>Yazzy of 1s</b> unlocks rerolling 1s &middot; <b>2s</b> the green 1&ndash;5 die for 2s &middot; <b>3s</b> the end-game sacrifice &middot; <b>4s</b> the d4 shelf: every 4 adds a permanent little d4 that adds chips each round.</li>
-        <li><b>Yazzy of 5s = SILVER JACKPOT:</b> your multiplier doubles. <b>Yazzy of 6s = GOLD JACKPOT:</b> a golden d10 joins your table for good and adds its roll to the multiplier every round.</li>
-        <li><b>Perfect yazzy</b> (every die the same): one more red die, right away.</li>
-        <li><b>Silver 5s:</b> if 2 of 5 dice show a 5 (40%, rounded up), you get a SILVER REROLL: 2 rerolls this round, so 3 rolls in all to chase a yazzy. Tap the dice you want to keep, then reroll the rest. No need to hold your 6s: a 6 you reroll still counts as a floor.</li>
-        <li><b>Hand-rollers:</b> roll every die yourself (no insta-autoroll): your last die each round is the golden CLUTCH TAP, your last chance gets luckier, and the house gives you one second chance per game when you would lose.</li>
+        <li><b>Wheel of Wealth.</b> Tap STOP. The number it lands on is your multiplier. A 100 spins again and adds up.</li>
+        <li><b>Roll your dice.</b> Tap each die itself to roll it. You start with 5 red dice. Every die is a fair d6: at least a 1 in 6 chance of a 6, however many dice are on the table (bonuses only add to that).</li>
+        <li><b>Sixes climb.</b> Every 6 = one floor up and another round. No 6 at all = game over (unless a rescue below saves you).</li>
+        <li><b>YAZZY:</b> most of your dice showing the same number: 5 of 5, 5 of 6 &hellip; 5 of 10, then 6 of 11, 7 of 12 and so on. One short? The odd die gets a slow-motion chance (1/6 + wheel luck) to complete it. <b>Every yazzy also counts as a 6</b>: one more floor, and you play on.</li>
+        <li><b>What a yazzy unlocks:</b> <b>1s</b> reroll every 1 once &middot; <b>2s</b> reroll every 2 once with the green die (1, 3, 4, 5, 6: no 2s, and it counts like any other die) &middot; <b>3s</b> the end-game sacrifice &middot; <b>4s</b> the d4 shelf: every 4 you roll adds a little d4 for good, and the shelf rolls each round for chips. A yazzy you already unlocked pays 100 &times; its number in chips.</li>
+        <li><b>Yazzy of 5s = SILVER JACKPOT:</b> your multiplier doubles. <b>Yazzy of 6s = GOLD JACKPOT:</b> a golden d10 joins your table for good and adds its roll to the multiplier every round (another one: +10 multiplier).</li>
+        <li><b>Perfect yazzy</b> (every die the same): one more red die, rolled right away.</li>
+        <li><b>Silver 5s:</b> at least 40% of your dice show a 5 (2 of 5, 3 of 6, 4 of 10)? You get a SILVER REROLL: 2 rerolls this round, so 3 rolls in all to chase a yazzy. Tap the dice you want to keep, then reroll the rest. No need to hold your 6s: a 6 you reroll still counts as a floor.</li>
         <li><b>Last chance:</b> no 6? The last die is rerolled in slow motion: a fair 1/6 (16.7%) plus your wheel luck of (100 &minus; wheel) &divide; 10 %. Wheel 1 = 26.6%, wheel 99 = 16.8%, wheel 100+ = 16.7%.</li>
+        <li><b>3s, once unlocked</b>, are the last way out: still no 6? Sacrifice ALL your 3s (destroyed for good) to reroll every other die. New 3s can be sacrificed again.</li>
+        <li><b>Hand-rollers:</b> roll every die yourself (insta-autoroll never on this game) and the house rewards you: your last die each round is the golden CLUTCH TAP and feels luckier, your last chance gets luckier too, and once per game a round you would lose is played again.</li>
         <li><b>Every 5 floors</b> the elevator gives you one more red die.</li>
-        <li><b>From 10 dice</b> the Casino Manager puts a bad d20 on the table, one more for every 5 dice. They roll themselves. A <b>1</b> destroys a red die for good (from floor 25 one more losing face every 18 floors: 1&ndash;2, 1&ndash;3, ...). A <b>20</b> confiscates one of your unlocked bonuses.</li>
-        <li><b>3s, once unlocked</b>, are the last way out: no 6 and the last chance failed? Sacrifice ALL your 3s (destroyed for good) to reroll every other die.</li>
-        <li><b>Score</b> = chips &times; multiplier. At the end you roll a d(total sixes) that adds to the multiplier. Roll higher than half of it (rounded up: 7+ on a d12) and you play <b>one more round</b>. Every time you're back at the end die the bar rises: 2/3, then 3/4, 4/5 and so on.</li>
-        <li><b>Extras:</b> combos (three of a kind and up, 1&ndash;6 straight), random casino events, and falling dice you can tap for bonus chips.</li>
+        <li><b>Casino Manager:</b> from 10 dice a bad d20 sits on your table, one more for every 5 dice (15, 20, &hellip;). They roll themselves. A <b>1</b> destroys a red die for good (from floor 25 one more losing face every 18 floors: 1&ndash;2, 1&ndash;3, &hellip;). A <b>20</b> confiscates one of your unlocked bonuses.</li>
+        <li><b>Chips</b> each round: the sum of your red dice, a round bonus (+10 per round after the first), combos (triple +30, four of a kind +80, five +200, six or more +500 and up, a 1&ndash;6 straight +100, six or more 6s in one round +666), the d4 shelf, random casino events, and the falling dice you tap (a rare golden one gives +5 multiplier).</li>
+        <li><b>Score</b> = chips &times; multiplier. At the end you roll the END DIE, a d(total sixes) that adds to the multiplier, plus <b>one more end die for every 10 floors</b> (floor 30 = 4 end dice). Your best end die higher than half of it (rounded up: 7+ on a d12)? You play <b>one more round</b>. Each time you're back at the end die the bar rises: 2/3, then 3/4, 4/5 and so on.</li>
+        <li><b>One game every 8 hours.</b> High scores go on this device's leaderboard (&#127942;).</li>
       </ol>
       <h3>HOW THE TABLE GROWS</h3>
       <table class="lb-table prog-table"><tbody id="prog-rows"></tbody></table>
@@ -174,6 +180,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.1.2"></script>
+  <script src="script.js?v=2.1.4"></script>
 </body>
 </html>
