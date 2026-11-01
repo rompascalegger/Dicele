@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.1.0";
+const VERSION = "2.1.2";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -3384,6 +3384,27 @@ document.addEventListener("keydown", (e) => {
     if (document.activeElement !== rollBtn || phase === "wheel") play();
   }
 });
+
+/* ---------- Scoreboard numbers shrink to fit ---------- */
+
+// A big score gets a smaller font instead of being cut off
+function fitValue(el) {
+  el.style.fontSize = "";
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  while (el.scrollWidth > el.clientWidth && size > 5) {
+    size -= 0.5;
+    el.style.fontSize = `${size}px`;
+  }
+}
+const statValues = [...document.querySelectorAll(".stat .value")];
+const fitObserver = new MutationObserver((records) => {
+  for (const el of new Set(records.map((r) => r.target.nodeType === 1 ? r.target : r.target.parentElement))) fitValue(el);
+});
+for (const el of statValues) {
+  fitObserver.observe(el, { childList: true, characterData: true, subtree: true });
+  fitValue(el);
+}
+addEventListener("resize", () => statValues.forEach(fitValue));
 
 /* ---------- Drifting dice you can tap ---------- */
 

@@ -204,7 +204,7 @@ h1 {
   margin-top: 6px;
   font-variant-numeric: tabular-nums;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .bump { animation: bump .35s steps(3); }
 @keyframes bump { 50% { transform: scale(1.35); color: var(--gold); } }
@@ -672,30 +672,30 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   z-index: 15;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px 10px 12px;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
   perspective: 300px;
 }
 .d100 {
-  width: 46px;
-  height: 46px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #fff2b0, var(--gold) 50%, var(--gold-dark));
   clip-path: polygon(50% 0, 100% 38%, 82% 100%, 18% 100%, 0 38%);
   color: var(--red-dark);
   font-family: var(--pixel-bold);
-  font-size: .9rem;
+  font-size: .75rem;
 }
-.d100 span { margin-top: 8px; }
+.d100 span { margin-top: 6px; }
 .mult-text { display: flex; flex-direction: column; }
-.mult .label { font-size: .9rem; letter-spacing: .25em; color: var(--gold); text-transform: uppercase; }
+.mult .label { font-size: .75rem; letter-spacing: .25em; color: var(--gold); text-transform: uppercase; }
 .mult { border-color: var(--tc, var(--gold)); }
 .mult-value {
   font-family: var(--pixel-bold);
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   min-width: 4.5ch;
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--tc, var(--text));
   text-shadow: 0 0 10px var(--tc, transparent);
 }
@@ -1384,10 +1384,14 @@ html.flashy .alarm { animation: alarm-strobe .16s steps(1) infinite; }
 /* ---------- Phones: everything on one screen, no scrolling ---------- */
 @media (max-width: 600px) {
   body { font-size: 17px; }
-  .mult { position: absolute; top: 8px; left: 8px; padding: 6px 10px 6px 8px; gap: 8px; }
-  .d100 { width: 32px; height: 32px; font-size: .7rem; }
-  .mult-value { font-size: 1.1rem; }
-  .mult .label { font-size: .75rem; }
+  .mult { position: absolute; top: 8px; left: 8px; padding: 4px 8px 4px 6px; gap: 6px; }
+  .d100 { width: 26px; height: 26px; font-size: .6rem; }
+  .d100 span { margin-top: 4px; }
+  .mult-value { font-size: .9rem; }
+  .mult .label { font-size: .65rem; }
+  .luck-chance { font-size: .7rem; }
+  .mult-text { line-height: 1.05; }
+  .mult-value { margin-top: 0; }
   .top-buttons { position: absolute; top: 8px; right: 8px; gap: 5px; }
   .icon-btn { width: 36px; height: 36px; font-size: .8rem; }
   #lb-btn { font-size: 1.1rem; }
@@ -1701,7 +1705,7 @@ body { touch-action: manipulation; }
 /* Phones: the top bar (multi badge, buttons) sits above the scaled game, never over it */
 @media (max-width: 600px) {
   header { padding-top: 4px; }
-  .stage { margin-top: 56px; }
+  .stage { margin-top: 66px; }
 }
 
 /* Silver reroll: tap dice to hold them */
