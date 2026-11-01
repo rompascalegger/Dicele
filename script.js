@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.0.9";
+const VERSION = "2.1.0";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 12,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 11000, 40000, 160000, 1000000, 6700000, 25000000, 53000000, 110000000, 490000000];
+const SCORE_TIERS = [0, 11000, 42000, 180000, 1300000, 7800000, 27000000, 57000000, 120000000, 540000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 11, 22, 52, 134, 206, 244, 274, 296, 299];
+const FLOOR_TIERS = [1, 12, 23, 56, 141, 209, 246, 275, 297, 299];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 0], [0.1, 70], [1, 406], [5, 1694], [10, 3950], [20, 10744], [30, 21654], [40, 39732], [50, 74349], [60, 155116], [70, 462420], [75, 1015662], [80, 2644648], [85, 6727805], [90, 15176088], [93, 24654930], [95, 34805470], [97, 52660439], [98, 69966486], [99, 110136672], [99.5, 171259407], [99.8, 308120250], [99.9, 492189984], [99.95, 798698845], [99.99, 2589385976], [99.999, 14163605148], [100, 179693761584]];
+const SCORE_PERCENTILES = [[0, 0], [0.1, 70], [1, 408], [5, 1720], [10, 4032], [20, 11130], [30, 22644], [40, 42198], [50, 80738], [60, 175284], [70, 555768], [75, 1252224], [80, 3232470], [85, 7791056], [90, 16929654], [93, 26942586], [95, 37605106], [97, 56631180], [98, 75345165], [99, 119560746], [99.5, 187056870], [99.8, 340557300], [99.9, 544193020], [99.95, 891692641], [99.99, 2833602554], [99.999, 16811607851], [100, 732677316532]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 5], [40, 11], [50, 15], [60, 22], [75, 52], [85, 134], [90, 181], [93, 206], [95, 224], [97, 244], [99, 274], [99.9, 296], [99.99, 299]];
+const FLOOR_PERCENTILES = [[20, 5], [40, 12], [50, 16], [60, 23], [75, 56], [85, 141], [90, 185], [93, 209], [95, 227], [97, 246], [99, 275], [99.9, 297], [99.99, 299]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0008], [1.072, 0.0012], [1.144, 0.0016], [1.216, 0.0017], [1.288, 0.0018], [1.36, 0.0021], [1.432, 0.0026], [1.504, 0.0033], [1.576, 0.004], [1.649, 0.0048], [1.721, 0.0058], [1.793, 0.0071], [1.865, 0.0091], [1.937, 0.0117], [2.009, 0.0147], [2.081, 0.0183], [2.153, 0.0226], [2.225, 0.0276], [2.297, 0.0335], [2.369, 0.041], [2.441, 0.0497], [2.513, 0.0604], [2.585, 0.0736], [2.657, 0.0895], [2.729, 0.1088], [2.801, 0.1318], [2.873, 0.1576], [2.946, 0.1833], [3.018, 0.2063], [3.09, 0.2247], [3.162, 0.241], [3.234, 0.2611], [3.306, 0.2917], [3.378, 0.3352], [3.45, 0.3843], [3.522, 0.4336], [3.594, 0.4791], [3.666, 0.5191], [3.738, 0.5608], [3.81, 0.6079], [3.882, 0.6574], [3.954, 0.7082], [4.026, 0.7603], [4.098, 0.8091], [4.17, 0.856], [4.243, 0.9008], [4.315, 0.9387], [4.387, 0.9693], [4.459, 0.9906], [4.531, 1.0], [4.603, 0.9979], [4.675, 0.9852], [4.747, 0.9636], [4.819, 0.9359], [4.891, 0.903], [4.963, 0.865], [5.035, 0.8221], [5.107, 0.7745], [5.179, 0.7234], [5.251, 0.6712], [5.323, 0.6207], [5.395, 0.5737], [5.468, 0.5317], [5.54, 0.4946], [5.612, 0.4624], [5.684, 0.4348], [5.756, 0.4106], [5.828, 0.3896], [5.9, 0.3712], [5.972, 0.3551], [6.044, 0.3412], [6.116, 0.3296], [6.188, 0.3204], [6.26, 0.3138], [6.332, 0.3103], [6.404, 0.3098], [6.476, 0.3124], [6.548, 0.3178], [6.62, 0.3254], [6.692, 0.3347], [6.765, 0.345], [6.837, 0.3551], [6.909, 0.3641], [6.981, 0.3712], [7.053, 0.3759], [7.125, 0.378], [7.197, 0.3777], [7.269, 0.3746], [7.341, 0.3679], [7.413, 0.3569], [7.485, 0.3404], [7.557, 0.3177], [7.629, 0.2892], [7.701, 0.2559], [7.773, 0.22], [7.845, 0.1842], [7.917, 0.1504], [7.989, 0.1204], [8.062, 0.095], [8.134, 0.0741], [8.206, 0.0575], [8.278, 0.0443], [8.35, 0.0341], [8.422, 0.0261], [8.494, 0.02], [8.566, 0.0153], [8.638, 0.0118], [8.71, 0.0091], [8.782, 0.007], [8.854, 0.0055], [8.926, 0.0043], [8.998, 0.0034], [9.07, 0.0026], [9.142, 0.0021], [9.214, 0.0017], [9.286, 0.0013], [9.359, 0.001], [9.431, 0.0008], [9.503, 0.0007], [9.575, 0.0005], [9.647, 0.0004], [9.719, 0.0003], [9.791, 0.0003], [9.863, 0.0002], [9.935, 0.0002], [10.007, 0.0001], [10.079, 0.0001], [10.151, 0.0001]];
+const SCORE_CURVE = [[1.0, 0.0008], [1.073, 0.0012], [1.145, 0.0015], [1.218, 0.0017], [1.291, 0.0018], [1.363, 0.0021], [1.436, 0.0026], [1.508, 0.0034], [1.581, 0.0042], [1.654, 0.0052], [1.726, 0.0063], [1.799, 0.0078], [1.872, 0.0098], [1.944, 0.0124], [2.017, 0.0153], [2.09, 0.0189], [2.162, 0.0233], [2.235, 0.0286], [2.308, 0.0353], [2.38, 0.0432], [2.453, 0.0525], [2.525, 0.064], [2.598, 0.0775], [2.671, 0.0946], [2.743, 0.1152], [2.816, 0.1389], [2.889, 0.1655], [2.961, 0.1909], [3.034, 0.213], [3.107, 0.2313], [3.179, 0.2481], [3.252, 0.2703], [3.325, 0.3043], [3.397, 0.3499], [3.47, 0.3994], [3.542, 0.4481], [3.615, 0.4924], [3.688, 0.5318], [3.76, 0.5753], [3.833, 0.6238], [3.906, 0.673], [3.978, 0.7246], [4.051, 0.7764], [4.124, 0.8251], [4.196, 0.8728], [4.269, 0.9164], [4.342, 0.9519], [4.414, 0.9787], [4.487, 0.995], [4.559, 1.0], [4.632, 0.9941], [4.705, 0.9788], [4.777, 0.9556], [4.85, 0.9264], [4.923, 0.892], [4.995, 0.8531], [5.068, 0.8098], [5.141, 0.7627], [5.213, 0.7134], [5.286, 0.6639], [5.359, 0.6163], [5.431, 0.5726], [5.504, 0.5335], [5.576, 0.499], [5.649, 0.469], [5.722, 0.4427], [5.794, 0.4196], [5.867, 0.3991], [5.94, 0.3811], [6.012, 0.3655], [6.085, 0.3523], [6.158, 0.3419], [6.23, 0.3342], [6.303, 0.3293], [6.376, 0.3275], [6.448, 0.3287], [6.521, 0.3332], [6.593, 0.3406], [6.666, 0.3503], [6.739, 0.3615], [6.811, 0.373], [6.884, 0.3838], [6.957, 0.3928], [7.029, 0.3996], [7.102, 0.4038], [7.175, 0.4055], [7.247, 0.4045], [7.32, 0.4001], [7.393, 0.3911], [7.465, 0.3761], [7.538, 0.3542], [7.61, 0.3255], [7.683, 0.291], [7.756, 0.2529], [7.828, 0.2138], [7.901, 0.1763], [7.974, 0.1423], [8.046, 0.1132], [8.119, 0.0891], [8.192, 0.0696], [8.264, 0.0541], [8.337, 0.0418], [8.41, 0.0321], [8.482, 0.0247], [8.555, 0.0189], [8.627, 0.0145], [8.7, 0.0112], [8.773, 0.0086], [8.845, 0.0067], [8.918, 0.0052], [8.991, 0.0041], [9.063, 0.0033], [9.136, 0.0026], [9.209, 0.002], [9.281, 0.0016], [9.354, 0.0013], [9.427, 0.001], [9.499, 0.0008], [9.572, 0.0006], [9.644, 0.0005], [9.717, 0.0004], [9.79, 0.0003], [9.862, 0.0002], [9.935, 0.0002], [10.008, 0.0002], [10.08, 0.0001], [10.153, 0.0001], [10.226, 0.0001]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -535,6 +535,7 @@ function resetStats() {
 async function handRetry() {
   silverUsed = false;
   silverLeft = 0;
+  bankedSixes = 0;
   showToast("HAND-ROLLER'S\nSECOND CHANCE", 4);
   setMessage("> you rolled it all by hand. the house respects that: roll the round again", true);
   arp([392, 523, 659, 784, 1047], 0.08, { type: "triangle", vol: 0.06, wet: 0.4 });
@@ -1071,7 +1072,7 @@ function roundReady() {
     // Autopilot: reroll every 1 and 2, take the silver reroll only when there's no 6
     if (rerolls.length) {
       rerolls.forEach((o, i) => setTimeout(() => tapDie(o), i * 90));
-    } else if (silver && !sixes) {
+    } else if (silver && (silverUsed || !sixes)) {
       autoSilver();
     } else {
       resolveRound();
@@ -1091,11 +1092,13 @@ function roundReady() {
 }
 
 // Enough silver 5s (40%, rounded up): Yahtzee-style rerolls. Tap the dice you want to
-// keep (HOLD; sixes are kept automatically), then every unheld red die goes back to "?" and
-// is rolled again. Two rerolls a round, so three rolls in all to chase a yazzy
+// keep (HOLD), then every unheld red die goes back to "?" and is rolled again. Two rerolls a
+// round, so three rolls in all to chase a yazzy. A 6 you reroll still counts (banked)
 const SILVER_REROLLS = 2;
 let silverUsed = false;
 let silverLeft = 0;
+// Sixes rerolled away during a silver reroll still count: they're banked for the round
+let bankedSixes = 0;
 
 function enterSilverHold() {
   if (!silverUsed) {
@@ -1109,18 +1112,16 @@ ${SILVER_REROLLS} REROLLS · TAP TO KEEP`, 2);
   phase = "hold";
   for (const o of roundDice) {
     if (!live(o)) continue;
-    // Sixes are saved for you
-    if (o.value === 6) o.held = true;
     o.slot.classList.add("holdable");
     o.slot.classList.toggle("held", !!o.held);
     o.slot.querySelector(".die-badge").textContent = o.held ? "HOLD" : "";
   }
-  setMessage(`> keep what you like, reroll the rest (${silverLeft} left)`, true);
+  const banked = bankedSixes ? ` · ${bankedSixes} six${bankedSixes > 1 ? "es" : ""} banked` : "";
+  setMessage(`> keep what you like, reroll the rest (${silverLeft} left)${banked}`, true);
   updateSilverButtons();
 }
 
 function toggleHold(obj) {
-  if (obj.value === 6) return;
   obj.held = !obj.held;
   obj.slot.classList.toggle("held", obj.held);
   obj.slot.querySelector(".die-badge").textContent = obj.held ? "HOLD" : "";
@@ -1136,7 +1137,7 @@ function updateSilverButtons() {
   rollBtn.disabled = false;
   rollBtn.classList.add("again");
   rollBtn.innerHTML = '&#10004; KEEP ALL &amp; CONTINUE &#10004;<span class="auto">tap dice to hold them</span>';
-  setHint(`Silver reroll: tap the dice you want to KEEP (they show HOLD, sixes are kept for you), then reroll the ${unheld} others. ${silverLeft} reroll${silverLeft > 1 ? "s" : ""} left this round.`);
+  setHint(`Silver reroll: tap the dice you want to KEEP (they show HOLD; a 6 you reroll still counts), then reroll the ${unheld} others. ${silverLeft} reroll${silverLeft > 1 ? "s" : ""} left this round.`);
 }
 
 function leaveSilverHold() {
@@ -1156,6 +1157,11 @@ function silverReroll() {
   silverLeft--;
   leaveSilverHold();
   for (const o of unheld) {
+    if (o.value === 6) {
+      bankedSixes++;
+      const { x, y } = centerOf(o.slot);
+      floatText(x, y - 30, "6 BANKED", "gold");
+    }
     o.value = null;
     o.rerolled = false;
     o.slot.classList.remove("landed", "six", "silver", "one", "two", "green", "rolling", "lucky");
@@ -2054,7 +2060,7 @@ function updateHint() {
     const parts = [];
     if (ones) parts.push("Glowing 1s: tap to reroll once.");
     if (twos) parts.push("Glowing 2s: tap to reroll with the green die (1-5, no 6).");
-    if (silver) parts.push(silverUsed ? `SILVER REROLL: ${silverLeft} more reroll left, your holds are kept.` : "Enough silver 5s (2 of 5, 3 of 6...): SILVER REROLL gives you 2 rerolls, Yahtzee style.");
+    if (silver) parts.push(silverUsed ? `SILVER REROLL: ${silverLeft} more reroll left, your holds are kept${bankedSixes ? ` and ${bankedSixes} banked six${bankedSixes > 1 ? "es" : ""} still count` : ""}.` : "Enough silver 5s (2 of 5, 3 of 6...): SILVER REROLL gives you 2 rerolls, Yahtzee style.");
     parts.push("Happy? Tap CONTINUE.");
     setHint(parts.join(" "));
   }
@@ -2116,6 +2122,7 @@ async function startRound() {
   roundDice = [];
   silverUsed = false;
   silverLeft = 0;
+  bankedSixes = 0;
   tray.innerHTML = "";
   sizeTray(diceCount + bad + (goldD10 ? 1 : 0));
   for (let i = 0; i < diceCount; i++) roundDice.push(createDie());
@@ -2148,7 +2155,7 @@ async function resolveRound() {
   setHint("");
   await checkYazzy();
   phase = "busy";
-  const hasSix = () => roundDice.some((o) => live(o) && o.value === 6);
+  const hasSix = () => bankedSixes > 0 || roundDice.some((o) => live(o) && o.value === 6);
   if (!hasSix()) {
     const table = roundDice.filter(live);
     await lastChance(table[table.length - 1]);
@@ -2212,7 +2219,9 @@ async function resolveRound() {
     await wait(reducedMotion ? 300 : 1000);
   }
   const sixes = red.filter((o) => o.value === 6);
-  logRound(sum, extra + d4Total, sixes.length);
+  // Banked sixes from silver rerolls count as floors too
+  const sixCount = sixes.length + bankedSixes;
+  logRound(sum, extra + d4Total, sixCount);
 
   if (Math.random() < EVENT_CHANCE) await randomEvent();
 
@@ -2238,22 +2247,22 @@ async function resolveRound() {
     await loseDice(struck);
   }
 
-  if (sixes.length) {
+  if (sixCount) {
     // Every six grows the end die: X sixes in total earn a dX
-    totalSixes += sixes.length;
+    totalSixes += sixCount;
     for (const { slot } of sixes) {
       const { x, y } = centerOf(slot);
-      burst(x, y, 20 + sixes.length * 10);
-      sparkles(x, y, 6 + sixes.length * 2);
+      burst(x, y, 20 + sixCount * 10);
+      sparkles(x, y, 6 + sixCount * 2);
     }
-    fanfare(sixes.length);
-    hype(sixes.length);
-    if (sixes.length >= 6) await mayhem();
+    fanfare(sixCount);
+    hype(sixCount);
+    if (sixCount >= 6) await mayhem();
 
     // One floor per six
-    const label = sixes.length === 1 ? "SIX!" : `${sixes.length} SIXES!`;
-    showToast(`${label}\nUP ${sixes.length} FLOOR${sixes.length > 1 ? "S" : ""} · END DIE d${totalSixes}`, floorTier(floor + sixes.length));
-    await climb(sixes.length);
+    const label = sixCount === 1 ? "SIX!" : `${sixCount} SIXES!`;
+    showToast(`${label}\nUP ${sixCount} FLOOR${sixCount > 1 ? "S" : ""} · END DIE d${totalSixes}`, floorTier(floor + sixCount));
+    await climb(sixCount);
     setMessage(pick(SIX_LINES), true);
     await wait(reducedMotion ? 200 : 600);
     await startRound();

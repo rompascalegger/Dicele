@@ -122,14 +122,15 @@ def game():
 
         values = [roll_one(not HAND_CLUTCH or i == dice - 1) for i in range(dice)]
         # Silver 5s (40%), once a round, taken when there is no 6: two rerolls, each
-        # keeping the sixes and the biggest matching group (3+), rerolling the rest
+        # keeping the biggest matching group (3+), rerolling the rest. Sixes rerolled away
+        # are banked and still count as floors
+        banked = 0
         if 6 not in values and 5 * values.count(5) >= 2 * len(values):
             for _ in range(SILVER_REROLLS):
-                if 6 in values:
-                    break
                 keep_v, keep_n = best_count(values)
                 if keep_n < 3:
                     keep_n = 0
+                banked += values.count(6) - (keep_n if keep_v == 6 else 0)
                 values = [keep_v] * keep_n + [roll_one() for _ in range(len(values) - keep_n)]
         gold_roll = d(10) if gold else 0
         bad = [d(20) for _ in range(bad_dice_for(dice))]
@@ -159,19 +160,19 @@ def game():
                 dice += 1
 
         # Last chance, then the 3-sacrifice
-        if 6 not in values:
+        if 6 not in values and not banked:
             hit = 1 / 6 + luck + (HAND_LAST_CHANCE_BONUS if MANUAL else 0)
             values[-1] = 6 if random.random() < hit else d(5)
-        while unlocked[3] and 6 not in values and 3 in values and len(values) > values.count(3):
+        while unlocked[3] and not banked and 6 not in values and 3 in values and len(values) > values.count(3):
             lost = values.count(3)
             dice -= lost
             values = [d(6) for _ in range(len(values) - lost)]
 
-        if 6 not in values and MANUAL and HAND_RETRY and not retry_used:
+        if 6 not in values and not banked and MANUAL and HAND_RETRY and not retry_used:
             retry_used = True  # hand-roller's second chance: the round is played again
             rnd -= 1
             continue
-        sixes = values.count(6)
+        sixes = values.count(6) + banked
         pips += sum(values) + BONUS_STEP * (rnd - 1) + combos(values) + (666 if sixes >= 6 else 0)
         if unlocked[4]:
             shelf += values.count(4)

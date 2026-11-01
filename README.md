@@ -23,7 +23,7 @@ Buttons: 🏆 leaderboard (this device), ? rules, ⚡ flashy animations (off by 
 
 ## Balance
 
-With the Casino Manager arriving at 10 dice, about 1 hand-rolled game in 57 breaks past it and snowballs practically forever (auto-rolled games about 1 in 2,400). That rate is tuned with `BAD_FROM_DICE`, `LOSE_FACES_FROM_FLOOR` and `LOSE_FACE_STEP` in `script.js`.
+With the Casino Manager arriving at 10 dice, about 1 hand-rolled game in 53 breaks past it and snowballs practically forever (auto-rolled games about 1 in 2,300). That rate is tuned with `BAD_FROM_DICE`, `LOSE_FACES_FROM_FLOOR` and `LOSE_FACE_STEP` in `script.js`.
 
 ## Files
 
