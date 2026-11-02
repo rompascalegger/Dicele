@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.2.0";
+const VERSION = "2.3.0";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -77,8 +77,8 @@ const badDiceFor = (n) => (n < BAD_FROM_DICE ? 0 : 1 + Math.floor((n - BAD_FROM_
 const badLosesOn = () => Math.min(19, 1 + Math.floor(floor / LOSE_FACE_STEP));
 // Each extra round is worth this much more than the last: +10, +20, +30...
 const BONUS_STEP = 10;
-// Golden drifting dice add this to the multiplier
-const GOLDEN_MULT = 5;
+// A tapped falling die pays its face times this in chips (a golden one: its face on the multiplier)
+const DRIFTER_CHIPS = 10;
 // Pixel height of one tower floor in the background (matches style.css)
 const FLOOR_HEIGHT = 120;
 
@@ -394,6 +394,57 @@ function ding(vol = 0.1, delay = 0) {
   sfx(1319 * 5.4, 0.18, { type: "sine", vol: vol * 0.12, delay });
 }
 
+// Elevator music: an 8-bar lounge loop in F with swing. Walking bass, soft Rhodes stabs,
+// a vibraphone tune and brushes. Returns stop()
+const LOUNGE_F2 = 87.31;
+const LOUNGE_BARS = [
+  // [chord root (semitones above F), chord tones, vibraphone tune: [beat, semitones above F4, beats]]
+  [0, [0, 4, 7, 11], [[0, 4, 1], [1, 7, 1], [2, 9, 0.66], [2.66, 11, 0.34], [3, 12, 1]]],
+  [9, [0, 3, 7, 10], [[0, 16, 1.66], [1.66, 14, 0.34], [2, 12, 1], [3, 9, 1]]],
+  [2, [0, 3, 7, 10], [[0, 14, 1], [1, 17, 0.66], [1.66, 21, 1.34], [3, 17, 1]]],
+  [7, [0, 4, 7, 10], [[0, 16, 0.66], [0.66, 19, 0.34], [1, 23, 2], [3, 21, 1]]],
+  [4, [0, 3, 7, 10], [[0, 19, 1.66], [1.66, 16, 0.34], [2, 12, 1], [3, 11, 1]]],
+  [9, [0, 4, 7, 10], [[0, 13, 1], [1, 16, 1], [2, 21, 0.66], [2.66, 19, 0.34], [3, 18, 1]]],
+  [2, [0, 3, 7, 10], [[0, 17, 2], [2, 14, 1], [3, 12, 1]]],
+  [7, [0, 4, 7, 10], [[0, 11, 0.66], [0.66, 14, 0.34], [1, 16, 1], [2, 19, 2]]],
+];
+function elevatorMusic() {
+  const ac = audio();
+  if (!ac) return () => {};
+  const beat = 60 / 112;
+  // Bass notes stay within F1-C3
+  const low = (s) => {
+    const n = ((s % 12) + 12) % 12;
+    return n > 7 ? n - 12 : n;
+  };
+  const playBar = (i, at) => {
+    const [root, chord, tune] = LOUNGE_BARS[i % 8];
+    const nextRoot = LOUNGE_BARS[(i + 1) % 8][0];
+    [root, root + chord[1], root + 7, nextRoot - 1].forEach((s, k) =>
+      sfx(semis(LOUNGE_F2, low(s)), beat * 0.9, { type: "triangle", vol: 0.08, delay: at + k * beat })
+    );
+    for (const b of [1.66, 3]) {
+      for (const s of chord) sfx(semis(LOUNGE_F2 * 2, root + s), beat * 0.6, { type: "sine", vol: 0.016, delay: at + b * beat, attack: 0.01, wet: 0.25 });
+    }
+    for (const [b, s, len] of tune) {
+      sfx(semis(LOUNGE_F2 * 4, s), len * beat * 1.1, { type: "sine", vol: 0.045, delay: at + b * beat, attack: 0.008, wet: 0.35 });
+      sfx(semis(LOUNGE_F2 * 4, s + 24), len * beat * 0.3, { type: "sine", vol: 0.008, delay: at + b * beat });
+    }
+    for (const b of [0, 1, 1.66, 2, 3, 3.66]) noise(0.09, { vol: b % 1 ? 0.012 : 0.02, hp: 5000, delay: at + b * beat });
+  };
+  let bar = 0;
+  let next = ac.currentTime + 0.1;
+  const schedule = () => {
+    while (next < ac.currentTime + 1.5) {
+      playBar(bar++, next - ac.currentTime);
+      next += 4 * beat;
+    }
+  };
+  schedule();
+  const id = setInterval(schedule, 300);
+  return () => clearInterval(id);
+}
+
 // Choir: soft detuned triangles fading in, mostly reverb
 function choir(root, chord, dur, delay = 0) {
   for (const s of chord) {
@@ -584,7 +635,7 @@ async function handRetry() {
       o.slot.classList.remove("safe", "struck", "done");
       o.slot.classList.add("waiting");
       o.slot.querySelector(".bd-value").textContent = "?";
-      if (o.kind === "bad") drawBad(o);
+      if (o.kind === "bad" || o.kind === "good") drawBad(o);
     }
   }
   phase = "rolling";
@@ -629,18 +680,25 @@ function d20FrontQ() {
   return d20Front;
 }
 
+// The good d20 (stuck-elevator easter egg): a 20 makes every bad d20 that round harmless
+const GOOD_COLORS = { waiting: "#c9a020", shield: "#ffe04a", miss: "#8a7a3a" };
+
 function drawBad(obj, q = obj.q, highlight = obj.value !== null) {
-  const color = obj.value === null ? BAD_COLORS.waiting : obj.value <= badLosesOn() ? BAD_COLORS.struck : BAD_COLORS.safe;
+  const color =
+    obj.kind === "good"
+      ? obj.value === null ? GOOD_COLORS.waiting : obj.value === 20 ? GOOD_COLORS.shield : GOOD_COLORS.miss
+      : obj.value === null ? BAD_COLORS.waiting : obj.value <= badLosesOn() ? BAD_COLORS.struck : BAD_COLORS.safe;
   drawD20(obj.ctx, BAD_D20_PX, q, color, obj.labels, highlight);
 }
 
-function createBadDie() {
+// kind "bad" (the Casino Manager's) or "good"; both roll themselves
+function createBadDie(kind = "bad") {
   const slot = document.createElement("button");
   slot.type = "button";
-  slot.className = "bad-die waiting";
-  slot.innerHTML = `<canvas class="bd-canvas" width="${BAD_D20_PX}" height="${BAD_D20_PX}"></canvas><span class="bd-value">?</span><span class="bd-label">BAD d20</span>`;
+  slot.className = `bad-die ${kind === "good" ? "good-die " : ""}waiting`;
+  slot.innerHTML = `<canvas class="bd-canvas" width="${BAD_D20_PX}" height="${BAD_D20_PX}"></canvas><span class="bd-value">?</span><span class="bd-label">${kind === "good" ? "GOOD d20 ☺" : "BAD d20"}</span>`;
   const obj = {
-    kind: "bad",
+    kind,
     slot,
     value: null,
     rolling: false,
@@ -1090,6 +1148,18 @@ async function rollBad(obj) {
   drawBad(obj);
   valueEl.textContent = value;
   slot.classList.remove("rolling");
+  if (obj.kind === "good") {
+    slot.classList.add(value === 20 ? "struck" : "safe");
+    const { x, y } = centerOf(slot);
+    if (value === 20) {
+      floatText(x, y - 30, "SHIELD!", "gold");
+      arp([784, 988, 1175, 1568], 0.06, { type: "triangle", vol: 0.06, wet: 0.3 });
+    } else {
+      sfx(660, 0.08, { vol: 0.04 });
+    }
+    obj.rolling = false;
+    return value;
+  }
   const struck = value <= badLosesOn();
   slot.classList.add(struck ? "struck" : "safe");
   if (struck) {
@@ -1117,7 +1187,7 @@ async function tapDie(obj, byHand = false) {
   }
   if ((phase !== "rolling" && phase !== "choice") || obj.rolling || obj.gone) return;
   // The Casino Manager rolls his own dice
-  if (obj.kind === "bad") return;
+  if (obj.kind === "bad" || obj.kind === "good") return;
   if (obj.value === null) {
     if (!byHand) stats.autoUsed = true;
     // Clutch tap: the last red die of the round, tapped by hand
@@ -1371,14 +1441,14 @@ function nudgeDice() {
 
 function autoRollAll() {
   roundDice
-    .filter((o) => o.kind !== "bad" && o.value === null && !o.rolling)
+    .filter((o) => o.kind !== "bad" && o.kind !== "good" && o.value === null && !o.rolling)
     .forEach((o, i) => setTimeout(() => tapDie(o), (reducedMotion ? 30 : 110) * i));
 }
 
 // The bad d20s always roll themselves, shortly after the dice hit the table
 function autoRollBad() {
   roundDice
-    .filter((o) => o.kind === "bad" && o.value === null && !o.rolling)
+    .filter((o) => (o.kind === "bad" || o.kind === "good") && o.value === null && !o.rolling)
     .forEach((o, i) =>
       setTimeout(async () => {
         if (o.value !== null || o.rolling || phase !== "rolling") return;
@@ -2179,6 +2249,8 @@ silverBtn.addEventListener("click", () => {
 
 // Bad d20s on the table this game: the alarm only fires for new ones, and they never leave
 let badAnnounced = 0;
+// Good d20s earned by waiting out the stuck elevator; they stay for the game
+let goodD20 = 0;
 
 async function startTurn() {
   phase = "busy";
@@ -2190,6 +2262,7 @@ async function startTurn() {
   diceCount = BASE_DICE;
   resetStats();
   badAnnounced = 0;
+  goodD20 = 0;
   for (const v of [1, 2, 3, 4]) unlocked[v] = false;
   goldD10 = false;
   shelfD4 = 0;
@@ -2229,9 +2302,10 @@ async function startRound() {
   silverLeft = 0;
   bankedSixes = 0;
   tray.innerHTML = "";
-  sizeTray(diceCount + bad + (goldD10 ? 1 : 0));
+  sizeTray(diceCount + bad + goodD20 + (goldD10 ? 1 : 0));
   for (let i = 0; i < diceCount; i++) roundDice.push(createDie());
   if (goldD10) roundDice.push(createGoldDie());
+  for (let i = 0; i < goodD20; i++) roundDice.push(createBadDie("good"));
   for (let i = 0; i < bad; i++) roundDice.push(createBadDie());
   // Dice drop onto the felt
   roundDice.forEach((o, i) =>
@@ -2341,12 +2415,21 @@ async function resolveRound() {
     await wait(textTime(reducedMotion ? 300 : 900));
   }
 
+  // A good d20 showing 20: every bad d20 is ignored this round
+  const shielded = roundDice.some((o) => o.kind === "good" && o.value === 20);
+  const badDice = shielded ? [] : roundDice.filter((o) => o.kind === "bad");
+  if (shielded && roundDice.some((o) => o.kind === "bad")) {
+    showToast("GOOD d20 ROLLED 20!\nBAD d20s IGNORED", 9);
+    setMessage("> the good d20 smiles: the manager's dice don't count this round", true);
+    await wait(textTime(reducedMotion ? 400 : 1200));
+  }
+
   // A bad d20 showing 20: the manager confiscates a bonus
-  const twenties = roundDice.filter((o) => o.kind === "bad" && o.value === 20).length;
+  const twenties = badDice.filter((o) => o.value === 20).length;
   if (twenties) await confiscate(twenties);
 
   // Bad d20s that showed a 1 take a die away for good
-  const struck = roundDice.filter((o) => o.kind === "bad" && o.value <= badLosesOn()).length;
+  const struck = badDice.filter((o) => o.value <= badLosesOn()).length;
   if (struck) {
     stats.struck += struck;
     await loseDice(struck);
@@ -2582,6 +2665,142 @@ function floorBanner(f) {
     .settled.then(() => banner.remove());
 }
 
+/* ---------- Easter egg: stuck in the elevator ---------- */
+
+// SLOW mode only: 1 floor in 100 the elevator gets stuck. HELP brings the mechanic in 15
+// seconds; whoever waits a whole minute without pressing it gets a good d20 for the game
+const STUCK_CHANCE = 0.01;
+const STUCK_HELP_MS = 15000;
+const STUCK_WAIT_MS = 60000;
+const STUCK_LINES = [
+  "the mechanic is on the way",
+  "the manager is furious",
+  "please stand by",
+  "your call is important to us",
+  "the mechanic stopped for a sandwich",
+  "someone pressed every button",
+  "the elevator is having a moment",
+  "have you tried turning the casino off and on again?",
+  "the hamster that runs the motor is on a break",
+  "this elevator was inspected in 1987. probably",
+  "the mechanic took the stairs. all of them",
+  "the manager blames you personally",
+  "the emergency phone plays this same song",
+  "please do not jump. it makes it worse",
+  "the cables are fine. mostly",
+  "a pigeon is negotiating with the motor",
+  "the casino apologises for nothing",
+  "security is watching. and humming along",
+  "the mechanic's GPS says: turn left into the shaft",
+  "do not lick the buttons",
+  "this is a great time to reflect on your choices",
+  "the elevator would like to talk about its feelings",
+  "the dealer bets you'll be here till floor 0",
+  "the manager is counting your chips. slowly",
+  "the light is flickering on purpose. for the mood",
+  "the mechanic found the wrong elevator",
+  "the saxophone player refuses to stop",
+  "fun fact: elevators are just vertical trains",
+  "please hold. the hold music is holding too",
+  "somebody upstairs dropped a d20 into the shaft",
+  "the motor is buffering",
+  "the fire department says: it's not a fire",
+  "the elevator has unionized. it's on strike",
+  "the manager offers 2% off your next loss",
+  "the mechanic has a toolbox. and hope",
+  "rolling dice in here voids the warranty",
+  "your dice are getting claustrophobic",
+  "the button for 'faster' is decorative",
+  "the casino cat is supervising the repair",
+  "the elevator thinks it's floor 13. it isn't",
+  "the mechanic is reading the manual. page 1",
+  "a raccoon in a vest is also stuck in here",
+  "the manager says this counts as entertainment",
+  "this song has 4,000 verses. we're on 12",
+  "the mechanic asks: is it plugged in?",
+  "the elevator is just resting its eyes",
+  "smile, the security camera loves you",
+  "the emergency brake is enjoying itself",
+  "somewhere, a cable sighs",
+  "please remain calm. the elevator is calm. ish",
+  "the mechanic found the right floor. wrong building",
+  "nobody is coming. just kidding. probably",
+];
+
+let stuckNow = false;
+
+async function stuckInElevator(waitMs = STUCK_WAIT_MS) {
+  stuckNow = true;
+  stats.stuck = (stats.stuck || 0) + 1;
+  // Everything freezes: CSS animations via the class, scripted ones paused one by one
+  const frozen = document.getAnimations().filter((a) => a.playState === "running");
+  for (const a of frozen) a.pause();
+  document.documentElement.classList.add("stuck");
+  sfx(140, 0.5, { type: "sawtooth", vol: 0.08, to: 40 });
+  noise(0.4, { vol: 0.12, lp: 400 });
+  const stopMusic = elevatorMusic();
+
+  const scene = document.createElement("div");
+  scene.className = "stuck-scene";
+  scene.innerHTML = `
+    <div class="stuck-box">
+      <p class="stuck-title">OH-OH, YOU ARE STUCK IN THE ELEVATOR!</p>
+      <p class="stuck-hint">Click HELP to call the mechanic</p>
+      <button class="roll-btn stuck-help" type="button">HELP!</button>
+      <p class="stuck-timer" hidden></p>
+      <p class="stuck-line"></p>
+    </div>`;
+  document.body.appendChild(scene);
+  const line = scene.querySelector(".stuck-line");
+  const timer = scene.querySelector(".stuck-timer");
+  const help = scene.querySelector(".stuck-help");
+  const lines = [...STUCK_LINES].sort(() => Math.random() - 0.5);
+  let n = 0;
+  const nextLine = () => (line.textContent = `> ${lines[n++ % lines.length]}...`);
+  nextLine();
+  const lineId = setInterval(nextLine, 3000);
+
+  const waited = await new Promise((resolve) => {
+    const giveUp = setTimeout(() => resolve(true), waitMs);
+    help.addEventListener("click", () => {
+      clearTimeout(giveUp);
+      help.disabled = true;
+      help.textContent = "HELP IS COMING";
+      scene.querySelector(".stuck-hint").hidden = true;
+      timer.hidden = false;
+      sfx(880, 0.15, { type: "square", vol: 0.05 });
+      sfx(880, 0.15, { type: "square", vol: 0.05, delay: 0.25 });
+      const end = Date.now() + STUCK_HELP_MS;
+      const tick = () => {
+        const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+        timer.textContent = `MECHANIC ARRIVES IN ${left}s`;
+        if (left > 0) setTimeout(tick, 250);
+        else resolve(false);
+      };
+      tick();
+    });
+  });
+
+  clearInterval(lineId);
+  stopMusic();
+  scene.remove();
+  document.documentElement.classList.remove("stuck");
+  for (const a of frozen) a.play();
+  stuckNow = false;
+  elevatorHum(0.8);
+  ding(0.12, 0.7);
+  if (waited) {
+    goodD20++;
+    stats.goodD20 = goodD20;
+    showToast("NOBODY CAME...\nBUT A GOOD d20 DID!", 9);
+    setMessage("> a happy yellow d20 joins your table for good: on a 20, the bad d20s don't count", true);
+    victory(9);
+  } else {
+    setMessage("> the mechanic kicked the panel. the elevator moves again!", true);
+  }
+  await wait(textTime(reducedMotion ? 400 : 1400));
+}
+
 // Ride the elevator up one floor at a time with a ding each
 async function climb(floors) {
   for (let i = 0; i < floors; i++) {
@@ -2589,6 +2808,7 @@ async function climb(floors) {
     setFloor(floor);
     roundEl.textContent = floor;
     bump(roundEl);
+    if (slowText() && Math.random() < STUCK_CHANCE) await stuckInElevator();
     if (floor % FLOORS_PER_DIE === 0) {
       await milestone();
     } else {
@@ -3685,7 +3905,7 @@ const DRIFT_EVERY_MS = 7000;
 const GOLDEN_CHANCE = 0.015;
 
 function spawnDrifter(fast = false) {
-  if (!fast && driftEl.childElementCount >= MAX_DRIFTERS) return;
+  if (stuckNow || (!fast && driftEl.childElementCount >= MAX_DRIFTERS)) return;
   const el = document.createElement("button");
   el.type = "button";
   el.className = "drifter";
@@ -3700,22 +3920,23 @@ function spawnDrifter(fast = false) {
   el.style.setProperty("--sway", `${(Math.random() - 0.5) * 120}px`);
   el.style.setProperty("--spin", `${3 + Math.random() * 6}s`);
 
+  // The face it falls with is what it pays out
   const face = document.createElement("div");
   face.className = "mini";
-  fillFace(face, d(6));
+  const value = d(6);
+  fillFace(face, value);
   el.appendChild(face);
 
-  el.addEventListener("pointerdown", () => popDrifter(el, face));
+  el.addEventListener("pointerdown", () => popDrifter(el, value));
   el.addEventListener("animationend", (e) => {
     if (e.target === el || e.animationName === "popspin") el.remove();
   });
   driftEl.appendChild(el);
 }
 
-function popDrifter(el, face) {
+// A popped red die pays its face x10 in chips, a golden one its face on the multiplier
+function popDrifter(el, value) {
   if (el.classList.contains("popped")) return;
-  const value = d(6);
-  fillFace(face, value);
   el.classList.add("popped");
 
   const { x, y } = centerOf(el);
@@ -3725,17 +3946,17 @@ function popDrifter(el, face) {
 
   if (el.classList.contains("golden")) {
     if (turnActive) {
-      mult += GOLDEN_MULT;
+      mult += value;
       setMult(mult);
-      floatText(x, y, `+${GOLDEN_MULT} MULTI`, "gold");
-      showToast(`GOLDEN DIE! +${GOLDEN_MULT} MULTI`);
+      floatText(x, y, `+${value} MULTI`, "gold");
+      showToast(`GOLDEN DIE! +${value} MULTI`);
       SOUND.combo();
     } else {
       floatText(x, y, "shiny!", "gold");
     }
   } else if (turnActive) {
-    addPips(value);
-    floatText(x, y, `+${value}`);
+    addPips(value * DRIFTER_CHIPS);
+    floatText(x, y, `+${value * DRIFTER_CHIPS}`);
   } else {
     floatText(x, y, value === 6 ? "6!" : String(value));
   }

@@ -1272,6 +1272,42 @@ html.stfu .message, html.stfu .hint { visibility: hidden; }
 .bad-die.struck { animation: struck .5s ease-out 2; }
 .bad-die.struck .bd-value { color: #fff; text-shadow: 0 0 10px #ff2f5b, 2px 2px 0 #160828; }
 @keyframes struck { 50% { transform: scale(1.25) rotate(8deg); } }
+/* The good d20: same die, sunny yellow; a 20 glows */
+.good-die .bd-label { color: #ffe04a; }
+.good-die .bd-value { color: #3a2a00; text-shadow: 1px 1px 0 #fff6c4; }
+.good-die.struck .bd-value { color: #3a2a00; text-shadow: 0 0 12px #fff, 1px 1px 0 #fff6c4; }
+.good-die .bd-canvas { filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .5)) drop-shadow(0 0 10px rgba(255, 224, 74, .45)); }
+
+/* Stuck in the elevator: everything else freezes, the light flickers */
+html.stuck *:not(.stuck-scene, .stuck-scene *) { animation-play-state: paused !important; }
+.stuck-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(4, 1, 10, .82);
+  animation: stuck-flicker 4s steps(1) infinite;
+}
+@keyframes stuck-flicker {
+  0%, 18%, 22%, 61%, 63%, 100% { background: rgba(4, 1, 10, .82); }
+  20%, 62% { background: rgba(4, 1, 10, .95); }
+}
+.stuck-box {
+  max-width: 560px;
+  padding: 22px 18px;
+  text-align: center;
+  border: 6px solid var(--gold-dark);
+  background: var(--wall-dark);
+  box-shadow: 0 0 0 4px #000, 0 0 30px rgba(255, 207, 74, .25);
+}
+.stuck-title { margin: 0 0 12px; font-family: var(--pixel-bold); font-size: clamp(1rem, 4.5vw, 1.6rem); line-height: 1.4; color: var(--gold); }
+.stuck-hint { margin: 0 0 16px; color: #c7a8e8; }
+.stuck-help { margin: 0 auto; }
+.stuck-help:disabled { opacity: .7; cursor: default; }
+.stuck-timer { margin: 16px 0 0; font-family: var(--pixel-bold); color: var(--neon-cyan); }
+.stuck-line { min-height: 2.6em; margin: 16px 0 0; color: #d8c2f2; }
 
 /* Silver reroll button */
 .silver-btn {
