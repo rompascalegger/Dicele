@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.3.0">
+  <link rel="stylesheet" href="style.css?v=2.3.1">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -29,7 +29,7 @@
     <button id="lb-btn" class="panel icon-btn" type="button" aria-label="Leaderboard" title="Leaderboard">&#127942;</button>
     <button id="help-btn" class="panel icon-btn" type="button" aria-label="How to play" title="How to play">?</button>
     <button id="flashy" class="panel icon-btn flashy-btn" type="button" aria-label="Toggle flashy animations" title="Flashy animations (screen flashes &amp; strobing)">&#9889;</button>
-    <button id="slow-text" class="panel icon-btn text-btn" type="button" aria-pressed="false" aria-label="Slow text: messages stay 3 times as long" title="Slow text: messages stay 3x as long">SLOW</button>
+    <button id="slow-text" class="panel icon-btn text-btn" type="button" aria-pressed="false" aria-label="Slow text: messages stay twice as long" title="Slow text: messages stay twice as long">SLOW</button>
     <button id="stfu" class="panel icon-btn text-btn" type="button" aria-pressed="false" aria-label="STFU: hide all messages and the elevator" title="STFU: no messages, hints or elevator">STFU</button>
     <button id="mute" class="panel icon-btn mute" type="button" aria-label="Toggle sound">&#9834;</button>
   </div>
@@ -124,7 +124,7 @@
         <li><b>Chips</b> each round: the sum of your red dice, a round bonus (+10 per round after the first), combos (triple +30, four of a kind +80, five +200, six or more +500 and up, a 1&ndash;6 straight +100, six or more 6s in one round +666), the d4 shelf, random casino events, and the falling dice you tap: a red one pays the face it shows &times;10 in chips, a rare golden one adds its face to the multiplier.</li>
         <li><b>Score</b> = chips &times; multiplier. At the end you roll the END DIE, a d(total sixes) that adds to the multiplier, plus <b>one more end die for every 10 floors</b> (floor 30 = 4 end dice). Your first end die higher than half of it (rounded up: 7+ on a d12)? You play <b>one more round</b>. Each time you're back at the end die the bar rises: 2/3, then 3/4, 4/5 and so on.</li>
         <li><b>One game every 8 hours.</b> High scores go on this device's leaderboard (&#127942;).</li>
-        <li><b>SLOW</b> keeps every message on screen 3 times as long (and the old elevator gets a little moody). <b>STFU</b> hides all messages, hints and the elevator ride.</li>
+        <li><b>SLOW</b> keeps every message on screen twice as long before it fades (and the old elevator gets a little moody). <b>STFU</b> hides all messages, hints and the elevator ride.</li>
       </ol>
       <h3>HOW THE TABLE GROWS</h3>
       <table class="lb-table prog-table"><tbody id="prog-rows"></tbody></table>
@@ -194,6 +194,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.3.0"></script>
+  <script src="script.js?v=2.3.1"></script>
 </body>
 </html>

@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.3.0";
+const VERSION = "2.3.1";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -620,7 +620,7 @@ async function handRetry() {
   showToast("HAND-ROLLER'S\nSECOND CHANCE", 4);
   setMessage("> you rolled it all by hand. the house respects that: roll the round again", true);
   arp([392, 523, 659, 784, 1047], 0.08, { type: "triangle", vol: 0.06, wet: 0.4 });
-  await wait(textTime(reducedMotion ? 400 : 1400));
+  await wait(reducedMotion ? 400 : 1400);
   for (const o of roundDice) {
     if (o.gone) continue;
     o.value = null;
@@ -836,7 +836,7 @@ async function yazzy(value, perfect) {
   hype(5);
   celebrate();
   setMessage(`> YAZZY of ${value}s!`, true);
-  await wait(textTime(reducedMotion ? 400 : 1300));
+  await wait(reducedMotion ? 400 : 1300);
 
   if (value <= 4) {
     if (!unlocked[value]) {
@@ -872,7 +872,7 @@ async function yazzy(value, perfect) {
   bankedSixes++;
   showToast("YAZZY = +1 SIX\nYOU CLIMB ON", tier);
   ding(0.08);
-  await wait(textTime(reducedMotion ? 300 : 900));
+  await wait(reducedMotion ? 300 : 900);
 
   if (perfect) {
     // Every single die the same: one more red die, rolled right away and kept
@@ -914,7 +914,7 @@ async function jackpotScene(title, line, kind) {
     [{ transform: "scale(4) rotate(-10deg)", opacity: 0 }, { transform: "scale(1)", opacity: 1, offset: 0.4 }, { transform: "scale(1.06)" }, { transform: "scale(1)" }],
     { duration: 1200, easing: "ease-out" }
   );
-  await wait(textTime(reducedMotion ? 1200 : 3400));
+  await wait(reducedMotion ? 1200 : 3400);
   document.documentElement.classList.remove("mayhem");
   scene.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
   await wait(420);
@@ -1029,7 +1029,7 @@ async function confiscate(count) {
     const owned = [1, 2, 3, 4].filter((v) => unlocked[v]);
     if (!owned.length) {
       showToast("MANAGER FROWNS\nNOTHING TO TAKE", 7);
-      await wait(textTime(reducedMotion ? 300 : 900));
+      await wait(reducedMotion ? 300 : 900);
       return;
     }
     const v = pick(owned);
@@ -1039,7 +1039,7 @@ async function confiscate(count) {
     showToast(`CONFISCATED!\n${BONUS_NAMES[v]}`, 7);
     setMessage(`> the Casino Manager pockets your ${BONUS_NAMES[v].toLowerCase()}`);
     arp([392, 311, 262], 0.14, { type: "sawtooth", vol: 0.05, wet: 0.3 });
-    await wait(textTime(reducedMotion ? 400 : 1200));
+    await wait(reducedMotion ? 400 : 1200);
   }
 }
 
@@ -1812,7 +1812,7 @@ async function rollMultiplier() {
     wheelTitleEl.textContent = `x${total} SO FAR... SPIN AGAIN!`;
     celebrate();
     diceRain(25);
-    await wait(textTime(reducedMotion ? 400 : 1400));
+    await wait(reducedMotion ? 400 : 1400);
   }
   clearInterval(jokeTimer);
   phase = "busy";
@@ -2366,7 +2366,7 @@ async function resolveRound() {
     showToast(`d4 SHELF ×${shelfD4}\n+${d4Total} CHIPS`, 3);
     arp([659, 784, 988], 0.06, { type: "triangle", vol: 0.05 });
     addPips(d4Total);
-    await wait(textTime(reducedMotion ? 200 : 700));
+    await wait(reducedMotion ? 200 : 700);
   }
 
   // Every 1 left on the table gets a little "oof"
@@ -2384,7 +2384,7 @@ async function resolveRound() {
     SOUND.combo();
     addPips(roundBonus);
     extra += roundBonus;
-    await wait(textTime(reducedMotion ? 300 : 900));
+    await wait(reducedMotion ? 300 : 900);
   }
 
   for (const combo of scoreCombos(values)) {
@@ -2412,7 +2412,7 @@ async function resolveRound() {
     stats.goldMulti = (stats.goldMulti || 0) + gold.value;
     showToast(`GOLDEN d10\n+${gold.value} MULTI · x${mult}`, 9);
     arp([784, 988, 1175, 1568], 0.06, { type: "triangle", vol: 0.06, wet: 0.3 });
-    await wait(textTime(reducedMotion ? 300 : 900));
+    await wait(reducedMotion ? 300 : 900);
   }
 
   // A good d20 showing 20: every bad d20 is ignored this round
@@ -2421,7 +2421,7 @@ async function resolveRound() {
   if (shielded && roundDice.some((o) => o.kind === "bad")) {
     showToast("GOOD d20 ROLLED 20!\nBAD d20s IGNORED", 9);
     setMessage("> the good d20 smiles: the manager's dice don't count this round", true);
-    await wait(textTime(reducedMotion ? 400 : 1200));
+    await wait(reducedMotion ? 400 : 1200);
   }
 
   // A bad d20 showing 20: the manager confiscates a bonus
@@ -2452,7 +2452,7 @@ async function resolveRound() {
     showToast(`${label}\nUP ${sixCount} FLOOR${sixCount > 1 ? "S" : ""} · END DIE d${totalSixes}`, floorTier(floor + sixCount));
     await climb(sixCount);
     setMessage(pick(SIX_LINES), true);
-    await wait(textTime(reducedMotion ? 200 : 600));
+    await wait(reducedMotion ? 200 : 600);
     await startRound();
     return;
   }
@@ -2496,7 +2496,7 @@ async function loseDice(count) {
   showToast(`BAD d20 STRUCK!\n-${count} DIE${count > 1 ? "S" : ""} · NOW ${diceCount}`, 7);
   setMessage(`> the Casino Manager pockets ${count === 1 ? "a die" : count + " dice"} with a smile`);
   arp([392, 330, 262, 196], 0.14, { type: "sawtooth", vol: 0.05, wet: 0.3 });
-  await wait(textTime(reducedMotion ? 400 : 1400));
+  await wait(reducedMotion ? 400 : 1400);
 }
 
 function setDiceCount() {
@@ -2656,11 +2656,12 @@ function floorBanner(f) {
     .animate(
       [
         { transform: "translate(-120vw, -50%) skewX(-12deg)", opacity: 1 },
-        { transform: "translate(-50%, -50%) skewX(0)", opacity: 1, offset: 0.3 },
-        { transform: "translate(-50%, -50%) skewX(0)", opacity: 1, offset: 0.7 },
+        // SLOW: slides just as fast, stays twice as long
+        { transform: "translate(-50%, -50%) skewX(0)", opacity: 1, offset: slowText() ? 0.15 : 0.3 },
+        { transform: "translate(-50%, -50%) skewX(0)", opacity: 1, offset: slowText() ? 0.85 : 0.7 },
         { transform: "translate(120vw, -50%) skewX(12deg)", opacity: 1 },
       ],
-      { duration: textTime(reducedMotion ? 500 : 1100), easing: "cubic-bezier(.3, .8, .4, 1)" }
+      { duration: (reducedMotion ? 500 : 1100) * (slowText() ? 2 : 1), easing: "cubic-bezier(.3, .8, .4, 1)" }
     )
     .settled.then(() => banner.remove());
 }
@@ -2798,7 +2799,7 @@ async function stuckInElevator(waitMs = STUCK_WAIT_MS) {
   } else {
     setMessage("> the mechanic kicked the panel. the elevator moves again!", true);
   }
-  await wait(textTime(reducedMotion ? 400 : 1400));
+  await wait(reducedMotion ? 400 : 1400);
 }
 
 // Ride the elevator up one floor at a time with a ding each
@@ -2905,7 +2906,7 @@ async function milestone() {
   setMessage(`> *ding* floor ${floor}: ${place.name}! the elevator gifts you die #${diceCount}`, true);
   const { x, y } = centerOf(box);
   for (let i = 0; i < 3; i++) setTimeout(() => burst(x + (Math.random() - 0.5) * 200, y + (Math.random() - 0.5) * 160, 30), (300 + i * 250) * t);
-  await wait(textTime(2000 * t));
+  await wait(2000 * t);
 
   // The car slides away up the shaft
   await box.animate([{ transform: "none", opacity: 1 }, { transform: "translateY(-40px) scale(.8)", opacity: 0 }], {
@@ -2999,7 +3000,7 @@ async function randomEvent() {
     setMult(mult);
   }
   if (ev.rain) diceRain(30);
-  await wait(textTime(reducedMotion ? 400 : 1300));
+  await wait(reducedMotion ? 400 : 1300);
 }
 
 async function endTurn() {
@@ -3018,7 +3019,7 @@ async function endTurn() {
       showToast(`END DIE ${value} OF ${sides}\nONE MORE ROUND!`, 8);
       setMessage(`> beat ${k}/${k + 1} of the end die: one more round. next time it takes ${k + 1}/${k + 2}`, true);
       arp([523, 659, 784, 1047, 1319], 0.08, { type: "triangle", vol: 0.06, wet: 0.4 });
-      await wait(textTime(reducedMotion ? 400 : 1400));
+      await wait(reducedMotion ? 400 : 1400);
       await startRound();
       return;
     }
@@ -3762,13 +3763,11 @@ window.addEventListener("beforeunload", (e) => {
   e.returnValue = "";
 });
 
-// Text mode: normal, SLOW (messages stay 3x as long) or STFU (no messages, no elevator)
+// Text mode: normal, SLOW (texts stay twice as long before fading) or STFU (no messages, no elevator)
 const TEXT_NORMAL = 0, TEXT_SLOW = 1, TEXT_STFU = 2;
 let textMode = load("dicele-text");
 const slowText = () => textMode === TEXT_SLOW;
 const stfu = () => textMode === TEXT_STFU;
-// How much longer messages stay on screen
-const textTime = (ms) => ms * (slowText() ? 3 : 1);
 function applyTextMode() {
   document.documentElement.classList.toggle("slow-text", slowText());
   document.documentElement.classList.toggle("stfu", stfu());

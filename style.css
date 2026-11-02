@@ -528,7 +528,7 @@ html.flashy .jackpot.mult-value, html.flashy .mult.jackpot .mult-value, html.fla
 html.flashy .hub-value.jackpot, html.flashy .toast.jackpot, html.flashy .go-score.jackpot {
   animation: rainbow .6s steps(6) infinite;
 }
-html.flashy .toast.jackpot.show { animation: toast calc(1.1s * var(--text-x, 1)) steps(10) both, rainbow .6s steps(6) infinite; }
+html.flashy .toast.jackpot.show { animation: var(--toast-anim, toast) var(--toast-time, 1.1s) var(--toast-steps, steps(10)) both, rainbow .6s steps(6) infinite; }
 
 .flashy-btn { color: #6b5687; }
 html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
@@ -743,7 +743,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   33%  { color: var(--gold); text-shadow: 0 0 12px var(--gold), 4px 4px 0 var(--red-dark); }
   66%  { color: var(--neon-cyan); text-shadow: 0 0 12px var(--neon-cyan), 4px 4px 0 var(--red-dark); }
 }
-.toast.jackpot.show { animation: toast calc(1.1s * var(--text-x, 1)) steps(10) both, rainbow 4s linear infinite; }
+.toast.jackpot.show { animation: var(--toast-anim, toast) var(--toast-time, 1.1s) var(--toast-steps, steps(10)) both, rainbow 4s linear infinite; }
 .chip { border-color: var(--tc, rgba(255, 207, 74, .6)); }
 .chip u { color: var(--neon-cyan); text-decoration: none; }
 
@@ -1098,7 +1098,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   color: #fff;
   text-shadow: 2px 2px 0 var(--red-dark), 0 0 8px var(--gold);
   pointer-events: none;
-  animation: float-up calc(1s * var(--text-x, 1)) steps(10) forwards;
+  animation: var(--float-anim, float-up) var(--float-time, 1s) var(--float-steps, steps(10)) forwards;
 }
 .float.gold { color: var(--gold); font-size: 1.2rem; }
 @keyframes float-up {
@@ -1122,7 +1122,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   pointer-events: none;
   z-index: 20;
 }
-.toast.show { animation: toast calc(1.1s * var(--text-x, 1)) steps(10) both; }
+.toast.show { animation: var(--toast-anim, toast) var(--toast-time, 1.1s) var(--toast-steps, steps(10)) both; }
 @keyframes toast {
   0%   { transform: translate(-50%, -50%) scale(0) rotate(-8deg); opacity: 0; }
   25%  { transform: translate(-50%, -50%) scale(1.2) rotate(2deg); opacity: 1; }
@@ -1172,8 +1172,24 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
 .text-btn { font-size: .55rem; color: #6b5687; }
 .text-btn[aria-pressed="true"] { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
 
-/* Slow text: toasts and floating texts stay 3x as long. STFU: no texts at all */
-html.slow-text { --text-x: 3; }
+/* Slow text: toasts, floating texts and floor banners stay twice as long. STFU: no texts at all */
+html.slow-text {
+  --toast-anim: toast-slow; --toast-time: 2.2s; --toast-steps: steps(20);
+  --float-anim: float-slow; --float-time: 2s; --float-steps: steps(20);
+}
+/* Same pop-in and fade as normal, twice as long on screen in between */
+@keyframes toast-slow {
+  0%    { transform: translate(-50%, -50%) scale(0) rotate(-8deg); opacity: 0; }
+  12.5% { transform: translate(-50%, -50%) scale(1.2) rotate(2deg); opacity: 1; }
+  20%   { transform: translate(-50%, -50%) scale(1); }
+  90%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100%  { transform: translate(-50%, -120%) scale(1); opacity: 0; }
+}
+@keyframes float-slow {
+  50%  { transform: translate(-50%, calc(-50% - 35px)); opacity: 1; }
+  80%  { transform: translate(-50%, calc(-50% - 50px)); opacity: 1; }
+  100% { transform: translate(-50%, calc(-50% - 70px)); opacity: 0; }
+}
 html.stfu .toast, html.stfu .float, html.stfu .floor-banner { display: none; }
 html.stfu .message, html.stfu .hint { visibility: hidden; }
 
