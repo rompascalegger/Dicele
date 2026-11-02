@@ -16,14 +16,14 @@ A retro pixel dice game in plain HTML, CSS and JavaScript. No build step, no dep
    - 6s: **Gold Jackpot**, a golden d10 joins the table and adds its roll to the multiplier every round
    - Perfect yazzy (every die the same): one more red die
 5. **Last chance:** no 6? The last die is rerolled in slow motion: 1/6 + (100 &minus; wheel) &divide; 10 %.
-6. **Casino Manager:** one more bad d20 every 25 floors (they roll themselves and never leave). A 1 destroys a red die (one more losing face every 50 floors, doubled from floor 250 when the Casino CEO arrives); a 20 confiscates a bonus. No red dice left is game over.
+6. **Casino Manager:** one more bad d20 every 25 floors (they roll themselves and never leave). A 1 destroys a red die (one more losing face every 50 floors); a 20 confiscates a bonus. The Casino CEO comes by at floor 125, 250, 375, &hellip; and leaves one more bad d100 each time: a 1 destroys a third of your red dice. No red dice left is game over.
 7. **Score = chips &times; multiplier.** Every round pays +10 chips per floor. At the end, end dice d(total sixes) go on the multiplier: 1 from floor 1, 2 from floor 10, one more at floor 25, 50, 100, 150, 200, 250, 300 and 350 (10 at most); end die k counts k times. Every end die can buy one more round: die 1 beats 1/2 of its sides, die 2 beats 2/3, &hellip;, and every visit raises all bars one step. The end screen ranks you against 6 million simulated games.
 
 Buttons: 🏆 leaderboard (this device), ? rules, ⚡ flashy animations (off by default), ♪ sound, ⏩ insta-autoroll.
 
 ## Balance
 
-Every game ends: from floor 250 the bad d20s destroy dice faster than the elevator hands them out. About half of the hand-rolled games end before floor 25, a third between floor 100 and 249, and only about 2 in 100 meet the Casino CEO. Tuned with `BAD_EVERY_FLOORS`, `LOSE_FACE_STEP` and `CEO_FLOOR` in `script.js`.
+Every game ends: deep in the tower the bad d20s and the Casino CEO's d100s destroy dice faster than the elevator hands them out. About half of the hand-rolled games end before floor 25, a quarter get past floor 175, and 1 in 100 passes floor 256. Tuned with `BAD_EVERY_FLOORS`, `LOSE_FACE_STEP` and `CEO_EVERY_FLOORS` in `script.js`.
 
 ## Files
 

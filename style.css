@@ -1293,6 +1293,9 @@ html.stfu .message, html.stfu .hint { visibility: hidden; }
 .good-die .bd-value { color: #3a2a00; text-shadow: 1px 1px 0 #fff6c4; }
 .good-die.struck .bd-value { color: #3a2a00; text-shadow: 0 0 12px #fff, 1px 1px 0 #fff6c4; }
 .good-die .bd-canvas { filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .5)) drop-shadow(0 0 10px rgba(255, 224, 74, .45)); }
+.ceo-die .bd-label { color: #d38bff; }
+.ceo-die .bd-canvas { filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .5)) drop-shadow(0 0 10px rgba(177, 77, 255, .5)); }
+.ceo-die.struck .bd-value { text-shadow: 0 0 12px #b14dff, 2px 2px 0 #160828; }
 
 /* Stuck in the elevator: everything else freezes, the light flickers */
 html.stuck *:not(.stuck-scene, .stuck-scene *) { animation-play-state: paused !important; }

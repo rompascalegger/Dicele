@@ -52,9 +52,11 @@ RULES = {
     "BAD_EVERY_FLOORS": 25,
     # A bad d20 destroys a red die on 1 below floor 50, on 1-2 from 50, 1-3 from 100, ...
     "LOSE_FACE_STEP": 50,
-    # From floor 250 the Casino CEO doubles the losing faces
-    "CEO_FLOOR": 250,
-    "CEO_FACE_MULT": 2,
+    # The Casino CEO arrives at floor 125, 250, 375, ... and each time puts one more bad d100 on
+    # the table for good: a 1 destroys a third of the red dice (CEO_LOSS_SHARE, rounded up)
+    "CEO_EVERY_FLOORS": 125,
+    "CEO_DIE_SIDES": 100,
+    "CEO_LOSS_SHARE": 0.33,
     # 0: a losing bad d20 destroys one red die. Above 0: that share of the red dice on the
     # table (rounded, at least one), so big tables stay at risk
     "BAD_LOSS_SHARE": 0,
@@ -211,8 +213,11 @@ def bad_dice_for(floor):
 
 
 def lose_faces(floor):
-    faces = 1 + floor // R["LOSE_FACE_STEP"]
-    return min(19, faces * (R["CEO_FACE_MULT"] if floor >= R["CEO_FLOOR"] else 1))
+    return min(19, 1 + floor // R["LOSE_FACE_STEP"])
+
+
+def ceo_dice_for(floor):
+    return floor // R["CEO_EVERY_FLOORS"]
 
 
 def yazzy_need(n):
@@ -361,6 +366,9 @@ def play_game(hand):
         share = R["BAD_LOSS_SHARE"]
         for _ in range(bad_lost):
             dice -= max(1, round(share * dice)) if share else 1
+        for _ in range(ceo_dice_for(floor)):
+            if d(R["CEO_DIE_SIDES"]) == 1:
+                dice -= math.ceil(R["CEO_LOSS_SHARE"] * dice - 1e-9)
         if dice <= 0:
             mult += end_mult(end_dice(floor))
             break
