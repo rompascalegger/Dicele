@@ -2,7 +2,7 @@
 
 A retro pixel dice game in plain HTML, CSS and JavaScript. No build step, no dependencies.
 
-**Play:** https://dicele.shoep.ch/ &middot; one game every 8 hours (rumor has it the logo hides a secret door)
+**Play:** https://play.dicele.io/ &middot; one game every 8 hours (rumor has it the logo hides a secret door)
 
 ## How to play
 
