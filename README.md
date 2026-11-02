@@ -32,7 +32,8 @@ With the Casino Manager arriving at 10 dice, about 1 hand-rolled game in 4 break
 | `index.html` | Page structure |
 | `style.css` | Pixel casino look and all animations |
 | `script.js` | Game rules, sound (Web Audio), effects |
-| `tools/simulate.py` | Parallel Monte Carlo of the rules; writes `tools/sim_results.json` |
+| `tools/simulate.py` | Monte Carlo of the rules: every rule number in one `RULES` table, compares rule changes with the live game |
+| `tools/baseline.json` | What players play right now: the live rules and their measured odds |
 | `tools/sim_results.json` | Source of the tiers, percentiles and end-screen curve in `script.js` |
 | `.nojekyll` | Tells GitHub Pages to serve the files as-is |
 
@@ -44,8 +45,18 @@ python -m http.server 8123
 
 ## Rebalancing
 
-After changing a rule (in `script.js` and `tools/simulate.py`), rerun the simulation and copy its tables into `script.js`:
+Every rule number lives in `RULES` at the top of `tools/simulate.py`, named like the constant in `script.js`; new mechanics go in its `play_game()`. Before shipping a change, see what it does to the game players are playing now:
 
 ```bash
-python tools/simulate.py 12000000
+python tools/simulate.py compare --set LOSE_FACE_STEP=50
 ```
+
+That plays a million games per mode (about 20 seconds) and lists, against `tools/baseline.json`, how many games never end, how scores and floors move, and how many games reach each of today's ranks. Anything within noise says so. `--set` tries a number without editing; edit `RULES` or `play_game()` for anything bigger.
+
+When the change goes live, make it in `script.js` too, bump `VERSION`, then:
+
+```bash
+python tools/simulate.py ship
+```
+
+It refuses if `RULES` and `script.js` disagree, writes the new stats tables into `script.js`, and makes the new rules the baseline.
