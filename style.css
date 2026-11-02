@@ -632,7 +632,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   text-shadow: 0 0 8px var(--tc, var(--gold));
 }
 .elev-arrow { animation: blink .4s steps(2) infinite; }
-.elev-car { position: relative; height: min(250px, 42vh); overflow: hidden; background: #140a22; }
+.elev-car { position: relative; height: min(290px, 48vh); overflow: hidden; background: #140a22; }
 .door {
   position: absolute;
   top: 0;
@@ -654,7 +654,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   text-align: center;
 }
 .door-floor { font-family: var(--pixel-bold); font-size: 1.1rem; color: var(--gold); text-shadow: 3px 3px 0 var(--red-dark); }
@@ -1217,27 +1217,43 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
 .die-badge:empty { display: none; }
 .slot.lucky .face { box-shadow: 0 0 30px var(--gold), inset 0 0 0 3px #fff; }
 
-/* The Casino Manager's bad d20 */
+/* The Casino Manager's bad d20: a little 3D icosahedron on a canvas, its roll on top */
 .bad-die {
-  width: calc(var(--s) * 1.15);
-  height: calc(var(--s) * 1.15);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  width: calc(var(--s) * 1.2);
+  height: calc(var(--s) * 1.2);
   padding: 0;
   border: 0;
   cursor: pointer;
-  color: #ff9aa8;
-  background: linear-gradient(160deg, #3a0612, #12020a);
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: none;
 }
-.bad-die .bd-value { font-family: var(--pixel-bold); font-size: calc(var(--s) * .34); }
-.bad-die .bd-label { font-family: var(--pixel); font-size: .8rem; letter-spacing: .05em; }
+.bd-canvas { display: block; width: 100%; height: 100%; filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .5)); }
+.bad-die .bd-value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--pixel-bold);
+  font-size: calc(var(--s) * .3);
+  color: #fff;
+  text-shadow: 2px 2px 0 #160828, -1px -1px 0 #160828;
+  pointer-events: none;
+}
+.bad-die .bd-label {
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--pixel);
+  font-size: .75rem;
+  letter-spacing: .05em;
+  color: #ff9aa8;
+}
 .bad-die.waiting { animation: bob 1.4s ease-in-out infinite; }
-.bad-die.rolling { animation: wobble .15s steps(2) infinite; }
-.bad-die.safe { color: #8f98a8; opacity: .7; }
-.bad-die.struck { color: #fff; background: linear-gradient(160deg, var(--red), var(--red-dark)); animation: struck .5s ease-out 2; }
+.bad-die.safe { opacity: .75; }
+.bad-die.struck { animation: struck .5s ease-out 2; }
+.bad-die.struck .bd-value { color: #fff; text-shadow: 0 0 10px #ff2f5b, 2px 2px 0 #160828; }
 @keyframes struck { 50% { transform: scale(1.25) rotate(8deg); } }
 
 /* Silver reroll button */
@@ -1316,6 +1332,7 @@ html.flashy .alarm { animation: alarm-strobe .16s steps(1) infinite; }
 .door-floor { color: var(--tc, var(--gold)); }
 .door-icon { font-size: 2rem; line-height: 1; }
 .door-name { font-family: var(--pixel-bold); font-size: .7rem; color: #fff; text-shadow: 0 0 10px var(--tc, var(--gold)); }
+.door-joke { font-size: .95rem; line-height: 1.1; color: #c7a8e8; font-style: italic; max-width: 220px; }
 
 /* Wheel of Wealth extras */
 .wheel-stop { max-width: 320px; margin-top: 4px; }

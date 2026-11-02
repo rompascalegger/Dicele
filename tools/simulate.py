@@ -21,8 +21,8 @@ FLOORS_PER_DIE = 5
 # Balance knobs can be overridden from the environment to try variants
 BAD_FROM_DICE = int(os.environ.get("BAD_FROM_DICE", 10))
 BAD_EVERY_DICE = int(os.environ.get("BAD_EVERY_DICE", 5))
-LOSE_FACES_FROM_FLOOR = int(os.environ.get("LOSE_FACES_FROM_FLOOR", 25))
-LOSE_FACE_STEP = int(os.environ.get("LOSE_FACE_STEP", 18))
+# One more losing face every this many floors: 1 below 100, 1-2 from 100, 1-3 from 200, ...
+LOSE_FACE_STEP = int(os.environ.get("LOSE_FACE_STEP", 100))
 # MANUAL=1 plays like a hand-roller: every tapped d6 has a secret extra 10% to be a 6, and
 # one second chance per game when a round would end it. Default: insta-autoroll
 MANUAL = os.environ.get("MANUAL") == "1"
@@ -67,9 +67,7 @@ def bad_dice_for(n):
 
 
 def lose_faces(floor):
-    if floor < LOSE_FACES_FROM_FLOOR:
-        return 1
-    return min(19, 2 + (floor - LOSE_FACES_FROM_FLOOR) // LOSE_FACE_STEP)
+    return min(19, 1 + floor // LOSE_FACE_STEP)
 
 
 def yazzy_need(n):
@@ -109,6 +107,7 @@ def game():
     dice = BASE_DICE
     retry_used = False
     end_rolls = 0
+    bad_count = 0  # bad d20s never leave the table
     while True:
         rnd += 1
         # Roll, then the free rerolls of unlocked 1s (fair d6) and 2s (green die: 1, 3, 4, 5, 6)
@@ -133,7 +132,8 @@ def game():
                 banked += values.count(6) - (keep_n if keep_v == 6 else 0)
                 values = [keep_v] * keep_n + [roll_one() for _ in range(len(values) - keep_n)]
         gold_roll = d(10) if gold else 0
-        bad = [d(20) for _ in range(bad_dice_for(dice))]
+        bad_count = max(bad_count, bad_dice_for(dice))
+        bad = [d(20) for _ in range(bad_count)]
 
         # Yazzy (with the near-miss chance on one odd non-6 die)
         n = len(values)

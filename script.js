@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.1.6";
+const VERSION = "2.1.7";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 12,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 12000, 51000, 380000, 10000000, 90000000, 260000000, 500000000, 920000000, 2400000000];
+const SCORE_TIERS = [0, 7500, 26000, 80000, 250000, 880000, 3800000, 15000000, 68000000, 520000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 12, 28, 84, 165, 219, 253, 279, 297, 299];
+const FLOOR_TIERS = [1, 9, 15, 23, 38, 61, 93, 147, 268, 296];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 4], [0.1, 72], [1, 408], [5, 1710], [10, 4056], [20, 11704], [30, 25088], [40, 51310], [50, 115254], [60, 377640], [70, 2697070], [75, 10114380], [80, 36650572], [85, 90005307], [90, 175701826], [93, 260060563], [95, 348926530], [97, 500087209], [98, 639052856], [99, 917195760], [99.5, 1241650620], [99.8, 1794993162], [99.9, 2374171800], [99.95, 3142483316], [99.99, 6153934848], [99.999, 16877357784], [100, 117251834856]];
+const SCORE_PERCENTILES = [[0, 4], [0.1, 56], [1, 325], [5, 1254], [10, 2940], [20, 7500], [30, 14763], [40, 25890], [50, 44370], [60, 79625], [70, 158274], [75, 246962], [80, 437772], [85, 880334], [90, 2012592], [93, 3810618], [95, 6617133], [97, 14669062], [98, 27097103], [99, 68377898], [99.5, 154911168], [99.8, 367098601], [99.9, 523988388], [99.95, 636195455], [99.99, 833664995], [99.999, 1296563220], [100, 6166324318]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 5], [40, 12], [50, 17], [60, 28], [75, 84], [85, 165], [90, 199], [93, 219], [95, 234], [97, 253], [99, 279], [99.9, 297], [99.99, 299]];
+const FLOOR_PERCENTILES = [[20, 4], [40, 9], [50, 11], [60, 15], [75, 23], [85, 38], [90, 49], [93, 61], [95, 72], [97, 93], [99, 147], [99.9, 268], [99.99, 296]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0009], [1.073, 0.0014], [1.145, 0.0017], [1.218, 0.0019], [1.291, 0.0021], [1.363, 0.0024], [1.436, 0.003], [1.509, 0.0039], [1.581, 0.0047], [1.654, 0.0058], [1.727, 0.007], [1.799, 0.0087], [1.872, 0.011], [1.945, 0.0139], [2.017, 0.0173], [2.09, 0.0215], [2.162, 0.0267], [2.235, 0.0328], [2.308, 0.0405], [2.38, 0.0496], [2.453, 0.0602], [2.526, 0.0736], [2.598, 0.0895], [2.671, 0.1095], [2.744, 0.1336], [2.816, 0.1614], [2.889, 0.1921], [2.962, 0.2211], [3.034, 0.2457], [3.107, 0.265], [3.18, 0.2829], [3.252, 0.3066], [3.325, 0.344], [3.398, 0.3942], [3.47, 0.4475], [3.543, 0.4994], [3.616, 0.5447], [3.688, 0.5839], [3.761, 0.6272], [3.834, 0.6755], [3.906, 0.7242], [3.979, 0.7754], [4.052, 0.826], [4.124, 0.8716], [4.197, 0.9151], [4.27, 0.9524], [4.342, 0.9792], [4.415, 0.9954], [4.487, 1.0], [4.56, 0.993], [4.633, 0.977], [4.705, 0.955], [4.778, 0.9284], [4.851, 0.8983], [4.923, 0.8635], [4.996, 0.8229], [5.069, 0.7767], [5.141, 0.7259], [5.214, 0.6734], [5.287, 0.622], [5.359, 0.5735], [5.432, 0.5292], [5.505, 0.4904], [5.577, 0.4577], [5.65, 0.4314], [5.723, 0.4113], [5.795, 0.3957], [5.868, 0.3831], [5.941, 0.372], [6.013, 0.3613], [6.086, 0.3506], [6.159, 0.3398], [6.231, 0.3286], [6.304, 0.3175], [6.377, 0.3067], [6.449, 0.2966], [6.522, 0.2876], [6.595, 0.2798], [6.667, 0.2731], [6.74, 0.2676], [6.812, 0.2631], [6.885, 0.2599], [6.958, 0.2584], [7.03, 0.2585], [7.103, 0.2604], [7.176, 0.2645], [7.248, 0.2708], [7.321, 0.2795], [7.394, 0.2909], [7.466, 0.3054], [7.539, 0.3232], [7.612, 0.3446], [7.684, 0.3696], [7.757, 0.3974], [7.83, 0.4274], [7.902, 0.4583], [7.975, 0.488], [8.048, 0.5142], [8.12, 0.5339], [8.193, 0.5446], [8.266, 0.5443], [8.338, 0.5322], [8.411, 0.5088], [8.484, 0.4755], [8.556, 0.4335], [8.629, 0.3849], [8.702, 0.3328], [8.774, 0.2796], [8.847, 0.229], [8.919, 0.1829], [8.992, 0.1421], [9.065, 0.1072], [9.137, 0.078], [9.21, 0.0547], [9.283, 0.0372], [9.355, 0.0248], [9.428, 0.0163], [9.501, 0.0107], [9.573, 0.0071], [9.646, 0.0046], [9.719, 0.0031], [9.791, 0.002], [9.864, 0.0014], [9.937, 0.0009], [10.009, 0.0006], [10.082, 0.0004], [10.155, 0.0003], [10.227, 0.0002]];
+const SCORE_CURVE = [[1.0, 0.0009], [1.064, 0.0013], [1.128, 0.0017], [1.192, 0.0019], [1.256, 0.0021], [1.319, 0.0022], [1.383, 0.0025], [1.447, 0.003], [1.511, 0.0037], [1.575, 0.0044], [1.639, 0.0052], [1.703, 0.0064], [1.767, 0.0078], [1.83, 0.0096], [1.894, 0.0118], [1.958, 0.0142], [2.022, 0.0174], [2.086, 0.0208], [2.15, 0.0252], [2.214, 0.0307], [2.278, 0.0365], [2.341, 0.0441], [2.405, 0.0526], [2.469, 0.0621], [2.533, 0.074], [2.597, 0.088], [2.661, 0.1045], [2.725, 0.1245], [2.789, 0.1479], [2.853, 0.1742], [2.916, 0.2027], [2.98, 0.2294], [3.044, 0.251], [3.108, 0.2666], [3.172, 0.279], [3.236, 0.2943], [3.3, 0.3206], [3.364, 0.3614], [3.427, 0.4119], [3.491, 0.4635], [3.555, 0.5084], [3.619, 0.5448], [3.683, 0.5773], [3.747, 0.6127], [3.811, 0.6544], [3.875, 0.6991], [3.938, 0.7433], [4.002, 0.7884], [4.066, 0.8311], [4.13, 0.8722], [4.194, 0.9116], [4.258, 0.9451], [4.322, 0.9717], [4.386, 0.9905], [4.45, 1.0], [4.513, 0.9992], [4.577, 0.9895], [4.641, 0.9728], [4.705, 0.9513], [4.769, 0.9275], [4.833, 0.9015], [4.897, 0.8727], [4.961, 0.8401], [5.024, 0.8027], [5.088, 0.7606], [5.152, 0.7157], [5.216, 0.6691], [5.28, 0.623], [5.344, 0.5789], [5.408, 0.5376], [5.472, 0.5004], [5.535, 0.468], [5.599, 0.4412], [5.663, 0.4197], [5.727, 0.4025], [5.791, 0.3886], [5.855, 0.3766], [5.919, 0.3654], [5.983, 0.3545], [6.047, 0.343], [6.11, 0.3305], [6.174, 0.3169], [6.238, 0.3026], [6.302, 0.2877], [6.366, 0.2726], [6.43, 0.2576], [6.494, 0.2426], [6.558, 0.228], [6.621, 0.2137], [6.685, 0.1995], [6.749, 0.1857], [6.813, 0.1722], [6.877, 0.159], [6.941, 0.1463], [7.005, 0.1341], [7.069, 0.1227], [7.133, 0.1121], [7.196, 0.1025], [7.26, 0.0937], [7.324, 0.086], [7.388, 0.0792], [7.452, 0.0731], [7.516, 0.0676], [7.58, 0.0626], [7.644, 0.0577], [7.707, 0.053], [7.771, 0.0485], [7.835, 0.0441], [7.899, 0.04], [7.963, 0.036], [8.027, 0.0323], [8.091, 0.0289], [8.155, 0.0259], [8.218, 0.0233], [8.282, 0.0212], [8.346, 0.0195], [8.41, 0.0182], [8.474, 0.0172], [8.538, 0.0164], [8.602, 0.0156], [8.666, 0.0146], [8.73, 0.0131], [8.793, 0.0109], [8.857, 0.0081], [8.921, 0.0053], [8.985, 0.003], [9.049, 0.0014], [9.113, 0.0005]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -67,15 +67,14 @@ const BASE_DICE = 5;
 // Every this many floors the elevator hands you one more red die (no upper limit)
 const FLOORS_PER_DIE = 5;
 // From 10 dice the Casino Manager adds a bad d20, plus one more per 5 extra dice (15, 20, ...).
-// A bad d20 costs you a die for good on a 1. From floor 25 one more face loses every 18
-// floors: 1-2 from 25, 1-3 from 43, 1-4 from 61, ...
+// Once on the table a bad d20 stays for the rest of the game, even if you lose dice: a
+// permanent debuff. It costs you a die for good on a 1; every 100 floors one more face
+// loses: 1-2 from floor 100, 1-3 from 200, ...
 const BAD_FROM_DICE = 10;
 const BAD_EVERY_DICE = 5;
-const LOSE_FACES_FROM_FLOOR = 25;
-const LOSE_FACE_STEP = 18;
+const LOSE_FACE_STEP = 100;
 const badDiceFor = (n) => (n < BAD_FROM_DICE ? 0 : 1 + Math.floor((n - BAD_FROM_DICE) / BAD_EVERY_DICE));
-const badLosesOn = () =>
-  floor < LOSE_FACES_FROM_FLOOR ? 1 : Math.min(19, 2 + Math.floor((floor - LOSE_FACES_FROM_FLOOR) / LOSE_FACE_STEP));
+const badLosesOn = () => Math.min(19, 1 + Math.floor(floor / LOSE_FACE_STEP));
 // Each extra round is worth this much more than the last: +10, +20, +30...
 const BONUS_STEP = 10;
 // Golden drifting dice add this to the multiplier
@@ -585,6 +584,7 @@ async function handRetry() {
       o.slot.classList.remove("safe", "struck", "done");
       o.slot.classList.add("waiting");
       o.slot.querySelector(".bd-value").textContent = "?";
+      if (o.kind === "bad") drawBad(o);
     }
   }
   phase = "rolling";
@@ -615,12 +615,41 @@ function createDie() {
 }
 
 // The Casino Manager's bad d20: a 1 costs you a die for good
+// The bad d20 is a real little icosahedron, drawn with the end die's renderer
+const BAD_D20_PX = 120;
+const BAD_COLORS = { waiting: "#8a1430", struck: "#ff2f5b", safe: "#5e5872" };
+let d20Front = null;
+// The rotation that turns face 0 toward the viewer
+function d20FrontQ() {
+  if (!d20Front) {
+    const n0 = vnorm(ICO_FACES[0].map((k) => ICO_VERTS[k]).reduce((s, v) => [s[0] + v[0], s[1] + v[1], s[2] + v[2]], [0, 0, 0]));
+    const axis = vcross(n0, [0, 0, 1]);
+    d20Front = Math.hypot(...axis) < 1e-6 ? [1, 0, 0, 0] : qaxis(vnorm(axis), Math.acos(vdot(n0, [0, 0, 1])));
+  }
+  return d20Front;
+}
+
+function drawBad(obj, q = obj.q, highlight = obj.value !== null) {
+  const color = obj.value === null ? BAD_COLORS.waiting : obj.value <= badLosesOn() ? BAD_COLORS.struck : BAD_COLORS.safe;
+  drawD20(obj.ctx, BAD_D20_PX, q, color, obj.labels, highlight);
+}
+
 function createBadDie() {
   const slot = document.createElement("button");
   slot.type = "button";
   slot.className = "bad-die waiting";
-  slot.innerHTML = '<span class="bd-value">?</span><span class="bd-label">BAD d20</span>';
-  const obj = { kind: "bad", slot, value: null, rolling: false };
+  slot.innerHTML = `<canvas class="bd-canvas" width="${BAD_D20_PX}" height="${BAD_D20_PX}"></canvas><span class="bd-value">?</span><span class="bd-label">BAD d20</span>`;
+  const obj = {
+    kind: "bad",
+    slot,
+    value: null,
+    rolling: false,
+    ctx: slot.querySelector("canvas").getContext("2d"),
+    labels: ICO_FACES.map(() => d(20)),
+    // Resting slightly tilted, so it reads as a 3D die
+    q: qmul(qaxis(vnorm([1, 0.6, 0.2]), 0.45), d20FrontQ()),
+  };
+  drawBad(obj);
   slot.addEventListener("click", () => tapDie(obj, true));
   tray.appendChild(slot);
   return obj;
@@ -1013,25 +1042,46 @@ async function rollBad(obj) {
   const valueEl = slot.querySelector(".bd-value");
   slot.classList.remove("waiting", "safe", "struck");
   slot.classList.add("rolling");
-  // A proper tumble: hops, spins in 3D, numbers flicker past, then it lands
+  valueEl.textContent = "";
+  const value = d(20);
+  obj.labels = ICO_FACES.map(() => d(20));
+  obj.labels[0] = value;
+  // It hops across the felt while the icosahedron tumbles onto its result
   const time = reducedMotion ? 250 : 1000;
   slot.animate(
     [
-      { transform: "translateY(0) rotateX(0) rotateZ(0)" },
-      { transform: "translateY(-40px) rotateX(240deg) rotateZ(-90deg)", offset: 0.35 },
-      { transform: "translateY(0) rotateX(480deg) rotateZ(-160deg) scale(1.1, .9)", offset: 0.6 },
-      { transform: "translateY(-14px) rotateX(620deg) rotateZ(-200deg)", offset: 0.8 },
-      { transform: "translateY(0) rotateX(720deg) rotateZ(-180deg)" },
+      { transform: "translateY(0)" },
+      { transform: "translateY(-40px)", offset: 0.35 },
+      { transform: "translateY(0) scale(1.1, .9)", offset: 0.6 },
+      { transform: "translateY(-14px)", offset: 0.8 },
+      { transform: "translateY(0)" },
     ],
     { duration: time, easing: "cubic-bezier(.3, .7, .4, 1)" }
   );
-  let delay = 40;
-  for (let t = 0; t < time; t += delay, delay *= 1.15) {
-    valueEl.textContent = d(20);
-    SOUND.tick();
-    await wait(delay);
-  }
-  const value = d(20);
+  const front = d20FrontQ();
+  const axis = vnorm([Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5]);
+  const turns = Math.PI * 2 * (2 + Math.random());
+  const start = performance.now();
+  let lastFace = 0;
+  // Frame loop, with a timeout fallback in case frames are paused (background tab)
+  await Promise.race([wait(time + 100), new Promise((resolve) => {
+    const frame = (now) => {
+      const t = Math.min(1, (now - start) / time);
+      const ease = 1 - Math.pow(1 - t, 3);
+      drawBad(obj, qmul(qaxis(axis, turns * (1 - ease)), front), false);
+      const face = Math.floor((turns * (1 - ease)) / 0.7);
+      if (face !== lastFace) {
+        lastFace = face;
+        SOUND.tick();
+      }
+      if (t < 1) requestAnimationFrame(frame);
+      else resolve();
+    };
+    requestAnimationFrame(frame);
+  })]);
+  obj.q = front;
+  obj.value = value;
+  drawBad(obj);
   valueEl.textContent = value;
   slot.classList.remove("rolling");
   const struck = value <= badLosesOn();
@@ -2121,7 +2171,7 @@ silverBtn.addEventListener("click", () => {
   else if (phase === "hold") silverReroll();
 });
 
-// Bad d20s already announced this game, so the alarm only fires for new ones
+// Bad d20s on the table this game: the alarm only fires for new ones, and they never leave
 let badAnnounced = 0;
 
 async function startTurn() {
@@ -2162,7 +2212,8 @@ async function startTurn() {
 // Lay out this round's dice unrolled; the player rolls them one tap at a time
 async function startRound() {
   round++;
-  const bad = badDiceFor(diceCount);
+  // Bad d20s never leave: the count only ever grows
+  const bad = Math.max(badAnnounced, badDiceFor(diceCount));
   if (bad > badAnnounced) {
     await managerAlarm(bad);
   }
@@ -2397,25 +2448,106 @@ const FLOOR_NAMES = [
   "Jackpot Junction", "The Velvet Rope", "Comp Drinks Club", "The Cashier Cage", null,
 ];
 const MILESTONES = [
-  { name: "The Neon Lounge", icon: "\u{1F378}" },
-  { name: "The High Roller Suite", icon: "\u{1F4BC}" },
-  { name: "The Sky Bar", icon: "\u{1F307}" },
-  { name: "The Golden Vault", icon: "\u{1F3E6}" },
-  { name: "The Penthouse", icon: "\u{1F6CE}️" },
-  { name: "The Helipad", icon: "\u{1F681}" },
-  { name: "Cloud Nine Casino", icon: "☁️" },
-  { name: "Low Orbit Lounge", icon: "\u{1F6F0}️" },
-  { name: "Space Station Slots", icon: "\u{1F680}" },
-  { name: "Moon Base Blackjack", icon: "\u{1F315}" },
-  { name: "Mars Poker Room", icon: "\u{1F534}" },
-  { name: "Asteroid Belt Bingo", icon: "☄️" },
-  { name: "Jupiter's Jackpot", icon: "\u{1FA90}" },
-  { name: "The Comet Club", icon: "\u{1F320}" },
-  { name: "Neutron Star Nightclub", icon: "⭐" },
-  { name: "Black Hole Baccarat", icon: "\u{1F573}️" },
-  { name: "The Edge of the Universe", icon: "\u{1F30C}" },
-  { name: "The Multiverse Lobby", icon: "\u{1F300}" },
-  { name: "The House Itself", icon: "\u{1F3E0}" },
+  { name: "The Neon Lounge", icon: "🍸", joke: "Free drinks! (They're $14.)" },
+  { name: "The High Roller Suite", icon: "💼", joke: "Dress code: at least one sock." },
+  { name: "The Sky Bar", icon: "🌇", joke: "Cocktails with a view of your debt." },
+  { name: "The Golden Vault", icon: "🏦", joke: "Look, don't touch. Security is right there." },
+  { name: "The Penthouse", icon: "🛎️", joke: "The minibar costs more than the room." },
+  { name: "The Helipad", icon: "🚁", joke: "Your exit strategy, if you had one." },
+  { name: "Cloud Nine Casino", icon: "☁️", joke: "The carpet is literally fluffy. Mind your step." },
+  { name: "Low Orbit Lounge", icon: "🛰️", joke: "Gravity is optional. Losses are not." },
+  { name: "Space Station Slots", icon: "🚀", joke: "In space, nobody hears your chips fall." },
+  { name: "Moon Base Blackjack", icon: "🌕", joke: "The dealer is always one small step ahead." },
+  { name: "Mars Poker Room", icon: "🔴", joke: "The red planet. Also your bank account." },
+  { name: "Asteroid Belt Bingo", icon: "☄️", joke: "B-12! That one just hit the window." },
+  { name: "Jupiter's Jackpot", icon: "🪐", joke: "Big planet. Bigger buy-in." },
+  { name: "The Comet Club", icon: "🌠", joke: "Comes around every 76 years. So do your wins." },
+  { name: "Neutron Star Nightclub", icon: "⭐", joke: "One spoonful of this dance floor weighs a billion tons." },
+  { name: "Black Hole Baccarat", icon: "🕳️", joke: "Chips go in. Nothing comes out." },
+  { name: "The Edge of the Universe", icon: "🌌", joke: "Please keep your hands inside reality." },
+  { name: "The Multiverse Lobby", icon: "🌀", joke: "In one universe you quit while ahead. Not this one." },
+  { name: "The House Itself", icon: "🏠", joke: "The house always wins. Hi, I'm the house." },
+  { name: "The Century Club", icon: "💯", joke: "Floor 100! The Manager's d20 just learned to count to 2." },
+  { name: "The Afterparty", icon: "🎉", joke: "Nobody remembers how they got here." },
+  { name: "The Lost Sock Dimension", icon: "🧦", joke: "Found: 4 million left socks. Right socks: zero." },
+  { name: "The Infinite Buffet", icon: "🍤", joke: "All you can eat. Forever. That's the catch." },
+  { name: "The Waiting Room of Time", icon: "⏳", joke: "Please take a number. Your number is infinity." },
+  { name: "The Hall of Mirrors", icon: "🪞", joke: "Everyone here is you, and all of you are broke." },
+  { name: "The Dragon's Hoard", icon: "🐉", joke: "He doesn't want your chips. He wants all the chips." },
+  { name: "The Wizard's Tower", icon: "🧙", joke: "He turned a 1 into a 6 once. Never again." },
+  { name: "The Sunken Arcade", icon: "🔱", joke: "Underwater, yet somehow still above floor 135." },
+  { name: "The Robot Union Hall", icon: "🤖", joke: "The machines have unionized. They want tips." },
+  { name: "Hotel Halfway to Heaven", icon: "😇", joke: "Check-out time is never." },
+  { name: "The Pyramid Scheme", icon: "🔺", joke: "It's not a scheme, it's a pyramid. Totally different." },
+  { name: "The Fortune Cookie Factory", icon: "🥠", joke: "Your fortune: \"roll better.\"" },
+  { name: "Dino Disco", icon: "🦖", joke: "Tiny arms. Huge dance moves." },
+  { name: "The Clockwork Casino", icon: "⚙️", joke: "Every second counts. Every second costs." },
+  { name: "The Volcano Vault", icon: "🌋", joke: "Your chips are hot. Literally melting." },
+  { name: "The Ghost Lounge", icon: "👻", joke: "Previous players. They never cashed out." },
+  { name: "Cat Café Royale", icon: "🐈", joke: "The cat knocked your dice off the table. Again." },
+  { name: "The Quantum Room", icon: "⚛️", joke: "Your dice are sixes until you look at them." },
+  { name: "The Topsy-Turvy Floor", icon: "🙃", joke: "From here, floor 1 looks like the top." },
+  { name: "The Bicentennial Ballroom", icon: "🎆", joke: "Floor 200: the Manager's d20 now fears 1, 2 and 3." },
+  { name: "The Glitch Garden", icon: "👾", joke: "Th1s fl00r is p3rfectly n0rmal." },
+  { name: "Pirate Port Casino", icon: "🦜", joke: "Arrr, that be a natural 20. For the Manager." },
+  { name: "The Library of Odds", icon: "📚", joke: "Shhh. The probabilities are studying." },
+  { name: "Candy Cosmos", icon: "🍭", joke: "Sugar rush plus dice rush equals no sleep." },
+  { name: "The Thunder Pit", icon: "⚡", joke: "Two dice enter. One die leaves." },
+  { name: "The Snow Globe", icon: "❄️", joke: "Somebody shook it. Again." },
+  { name: "Spaghetti Junction", icon: "🍝", joke: "Every hallway leads back to the buffet." },
+  { name: "The Ninja Night Market", icon: "🥷", joke: "The dealer was here a second ago." },
+  { name: "The Royal Throne Room", icon: "👑", joke: "Sit down, Your Majesty. Your Majesty owes $40." },
+  { name: "The Quarter-Thousand Club", icon: "🏆", joke: "250 floors. The elevator wants a raise." },
+  { name: "The Fungus Lounge", icon: "🍄", joke: "A real fun guy kind of place." },
+  { name: "Bubble Wrap Boulevard", icon: "🫧", joke: "Pop. Pop. Pop. You won't leave either." },
+  { name: "The Kraken's Table", icon: "🐙", joke: "Eight arms, eight dice, zero mercy." },
+  { name: "The Neon Noodle Bar", icon: "🍜", joke: "Slurp loud. Roll louder." },
+  { name: "The Rainbow Bridge", icon: "🌈", joke: "At the end: a pot of gold. Taxed." },
+  { name: "The Moonwalk Mezzanine", icon: "🕺", joke: "Everyone here moves backwards. Except your score." },
+  { name: "The Dusty Saloon", icon: "🤠", joke: "This town ain't big enough for two d20s." },
+  { name: "The Unicorn Stables", icon: "🦄", joke: "Rarer than your sixes." },
+  { name: "The Ice Palace", icon: "🧊", joke: "Cool heads only. Literally." },
+  { name: "The Legend Lobby", icon: "🐐", joke: "Only legends get here. And elevator mechanics." },
+  { name: "The Sandcastle Casino", icon: "🏖️", joke: "Built at low tide. Hurry." },
+  { name: "Beehive Bingo", icon: "🐝", joke: "Buzzwords only. B-6!" },
+  { name: "The Mad Tea Room", icon: "☕", joke: "Everyone's late, and everyone's cross." },
+  { name: "The Clown Car Garage", icon: "🤡", joke: "There's always room for one more die." },
+  { name: "The Origami Observatory", icon: "🦢", joke: "Fold 'em? Wrong game, but nice try." },
+  { name: "The Lava Lamp Lounge", icon: "🕯️", joke: "Groovy. Very slow. Very groovy." },
+  { name: "The Treasure Map Room", icon: "🗺️", joke: "X marks the spot. The spot is the exit." },
+  { name: "The Dream Sequence", icon: "💤", joke: "You're dreaming. The losses are real, though." },
+  { name: "The Space Whale Aquarium", icon: "🐋", joke: "It sings in floor numbers." },
+  { name: "The Golden Ratio Gallery", icon: "🐚", joke: "Everything here is 1.618 times fancier." },
+  { name: "The Toaster Temple", icon: "🍞", joke: "All toast is sacred. All dice are crumbs." },
+  { name: "The Full Circle", icon: "🔄", joke: "360 floors. You've turned completely around." },
+  { name: "The Year-Round Party", icon: "📅", joke: "One floor for every day of the year." },
+  { name: "The Cyber Lounge", icon: "💾", joke: "Please insert floppy disk to continue." },
+  { name: "The Haunted Arcade", icon: "🕹️", joke: "High score holder: a ghost called AAA." },
+  { name: "The Chess Club", icon: "♟️", joke: "The bishop is cheating. Diagonally." },
+  { name: "The Jungle Gym", icon: "🐒", joke: "The monkey owns the slot machine now." },
+  { name: "The Thunderstorm Terrace", icon: "🌩️", joke: "Lightning never strikes twice. Bad d20s do." },
+  { name: "The Pizza Galaxy", icon: "🍕", joke: "Every slice is a pie chart of your odds." },
+  { name: "The Four Hundred Club", icon: "🎩", joke: "Top hats mandatory. Wallets optional." },
+  { name: "The Opposite Universe", icon: "🔁", joke: "Here the Manager is nice. Just kidding." },
+  { name: "The Sock Puppet Theater", icon: "🎭", joke: "Starring: the left sock from floor 110." },
+  { name: "The Paradox Parlor", icon: "♾️", joke: "You've always been here. You'll always be rolling." },
+  { name: "The Lucky Clover Patch", icon: "🍀", joke: "Four leaves, three dice, two sixes, one you." },
+  { name: "The Dragon's Second Home", icon: "🐲", joke: "He moved up from floor 130. The rent was too high." },
+  { name: "The Disco Furnace", icon: "🪩", joke: "Burn, baby, roll." },
+  { name: "The Telescope Tower", icon: "🔭", joke: "You can see floor 1 from here. It's waving." },
+  { name: "The Last Arcade", icon: "🎮", joke: "Insert coin. And another. And another." },
+  { name: "The Golden Elevator Shaft", icon: "🛗", joke: "The elevator is tired. It wants a vacation." },
+  { name: "The Crown Jewel Casino", icon: "💎", joke: "450 floors. Even the Manager is impressed." },
+  { name: "The Starlight Ballroom", icon: "💫", joke: "Every star is a six someone rolled." },
+  { name: "The Big Bang Bar", icon: "💥", joke: "Where it all began. Last call: 13.8 billion years." },
+  { name: "The Wormhole Waiting Room", icon: "🌐", joke: "Your next floor is in another century." },
+  { name: "The Cosmic Coin Toss", icon: "🪙", joke: "Heads you win. Tails you roll again." },
+  { name: "The Phoenix Nest", icon: "🔥", joke: "Lose everything, rise again. Literally." },
+  { name: "The Gods' Game Night", icon: "🏛️", joke: "Zeus brought snacks. Hades brought the d20." },
+  { name: "The Deep Space Foyer", icon: "🛸", joke: "Aliens. Tourists, mostly." },
+  { name: "Dice Heaven", icon: "🎲", joke: "Retired dice go here. They all show 6." },
+  { name: "The Almost-Top Floor", icon: "🧗", joke: "Five more floors. Probably." },
+  { name: "The End of the Tower", icon: "🏁", joke: "Floor 500. There is no floor 501. ...or is there?" },
 ];
 const floorName = (f) =>
   f % FLOORS_PER_DIE === 0
@@ -2467,7 +2599,7 @@ async function milestone() {
   diceCount++;
   setDiceCount();
   const index = floor / FLOORS_PER_DIE - 1;
-  const place = MILESTONES[index] || { name: `Beyond Reason ${floor}`, icon: "✨" };
+  const place = MILESTONES[index] || { name: `Beyond Reason ${floor}`, icon: "✨", joke: "Past the top floor. The elevator is improvising." };
   const tier = Math.min(9, index);
   const doors = document.createElement("div");
   doors.className = "doors";
@@ -2481,6 +2613,7 @@ async function milestone() {
           <span class="door-floor">FLOOR ${floor}</span>
           <span class="door-icon">${place.icon}</span>
           <span class="door-name">${place.name}</span>
+          <span class="door-joke">${place.joke}</span>
           <div class="mini door-die"></div>
           <span class="door-gift">+1 RED DIE · NOW ${diceCount}</span>
         </div>
@@ -3271,9 +3404,9 @@ $("lb-clear").addEventListener("click", () => {
     `<tr><td><b>table</b></td><td><b>yazzy</b></td><td><b>what changes</b></td><td><b>bad d20s</b></td></tr>` +
     rows.map((r) => `<tr><td class="lb-score">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
 
-  const faces = [`<tr><td class="lb-score">floor 0–${LOSE_FACES_FROM_FLOOR - 1}</td><td>a 1 destroys a red die</td><td>5% each</td></tr>`];
+  const faces = [`<tr><td class="lb-score">floor 0–${LOSE_FACE_STEP - 1}</td><td>a 1 destroys a red die</td><td>5% each</td></tr>`];
   for (let f = 2; f <= 4; f++) {
-    const from = LOSE_FACES_FROM_FLOOR + (f - 2) * LOSE_FACE_STEP;
+    const from = (f - 1) * LOSE_FACE_STEP;
     faces.push(`<tr><td class="lb-score">floor ${from}–${from + LOSE_FACE_STEP - 1}</td><td>1–${f} destroys a red die</td><td>${f * 5}% each</td></tr>`);
   }
   faces.push(`<tr><td class="lb-score">always</td><td>a 20 confiscates one unlocked bonus</td><td>5% each</td></tr>`);
