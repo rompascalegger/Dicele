@@ -518,7 +518,7 @@ html.flashy .jackpot.mult-value, html.flashy .mult.jackpot .mult-value, html.fla
 html.flashy .hub-value.jackpot, html.flashy .toast.jackpot, html.flashy .go-score.jackpot {
   animation: rainbow .6s steps(6) infinite;
 }
-html.flashy .toast.jackpot.show { animation: toast 1.1s steps(10) both, rainbow .6s steps(6) infinite; }
+html.flashy .toast.jackpot.show { animation: toast calc(1.1s * var(--text-x, 1)) steps(10) both, rainbow .6s steps(6) infinite; }
 
 .flashy-btn { color: #6b5687; }
 html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
@@ -733,7 +733,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   33%  { color: var(--gold); text-shadow: 0 0 12px var(--gold), 4px 4px 0 var(--red-dark); }
   66%  { color: var(--neon-cyan); text-shadow: 0 0 12px var(--neon-cyan), 4px 4px 0 var(--red-dark); }
 }
-.toast.jackpot.show { animation: toast 1.1s steps(10) both, rainbow 4s linear infinite; }
+.toast.jackpot.show { animation: toast calc(1.1s * var(--text-x, 1)) steps(10) both, rainbow 4s linear infinite; }
 .chip { border-color: var(--tc, rgba(255, 207, 74, .6)); }
 .chip u { color: var(--neon-cyan); text-decoration: none; }
 
@@ -1088,7 +1088,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   color: #fff;
   text-shadow: 2px 2px 0 var(--red-dark), 0 0 8px var(--gold);
   pointer-events: none;
-  animation: float-up 1s steps(10) forwards;
+  animation: float-up calc(1s * var(--text-x, 1)) steps(10) forwards;
 }
 .float.gold { color: var(--gold); font-size: 1.2rem; }
 @keyframes float-up {
@@ -1112,7 +1112,7 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   pointer-events: none;
   z-index: 20;
 }
-.toast.show { animation: toast 1.1s steps(10) both; }
+.toast.show { animation: toast calc(1.1s * var(--text-x, 1)) steps(10) both; }
 @keyframes toast {
   0%   { transform: translate(-50%, -50%) scale(0) rotate(-8deg); opacity: 0; }
   25%  { transform: translate(-50%, -50%) scale(1.2) rotate(2deg); opacity: 1; }
@@ -1159,6 +1159,13 @@ html.flashy .flashy-btn { color: var(--gold); text-shadow: 0 0 8px var(--gold); 
   cursor: pointer;
 }
 #lb-btn { font-family: var(--pixel); font-size: 1.4rem; }
+.text-btn { font-size: .55rem; color: #6b5687; }
+.text-btn[aria-pressed="true"] { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
+
+/* Slow text: toasts and floating texts stay 3x as long. STFU: no texts at all */
+html.slow-text { --text-x: 3; }
+html.stfu .toast, html.stfu .float, html.stfu .floor-banner { display: none; }
+html.stfu .message, html.stfu .hint { visibility: hidden; }
 
 /* Help line under the message */
 .hint {
@@ -1436,6 +1443,7 @@ html.flashy .alarm { animation: alarm-strobe .16s steps(1) infinite; }
   .mult-value { margin-top: 0; }
   .top-buttons { position: absolute; top: 8px; right: 8px; gap: 5px; }
   .icon-btn { width: 36px; height: 36px; font-size: .8rem; }
+  .text-btn { font-size: .45rem; }
   #lb-btn { font-size: 1.1rem; }
   header { padding: 62px 12px 0; }
   .sign { padding: 10px 12px 8px; }
