@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.1.9";
+const VERSION = "2.2.0";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -3533,6 +3533,13 @@ flashyBtn.addEventListener("click", () => {
   save("dicele-flashy", flashy ? 1 : 0);
   applyFlashy();
   SOUND.pop();
+});
+
+// A refresh or a closed tab in the middle of a game asks first
+window.addEventListener("beforeunload", (e) => {
+  if (phase === "idle") return;
+  e.preventDefault();
+  e.returnValue = "";
 });
 
 // Text mode: normal, SLOW (messages stay 3x as long) or STFU (no messages, no elevator)
