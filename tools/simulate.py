@@ -48,16 +48,20 @@ RESULTS = HERE / "sim_results.json"
 RULES = {
     "BASE_DICE": 5,
     "FLOORS_PER_DIE": 5,  # one more red die every 5 floors
-    # Casino Manager: one bad d20 from 10 dice, one more per 5 dice; they never leave
-    "BAD_FROM_DICE": 10,
-    "BAD_EVERY_DICE": 5,
-    # A bad d20 destroys a die on 1 below floor 100, on 1-2 from 100, 1-3 from 200, ...
-    "LOSE_FACE_STEP": 100,
+    # Casino Manager: one bad d20 every 25 floors; they never leave
+    "BAD_EVERY_FLOORS": 25,
+    # A bad d20 destroys a red die on 1 below floor 50, on 1-2 from 50, 1-3 from 100, ...
+    "LOSE_FACE_STEP": 50,
+    # From floor 250 the Casino CEO doubles the losing faces
+    "CEO_FLOOR": 250,
+    "CEO_FACE_MULT": 2,
     # A 20 on a bad d20 takes away one unlocked bonus
     "BAD_CONFISCATES": True,
-    # Yazzy: all but 5 dice the same (at least 5, at most all of them)
+    # Yazzy: all but 5 dice the same (at least 5, at most all of them), and never fewer than
+    # YAZZY_MIN_DICE of a kind: with 3 dice or fewer there is no yazzy
     "YAZZY_MIN": 5,
     "YAZZY_SLACK": 5,
+    "YAZZY_MIN_DICE": 4,
     "UNLOCK_REPEAT_CHIPS": 100,  # an unlock you already own pays 100 x its number
     "GOLD_REPEAT_MULT": 10,
     "GOLD_DIE_SIDES": 10,  # the golden die adds d10 to the multiplier every round
@@ -72,18 +76,28 @@ RULES = {
     "HAND_LAST_CHANCE_BONUS": 10,
     "HAND_RETRY": True,
     "BONUS_STEP": 10,  # each round is worth 10 chips more than the last
+    "FLOOR_CHIPS": 10,  # every round pays this many chips per floor you are on
     "SIX_SIXES_CHIPS": 666,
     "EVENT_CHANCE": 0.2,
     # (chips, multiplier) of each random event
     "EVENTS": ((15, 0), (-5, 0), (0, 3), (25, 0), (10, 0), (0, 1), (0, 0), (7, 0), (1, 0), (0, 2)),
-    # End dice: one d(floor) plus one more per 10 floors, all add to the multiplier; the
-    # first one beating k/(k+1) of its sides (k = 1, 2, 3... per end die rolled) buys a round
-    "END_DIE_FLOORS": 10,
+    # End dice: all d(floor), one more at each of these floors, all add to the multiplier
+    "END_DICE_AT": (1, 10, 25, 50, 100, 150, 200, 250, 300, 350),
+    # "each": end die i buys one more round by beating i/(i+1) of its sides (1/2, 2/3, ...);
+    # "first": only the first one can, with k/(k+1)
+    "END_BAR": "each",
+    # The bars also rise by one step every time you reach the end dice
+    "END_BAR_ESCALATES": True,
+    # End die k counts k times on the multiplier (scores only: whether it buys a round goes
+    # by its plain roll). "flat": every end die counts once
+    "END_DIE_WEIGHT": "index",
 }
+# The end dice before 2.4, for comparisons: --set END_DICE_AT=OLD_END_DICE_AT ...
+OLD_END_DICE = {"END_DICE_AT": (1,) + tuple(range(10, 1001, 10)), "END_BAR": "first", "END_BAR_ESCALATES": True, "END_DIE_WEIGHT": "flat"}
 
 # How the simulation runs (not rules)
 SIM = {
-    "TRACK_TOP": 300,  # a game reaching this floor is practically endless
+    "TRACK_TOP": 1000,  # a game reaching this floor is practically endless (since 2.4 none do)
 }
 PCT_POINTS = [0, 0.1, 1, 5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 93, 95, 97, 98, 99, 99.5, 99.8, 99.9, 99.95, 99.99, 99.999]
 FLOOR_PCT_POINTS = [20, 40, 50, 60, 75, 85, 90, 93, 95, 97, 99, 99.9, 99.99]
@@ -189,16 +203,36 @@ def combos(c):
     return bonus
 
 
-def bad_dice_for(n):
-    return 0 if n < R["BAD_FROM_DICE"] else 1 + (n - R["BAD_FROM_DICE"]) // R["BAD_EVERY_DICE"]
+def bad_dice_for(floor):
+    return floor // R["BAD_EVERY_FLOORS"]
 
 
 def lose_faces(floor):
-    return min(19, 1 + floor // R["LOSE_FACE_STEP"])
+    faces = 1 + floor // R["LOSE_FACE_STEP"]
+    return min(19, faces * (R["CEO_FACE_MULT"] if floor >= R["CEO_FLOOR"] else 1))
 
 
 def yazzy_need(n):
-    return min(n, max(R["YAZZY_MIN"], n - R["YAZZY_SLACK"]))
+    return max(R["YAZZY_MIN_DICE"], min(n, max(R["YAZZY_MIN"], n - R["YAZZY_SLACK"])))
+
+
+def end_mult(ends):
+    w = R["END_DIE_WEIGHT"]
+    return sum(v * (1 if w == "flat" else (i + 1) if w == "index" else (i + 1) ** 2) for i, v in enumerate(ends))
+
+
+def end_dice(floor):
+    return [d(floor) for f in R["END_DICE_AT"] if floor >= f]
+
+
+def end_buys_round(ends, floor, visits):
+    """visits: end dice rolled before this time. Does any end die beat its bar?"""
+    dice = ends[:1] if R["END_BAR"] == "first" else ends
+    for i, v in enumerate(dice):
+        k = (visits + 1 if R["END_BAR"] == "first" else i + 1 + (visits if R["END_BAR_ESCALATES"] else 0))
+        if v > -(-floor * k // (k + 1)):
+            return True
+    return False
 
 
 # ---------- One game ----------
@@ -252,7 +286,7 @@ def play_game(hand):
                 c = add(held, table(sum(free), unlocked))
 
         gold_roll = d(R["GOLD_DIE_SIDES"]) if gold else 0
-        bad_count = max(bad_count, bad_dice_for(dice))
+        bad_count = max(bad_count, bad_dice_for(floor))
         lf = lose_faces(floor)
         bad_twenties = bad_lost = 0
         for _ in range(bad_count):
@@ -302,7 +336,7 @@ def play_game(hand):
             rnd -= 1
             continue
         sixes = c[6] + banked
-        pips += sum(f * c[f] for f in range(1, 7)) + R["BONUS_STEP"] * (rnd - 1) + combos(c)
+        pips += sum(f * c[f] for f in range(1, 7)) + R["BONUS_STEP"] * (rnd - 1) + combos(c) + R["FLOOR_CHIPS"] * floor
         if sixes >= 6:
             pips += R["SIX_SIXES_CHIPS"]
         if unlocked[4]:
@@ -319,18 +353,24 @@ def play_game(hand):
                 owned = [k for k in unlocked if unlocked[k]]
                 if owned:
                     unlocked[random.choice(owned)] = False
+        # Destroyed dice go before anything else; no red dice left is game over (the end dice
+        # still add to the multiplier, this round's sixes don't climb)
+        dice -= bad_lost
+        if dice <= 0:
+            mult += end_mult(end_dice(floor))
+            break
         if not sixes:
-            ends = [d(floor) for _ in range(1 + floor // R["END_DIE_FLOORS"])] if floor else [0]
-            mult += sum(ends)
+            ends = end_dice(floor)
+            mult += end_mult(ends)
+            earned = floor and end_buys_round(ends, floor, end_rolls)
             end_rolls += 1
-            if floor and ends[0] > -(-floor * end_rolls // (end_rolls + 1)):
-                dice = max(1, dice - bad_lost)
+            if earned:
                 continue
             break
         fpd = R["FLOORS_PER_DIE"]
         gained = (floor + sixes) // fpd - floor // fpd
         floor += sixes
-        dice = max(1, dice + gained - bad_lost)
+        dice += gained
         if floor >= SIM["TRACK_TOP"]:
             return None
     return pips * mult, floor, rnd

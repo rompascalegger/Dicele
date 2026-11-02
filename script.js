@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.3.1";
+const VERSION = "2.4.0";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 6,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 7100, 24000, 75000, 230000, 810000, 3600000, 14000000, 65000000, 510000000];
+const SCORE_TIERS = [0, 18000, 110000, 4300000, 380000000, 680000000, 1000000000, 1400000000, 1800000000, 2700000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 8, 14, 22, 36, 59, 91, 145, 266, 296];
+const FLOOR_TIERS = [1, 13, 47, 181, 207, 227, 243, 255, 268, 278];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 6], [0.1, 52], [1, 315], [5, 1200], [10, 2784], [20, 7062], [30, 13867], [40, 24384], [50, 41773], [60, 74646], [70, 147691], [75, 228505], [80, 399681], [85, 808401], [90, 1868724], [93, 3561432], [95, 6232356], [97, 13807685], [98, 25455590], [99, 64824762], [99.5, 147517862], [99.8, 357413245], [99.9, 513675000], [99.95, 631153818], [99.99, 818090226], [99.999, 1287219895], [100, 3564106712]];
+const SCORE_PERCENTILES = [[0, 5], [0.1, 70], [1, 442], [5, 2142], [10, 5429], [20, 18144], [30, 44156], [40, 113375], [50, 377916], [60, 4317978], [70, 218023560], [75, 384918300], [80, 524004782], [85, 676114440], [90, 884818740], [93, 1045705480], [95, 1184463682], [97, 1392445424], [98, 1559241700], [99, 1840385135], [99.5, 2104124256], [99.8, 2451601290], [99.9, 2724695703], [99.95, 3016286052], [99.99, 3757130676], [99.999, 5340367065], [100, 21348332540]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 4], [40, 8], [50, 11], [60, 14], [75, 22], [85, 36], [90, 48], [93, 59], [95, 71], [97, 91], [99, 145], [99.9, 266], [99.99, 296]];
+const FLOOR_PERCENTILES = [[20, 5], [40, 13], [50, 21], [60, 47], [75, 181], [85, 207], [90, 218], [93, 227], [95, 234], [97, 243], [99, 255], [99.9, 268], [99.99, 278]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0009], [1.064, 0.0014], [1.128, 0.0018], [1.192, 0.002], [1.255, 0.0021], [1.319, 0.0022], [1.383, 0.0026], [1.447, 0.0032], [1.511, 0.004], [1.575, 0.0048], [1.639, 0.0057], [1.702, 0.0069], [1.766, 0.0083], [1.83, 0.0103], [1.894, 0.0126], [1.958, 0.0151], [2.022, 0.018], [2.086, 0.0214], [2.149, 0.0258], [2.213, 0.0315], [2.277, 0.038], [2.341, 0.0459], [2.405, 0.0548], [2.469, 0.0647], [2.533, 0.077], [2.596, 0.0917], [2.66, 0.1092], [2.724, 0.1303], [2.788, 0.1549], [2.852, 0.1822], [2.916, 0.2115], [2.98, 0.2383], [3.043, 0.2609], [3.107, 0.2777], [3.171, 0.2914], [3.235, 0.3093], [3.299, 0.3365], [3.363, 0.3784], [3.427, 0.4305], [3.49, 0.482], [3.554, 0.5279], [3.618, 0.5648], [3.682, 0.5968], [3.746, 0.6333], [3.81, 0.6748], [3.873, 0.7192], [3.937, 0.7627], [4.001, 0.8057], [4.065, 0.8468], [4.129, 0.8858], [4.193, 0.9229], [4.257, 0.9535], [4.32, 0.9773], [4.384, 0.9928], [4.448, 1.0], [4.512, 0.9976], [4.576, 0.9871], [4.64, 0.9702], [4.704, 0.9488], [4.767, 0.9243], [4.831, 0.8966], [4.895, 0.866], [4.959, 0.8306], [5.023, 0.7914], [5.087, 0.7486], [5.151, 0.7033], [5.214, 0.658], [5.278, 0.6133], [5.342, 0.5704], [5.406, 0.5299], [5.47, 0.4927], [5.534, 0.4599], [5.598, 0.4324], [5.661, 0.4103], [5.725, 0.3926], [5.789, 0.3784], [5.853, 0.3663], [5.917, 0.3549], [5.981, 0.3438], [6.045, 0.3321], [6.108, 0.3196], [6.172, 0.3063], [6.236, 0.2923], [6.3, 0.2777], [6.364, 0.2629], [6.428, 0.2481], [6.492, 0.2335], [6.555, 0.2193], [6.619, 0.2054], [6.683, 0.1919], [6.747, 0.1788], [6.811, 0.1658], [6.875, 0.1534], [6.939, 0.1414], [7.002, 0.1299], [7.066, 0.1192], [7.13, 0.109], [7.194, 0.0996], [7.258, 0.0911], [7.322, 0.0834], [7.386, 0.0766], [7.449, 0.0706], [7.513, 0.0653], [7.577, 0.0603], [7.641, 0.0555], [7.705, 0.0509], [7.769, 0.0465], [7.833, 0.0423], [7.896, 0.0384], [7.96, 0.0348], [8.024, 0.0312], [8.088, 0.0278], [8.152, 0.0248], [8.216, 0.0222], [8.28, 0.0201], [8.343, 0.0187], [8.407, 0.0175], [8.471, 0.0168], [8.535, 0.016], [8.599, 0.0152], [8.663, 0.0142], [8.727, 0.0126], [8.79, 0.0105], [8.854, 0.0079], [8.918, 0.0052], [8.982, 0.0029], [9.046, 0.0014], [9.11, 0.0005]];
+const SCORE_CURVE = [[1.0, 0.0006], [1.069, 0.001], [1.137, 0.0013], [1.206, 0.0014], [1.275, 0.0015], [1.344, 0.0017], [1.412, 0.0021], [1.481, 0.0027], [1.55, 0.0034], [1.618, 0.0042], [1.687, 0.0049], [1.756, 0.0056], [1.825, 0.0067], [1.893, 0.0082], [1.962, 0.0102], [2.031, 0.0125], [2.1, 0.0152], [2.168, 0.0185], [2.237, 0.0224], [2.306, 0.0271], [2.374, 0.0328], [2.443, 0.0394], [2.512, 0.0473], [2.581, 0.0568], [2.649, 0.0682], [2.718, 0.0818], [2.787, 0.0981], [2.855, 0.1164], [2.924, 0.1351], [2.993, 0.1513], [3.062, 0.1621], [3.13, 0.1682], [3.199, 0.1726], [3.268, 0.181], [3.337, 0.1987], [3.405, 0.2264], [3.474, 0.2614], [3.543, 0.2967], [3.611, 0.3269], [3.68, 0.3509], [3.749, 0.3688], [3.818, 0.3878], [3.886, 0.41], [3.955, 0.4344], [4.024, 0.4621], [4.092, 0.4897], [4.161, 0.5158], [4.23, 0.5419], [4.299, 0.5665], [4.367, 0.5872], [4.436, 0.6046], [4.505, 0.6171], [4.573, 0.6228], [4.642, 0.6221], [4.711, 0.6131], [4.78, 0.5967], [4.848, 0.5758], [4.917, 0.5528], [4.986, 0.5318], [5.055, 0.5141], [5.123, 0.4991], [5.192, 0.4855], [5.261, 0.4705], [5.329, 0.4517], [5.398, 0.4285], [5.467, 0.4007], [5.536, 0.3692], [5.604, 0.3366], [5.673, 0.3055], [5.742, 0.2782], [5.81, 0.2566], [5.879, 0.2408], [5.948, 0.2301], [6.017, 0.2232], [6.085, 0.2183], [6.154, 0.2137], [6.223, 0.2082], [6.292, 0.201], [6.36, 0.1921], [6.429, 0.1821], [6.498, 0.172], [6.566, 0.1631], [6.635, 0.1561], [6.704, 0.1514], [6.773, 0.1484], [6.841, 0.1467], [6.91, 0.1454], [6.979, 0.1436], [7.047, 0.141], [7.116, 0.1369], [7.185, 0.1314], [7.254, 0.1246], [7.322, 0.1172], [7.391, 0.1103], [7.46, 0.1049], [7.528, 0.1019], [7.597, 0.1015], [7.666, 0.1031], [7.735, 0.106], [7.803, 0.1093], [7.872, 0.1134], [7.941, 0.1202], [8.01, 0.1326], [8.078, 0.1538], [8.147, 0.1864], [8.216, 0.2308], [8.284, 0.2865], [8.353, 0.3546], [8.422, 0.4394], [8.491, 0.5448], [8.559, 0.6685], [8.628, 0.7951], [8.697, 0.9036], [8.765, 0.9756], [8.834, 1.0], [8.903, 0.9764], [8.972, 0.907], [9.04, 0.795], [9.109, 0.6499], [9.178, 0.4905], [9.247, 0.3389], [9.315, 0.213], [9.384, 0.1218], [9.453, 0.0629], [9.521, 0.0287], [9.59, 0.0114], [9.659, 0.004], [9.728, 0.0013]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -66,17 +66,21 @@ function paintTier(el, tier) {
 const BASE_DICE = 5;
 // Every this many floors the elevator hands you one more red die (no upper limit)
 const FLOORS_PER_DIE = 5;
-// From 10 dice the Casino Manager adds a bad d20, plus one more per 5 extra dice (15, 20, ...).
-// Once on the table a bad d20 stays for the rest of the game, even if you lose dice: a
-// permanent debuff. It costs you a die for good on a 1; every 100 floors one more face
-// loses: 1-2 from floor 100, 1-3 from 200, ...
-const BAD_FROM_DICE = 10;
-const BAD_EVERY_DICE = 5;
-const LOSE_FACE_STEP = 100;
-const badDiceFor = (n) => (n < BAD_FROM_DICE ? 0 : 1 + Math.floor((n - BAD_FROM_DICE) / BAD_EVERY_DICE));
-const badLosesOn = () => Math.min(19, 1 + Math.floor(floor / LOSE_FACE_STEP));
+// The Casino Manager puts a bad d20 on the table every 25 floors, and it stays for the rest
+// of the game: a permanent debuff. It destroys a red die on a 1; every 50 floors one more
+// face loses: 1-2 from floor 50, 1-3 from 100, ... From floor 250 the Casino CEO doubles
+// the losing faces. Lose your last red die and the game is over
+const BAD_EVERY_FLOORS = 25;
+const LOSE_FACE_STEP = 50;
+const CEO_FLOOR = 250;
+const CEO_FACE_MULT = 2;
+const badDiceFor = (f) => Math.floor(f / BAD_EVERY_FLOORS);
+const losingFacesAt = (f) => Math.min(19, (1 + Math.floor(f / LOSE_FACE_STEP)) * (f >= CEO_FLOOR ? CEO_FACE_MULT : 1));
+const badLosesOn = () => losingFacesAt(floor);
 // Each extra round is worth this much more than the last: +10, +20, +30...
 const BONUS_STEP = 10;
+// Every round pays this many chips per floor you are on
+const FLOOR_CHIPS = 10;
 // A tapped falling die pays its face times this in chips (a golden one: its face on the multiplier)
 const DRIFTER_CHIPS = 10;
 // Pixel height of one tower floor in the background (matches style.css)
@@ -729,8 +733,10 @@ let goldD10 = false;
 // Permanent little d4s: each rolls every round and adds to the chips
 let shelfD4 = 0;
 
-// Dice needed for a yazzy: 5 of 5 up to 5 of 10, then 6 of 11, 7 of 12, ...
-const yazzyNeed = (n) => Math.min(n, Math.max(5, n - 5));
+// Dice needed for a yazzy: 5 of 5 up to 5 of 10, then 6 of 11, 7 of 12, ...; with fewer
+// dice all of them, but never less than 4 of a kind (3 dice or fewer: no yazzy)
+const YAZZY_MIN_DICE = 4;
+const yazzyNeed = (n) => Math.max(YAZZY_MIN_DICE, Math.min(n, Math.max(5, n - 5)));
 
 function renderBonusBar() {
   const bar = $("bonus-bar");
@@ -1949,21 +1955,19 @@ function drawD20(ctx, size, q, color, labels, highlight) {
   });
 }
 
-// n of total: every 10 floors earn one more end die; the extra ones roll quicker
-async function rollEndDie(n = 1, total = 1) {
+// The end dice: forged once (one side per six), then rolled one after another on the same
+// stage, the extra ones quicker. Returns whether one of them bought one more round
+async function rollEndDice(count) {
   const sides = totalSixes;
-  const value = d(sides);
-  const pace = n > 1 ? 0.45 : 1;
-  if (n === 1) setMessage(sides === 1 ? "> a d1?! it's a 1. it's always a 1." : `> ${sides} sixes forged a d${sides}!`, true);
-  else setMessage(`> end die ${n} of ${total}: one more for every 10 floors`, true);
+  setMessage(sides === 1 ? "> a d1?! it's a 1. it's always a 1." : `> ${sides} sixes forged ${count > 1 ? `${count} d${sides}s` : `a d${sides}`}!`, true);
 
   const stage = document.createElement("div");
   stage.className = "d20-stage";
   stage.innerHTML = `
-    <p class="d20-title">${total > 1 ? `END DIE ${n} OF ${total}` : "THE END DIE"}</p>
+    <p class="d20-title">${count > 1 ? `${count} END DICE` : "THE END DIE"}</p>
     <div class="d20-roll"><canvas class="d20" width="360" height="360"></canvas><div class="d20-shadow"></div></div>
     <p class="d20-label">d1</p>
-    <p class="d20-goal">${n === 1 ? endDieGoal(sides) : "bonus die: adds to the multiplier"}</p>`;
+    <p class="d20-goal">${endDieGoal(sides, 1, count)}</p>`;
   document.body.appendChild(stage);
   const canvasEl = stage.querySelector(".d20");
   const c = canvasEl.getContext("2d");
@@ -1975,7 +1979,6 @@ async function rollEndDie(n = 1, total = 1) {
   const axis0 = vcross(n0, [0, 0, 1]);
   const qFinal = Math.hypot(...axis0) < 1e-6 ? [1, 0, 0, 0] : qaxis(vnorm(axis0), Math.acos(vdot(n0, [0, 0, 1])));
   const labels = ICO_FACES.map(() => d(sides));
-  labels[0] = value;
   let color = TIERS[0].color;
   let q = qmul(qaxis(vnorm([1, 1, 0.3]), 0.6), qFinal);
   let raf = 0;
@@ -1993,10 +1996,10 @@ async function rollEndDie(n = 1, total = 1) {
   stage.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" });
   rollEl.animate([{ transform: "scale(0) rotate(-180deg)" }, { transform: "none" }], { duration: reducedMotion ? 150 : 600, easing: "cubic-bezier(.3, 1.5, .5, 1)" });
   boom(0);
-  await wait((reducedMotion ? 150 : 600) * pace);
+  await wait(reducedMotion ? 150 : 600);
 
   // Forge: one side per six, climbing the tier colors
-  const step = (reducedMotion ? 20 : Math.max(50, 700 / sides)) * (n > 1 ? 0.2 : 1);
+  const step = reducedMotion ? 20 : Math.max(50, 700 / sides);
   for (let n = 1; n <= sides; n++) {
     labelEl.textContent = `d${n}`;
     color = TIERS[Math.min(9, n - 1)].color;
@@ -2005,88 +2008,105 @@ async function rollEndDie(n = 1, total = 1) {
     await wait(step);
   }
   brassChord(semis(196, Math.min(sides, 12)), [0, 7, 12], 0.5, 0, 0.03);
-  await wait((reducedMotion ? 100 : 500) * pace);
+  await wait(reducedMotion ? 100 : 500);
   cancelAnimationFrame(raf);
+  const titleEl = stage.querySelector(".d20-title");
+  const goalEl = stage.querySelector(".d20-goal");
 
-  // The roll: flung off-screen left, tumbling across the floor, bouncing, settling on face 0
-  const time = (reducedMotion ? 700 : 3200) * pace;
-  const tumbleAxis = vnorm([Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5]);
-  const turns = Math.PI * 2 * (5 + Math.random() * 2);
-  const start = performance.now();
-  swell(time / 1000 + 0.1);
-  tension(time / 1000);
-  rollEl.animate(
-    [
-      { transform: "translate(-80vw, -30vh) scale(.6)" },
-      { transform: "translate(-30vw, 0) scale(1)", offset: 0.3 },
-      { transform: "translate(-12vw, -14vh) scale(1)", offset: 0.48 },
-      { transform: "translate(4vw, 0) scale(1.05, .95)", offset: 0.66 },
-      { transform: "translate(8vw, -5vh) scale(1)", offset: 0.78 },
-      { transform: "translate(1vw, 0) scale(1.02, .98)", offset: 0.9 },
-      { transform: "none" },
-    ],
-    { duration: time, easing: "cubic-bezier(.2, .6, .35, 1)" }
-  );
-  let lastFace = 0;
-  // Frame loop, with a timeout fallback in case frames are paused (background tab)
-  await Promise.race([wait(time + 200), new Promise((resolve) => {
-    const frame = (now) => {
-      const t = Math.min(1, (now - start) / time);
-      const ease = 1 - Math.pow(1 - t, 3);
-      q = qmul(qaxis(tumbleAxis, turns * (1 - ease)), qFinal);
-      // Click as faces roll past, slowing down with the die
-      const face = Math.floor(turns * (1 - ease) / 0.6);
-      if (face !== lastFace) {
-        lastFace = face;
-        SOUND.tick();
-      }
-      render();
-      if (t < 1) requestAnimationFrame(frame);
-      else resolve();
-    };
-    requestAnimationFrame(frame);
-  })]);
+  let earned = false;
+  for (let k = 1; k <= count; k++) {
+    const value = d(sides);
+    const pace = k > 1 ? 0.45 : 1;
+    if (count > 1) titleEl.textContent = `END DIE ${k} OF ${count}`;
+    if (!earned) goalEl.textContent = endDieGoal(sides, k, count);
+    for (let i = 1; i < labels.length; i++) labels[i] = d(sides);
+    labels[0] = value;
+    stage.classList.remove("landed");
+    render = () => drawD20(c, 360, q, color, labels, false);
 
-  // Land: the top face lights up with the result
-  q = qFinal;
-  render = () => drawD20(c, 360, q, color, labels, true);
-  render();
-  stage.classList.add("landed");
-  labelEl.textContent = `d${sides} → ${value}`;
-  boom(0);
-  timpani(98, { vol: 0.4 });
-  brassChord(semis(196, Math.min(sides, 12)), [0, 4, 7, 12], 1.6, 0.05, 0.04);
-  rollEl.animate([{ transform: "scale(1.25)" }, { transform: "none" }], { duration: 400, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
-  const { x, y } = centerOf(canvasEl);
-  burst(x, y, 40 + sides * 8);
-  sparkles(x, y, 24);
+    // The roll: flung off-screen left, tumbling across the floor, bouncing, settling on face 0
+    const time = (reducedMotion ? 700 : 3200) * pace;
+    const tumbleAxis = vnorm([Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5]);
+    const turns = Math.PI * 2 * (5 + Math.random() * 2);
+    const start = performance.now();
+    swell(time / 1000 + 0.1);
+    tension(time / 1000);
+    rollEl.animate(
+      [
+        { transform: "translate(-80vw, -30vh) scale(.6)" },
+        { transform: "translate(-30vw, 0) scale(1)", offset: 0.3 },
+        { transform: "translate(-12vw, -14vh) scale(1)", offset: 0.48 },
+        { transform: "translate(4vw, 0) scale(1.05, .95)", offset: 0.66 },
+        { transform: "translate(8vw, -5vh) scale(1)", offset: 0.78 },
+        { transform: "translate(1vw, 0) scale(1.02, .98)", offset: 0.9 },
+        { transform: "none" },
+      ],
+      { duration: time, easing: "cubic-bezier(.2, .6, .35, 1)" }
+    );
+    let lastFace = 0;
+    // Frame loop, with a timeout fallback in case frames are paused (background tab)
+    await Promise.race([wait(time + 200), new Promise((resolve) => {
+      const frame = (now) => {
+        const t = Math.min(1, (now - start) / time);
+        const ease = 1 - Math.pow(1 - t, 3);
+        q = qmul(qaxis(tumbleAxis, turns * (1 - ease)), qFinal);
+        // Click as faces roll past, slowing down with the die
+        const face = Math.floor(turns * (1 - ease) / 0.6);
+        if (face !== lastFace) {
+          lastFace = face;
+          SOUND.tick();
+        }
+        render();
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve();
+      };
+      requestAnimationFrame(frame);
+    })]);
 
-  mult += value;
-  setMult(mult);
-  showToast(`END DIE ${total > 1 ? `${n}/${total} ` : ""}d${sides}\n+${value} MULTI`, multTier(mult));
-  if (n === 1 && value >= extraRoundFrom(sides)) {
-    stage.querySelector(".d20-goal").textContent = "★ ONE MORE ROUND ★";
-    stage.classList.add("extra");
+    // Land: the top face lights up with the result; die k counts k times
+    q = qFinal;
+    render = () => drawD20(c, 360, q, color, labels, true);
+    render();
+    stage.classList.add("landed");
+    labelEl.textContent = k > 1 ? `d${sides} → ${value} ×${k}` : `d${sides} → ${value}`;
+    boom(0);
+    timpani(98, { vol: 0.4 });
+    brassChord(semis(196, Math.min(sides, 12)), [0, 4, 7, 12], 1.6, 0.05, 0.04);
+    rollEl.animate([{ transform: "scale(1.25)" }, { transform: "none" }], { duration: 400, easing: "cubic-bezier(.3, 1.6, .5, 1)" });
+    const { x, y } = centerOf(canvasEl);
+    burst(x, y, 40 + sides * 8);
+    sparkles(x, y, 24);
+
+    mult += value * k;
+    setMult(mult);
+    showToast(`END DIE ${count > 1 ? `${k}/${count} ` : ""}d${sides}\n+${value * k} MULTI`, multTier(mult));
+    if (!earned && diceCount > 0 && value >= endDieNeed(sides, k)) {
+      earned = true;
+      goalEl.textContent = "★ ONE MORE ROUND ★";
+      stage.classList.add("extra");
+    }
+    await wait((reducedMotion ? 600 : 2000) * pace);
   }
-  await wait((reducedMotion ? 600 : 2000) * pace);
-  await stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400 * pace, fill: "forwards" }).settled;
+  await stage.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).settled;
   stage.remove();
-  return value;
+  return earned;
 }
 
-// The end die earns one more round when it rolls higher than a share of its sides (rounded
-// up), and the bar rises every time: 1/2 the first time, then 2/3, 3/4, 4/5, ...
-const endDieBar = () => stats.endDieRolls + 1;
-// One end die, plus one more for every 10 floors reached
-const END_DIE_FLOORS = 10;
-const endDiceFor = (f) => 1 + Math.floor(f / END_DIE_FLOORS);
-const extraRoundFrom = (sides) => Math.ceil((sides * endDieBar()) / (endDieBar() + 1)) + 1;
-function endDieGoal(sides) {
-  const k = endDieBar();
-  const need = extraRoundFrom(sides);
+// End dice: one at floor 1, then one more at each of these floors (10 at most). End die k
+// buys one more round by beating j/(j+1) of its sides (rounded up), j = k + the times the
+// end dice were rolled before: 1/2, 2/3, 3/4, ... for the dice, one step higher every visit
+const END_DICE_AT = [1, 10, 25, 50, 100, 150, 200, 250, 300, 350];
+const endDiceFor = (f) => END_DICE_AT.filter((at) => f >= at).length;
+const endDieBar = (k) => k + stats.endDieRolls;
+const endDieNeed = (sides, k) => Math.ceil((sides * endDieBar(k)) / (endDieBar(k) + 1)) + 1;
+function endDieGoal(sides, k, count) {
+  const j = endDieBar(k);
+  const need = endDieNeed(sides, k);
+  const die = count > 1 ? `die ${k}: ` : "";
+  if (!diceCount) return "no dice left · it only adds to the multiplier";
   return need > sides
-    ? `a d${sides} can't beat ${k}/${k + 1} · no more rounds`
-    : `beat ${k}/${k + 1}: roll ${need}+ for ONE MORE ROUND`;
+    ? `${die}a d${sides} can't beat ${j}/${j + 1}${k > 1 ? ` · counts ×${k}` : ""}`
+    : `${die}beat ${j}/${j + 1}: roll ${need}+ for ONE MORE ROUND${k > 1 ? ` · counts ×${k}` : ""}`;
 }
 
 /* ---------- UI helpers ---------- */
@@ -2249,6 +2269,7 @@ silverBtn.addEventListener("click", () => {
 
 // Bad d20s on the table this game: the alarm only fires for new ones, and they never leave
 let badAnnounced = 0;
+let ceoArrived = false;
 // Good d20s earned by waiting out the stuck elevator; they stay for the game
 let goodD20 = 0;
 
@@ -2262,6 +2283,7 @@ async function startTurn() {
   diceCount = BASE_DICE;
   resetStats();
   badAnnounced = 0;
+  ceoArrived = false;
   goodD20 = 0;
   for (const v of [1, 2, 3, 4]) unlocked[v] = false;
   goldD10 = false;
@@ -2291,8 +2313,13 @@ async function startTurn() {
 // Lay out this round's dice unrolled; the player rolls them one tap at a time
 async function startRound() {
   round++;
+  // From floor 250 the Casino CEO takes over: losing faces double
+  if (floor >= CEO_FLOOR && !ceoArrived) {
+    ceoArrived = true;
+    await ceoAlarm();
+  }
   // Bad d20s never leave: the count only ever grows
-  const bad = Math.max(badAnnounced, badDiceFor(diceCount));
+  const bad = Math.max(badAnnounced, badDiceFor(floor));
   if (bad > badAnnounced) {
     await managerAlarm(bad);
   }
@@ -2387,6 +2414,16 @@ async function resolveRound() {
     await wait(reducedMotion ? 300 : 900);
   }
 
+  // Floor pay: chips for every floor you are on
+  const floorPay = FLOOR_CHIPS * floor;
+  if (floorPay) {
+    showToast(`FLOOR ${floor} PAYS\n+${floorPay}`, floorTier(floor));
+    SOUND.combo();
+    addPips(floorPay);
+    extra += floorPay;
+    await wait(reducedMotion ? 300 : 900);
+  }
+
   for (const combo of scoreCombos(values)) {
     stats.combos++;
     showToast(`${combo.name} +${combo.bonus}`);
@@ -2433,6 +2470,11 @@ async function resolveRound() {
   if (struck) {
     stats.struck += struck;
     await loseDice(struck);
+    // Last red die gone: the game ends here, the end dice still roll but buy no extra round
+    if (!diceCount) {
+      await endTurn();
+      return;
+    }
   }
 
   if (sixCount) {
@@ -2491,8 +2533,16 @@ async function loseDice(count) {
   // The last red dice on the table are the ones that crumble
   const victims = roundDice.filter(live).slice(-count);
   await Promise.all(victims.map((o, i) => wait(i * 250).then(() => destroyDie(o))));
-  diceCount = Math.max(1, diceCount - count);
+  // No red dice left means game over (resolveRound ends it)
+  diceCount = Math.max(0, diceCount - count);
   setDiceCount();
+  if (!diceCount) {
+    showToast("ALL YOUR DICE ARE GONE\nGAME OVER", 7);
+    setMessage("> the Casino Manager pockets your last die. the table is empty");
+    arp([392, 330, 262, 196, 147], 0.18, { type: "sawtooth", vol: 0.06, wet: 0.4 });
+    await wait(reducedMotion ? 600 : 2000);
+    return;
+  }
   showToast(`BAD d20 STRUCK!\n-${count} DIE${count > 1 ? "S" : ""} · NOW ${diceCount}`, 7);
   setMessage(`> the Casino Manager pockets ${count === 1 ? "a die" : count + " dice"} with a smile`);
   arp([392, 330, 262, 196], 0.14, { type: "sawtooth", vol: 0.05, wet: 0.3 });
@@ -2524,6 +2574,37 @@ async function managerAlarm(badTotal) {
   setMessage("> uh oh. management is watching", true);
   alarm.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, fill: "forwards" });
   await wait(reducedMotion ? 1200 : 3000);
+  alarm.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
+  await wait(320);
+  alarm.remove();
+}
+
+// Violet alarm: the Casino CEO arrives at floor 250 and doubles the losing faces. A frantic
+// siren over a ship's horn
+async function ceoAlarm() {
+  const alarm = document.createElement("div");
+  alarm.className = "alarm ceo";
+  alarm.innerHTML = `
+    <div class="alarm-box">
+      <p class="alarm-title">&#128680;&#128084; CEO ALERT &#128084;&#128680;</p>
+      <p class="alarm-text">The casino CEO enters the room, your winstreak HAS to end now!</p>
+      <p class="alarm-sub">from now on 1&ndash;${badLosesOn()} on a bad d20 destroys a red die</p>
+    </div>`;
+  document.body.appendChild(alarm);
+  // Siren: fast sweeps in two clashing voices
+  for (let i = 0; i < 10; i++) {
+    sfx(700, 0.2, { type: "square", vol: 0.04, to: 1400, delay: i * 0.4 });
+    sfx(1400, 0.2, { type: "square", vol: 0.04, to: 700, delay: i * 0.4 + 0.2 });
+    sfx(520, 0.4, { type: "sawtooth", vol: 0.025, to: 780, delay: i * 0.4 + 0.1, wet: 0.2 });
+  }
+  // Horn: three long low blasts, a detuned stack
+  for (const at of [0, 1.4, 2.8]) {
+    for (const f of [73.4, 74.2, 110, 110.8, 146.8]) sfx(f, 1.1, { type: "sawtooth", vol: 0.05, delay: at, attack: 0.06, wet: 0.3 });
+    boom(at);
+  }
+  setMessage("> the CEO. in person. this is bad", true);
+  alarm.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, fill: "forwards" });
+  await wait(reducedMotion ? 1500 : 4200);
   alarm.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" });
   await wait(320);
   alarm.remove();
@@ -3006,18 +3087,12 @@ async function randomEvent() {
 async function endTurn() {
   phase = "busy";
   if (totalSixes) {
-    const sides = totalSixes;
-    const k = endDieBar();
-    const count = endDiceFor(floor);
-    // Every end die adds to the multiplier; the first one decides the bonus round (letting the
-    // best of many decide made long games practically endless)
-    const value = await rollEndDie(1, count);
-    for (let n = 2; n <= count; n++) await rollEndDie(n, count);
-    const earned = value >= extraRoundFrom(sides);
+    // Every end die adds to the multiplier, and every one of them can buy one more round
+    const earned = await rollEndDice(endDiceFor(floor));
     stats.endDieRolls++;
     if (earned) {
-      showToast(`END DIE ${value} OF ${sides}\nONE MORE ROUND!`, 8);
-      setMessage(`> beat ${k}/${k + 1} of the end die: one more round. next time it takes ${k + 1}/${k + 2}`, true);
+      showToast("END DICE:\nONE MORE ROUND!", 8);
+      setMessage("> an end die beat its bar: one more round. next time every bar is one step higher", true);
       arp([523, 659, 784, 1047, 1319], 0.08, { type: "triangle", vol: 0.06, wet: 0.4 });
       await wait(reducedMotion ? 400 : 1400);
       await startRound();
@@ -3625,25 +3700,29 @@ $("lb-clear").addEventListener("click", () => {
 
 // "How the table grows": built from the rule constants, so it always matches the game
 (function fillProgression() {
-  // What a yazzy needs and how many bad d20s sit on the table, by table size
-  const sizes = [5, 6, 8, 10, 11, 12, 15, 20, 25, 30];
+  // What a yazzy needs, by table size
+  const sizes = [3, 4, 5, 6, 8, 10, 11, 12, 15, 20, 25, 30];
   const rows = sizes.map((n) => {
     const notes = [];
     if (n === BASE_DICE) notes.push("start: every bonus locked");
-    if (n === BAD_FROM_DICE) notes.push("\u{1F6A8} the Casino Manager arrives");
-    else if (n > BAD_FROM_DICE && (n - BAD_FROM_DICE) % BAD_EVERY_DICE === 0) notes.push("\u{1F6A8} another bad d20");
     if (n === 11) notes.push("yazzy now needs dice − 5");
-    return [`${n} dice`, `${yazzyNeed(n)} of ${n}`, notes.join(" · "), String(badDiceFor(n))];
+    return [`${n} dice`, yazzyNeed(n) > n ? "no yazzy" : `${yazzyNeed(n)} of ${n}`, notes.join(" · ")];
   });
   $("prog-rows").innerHTML =
-    `<tr><td><b>table</b></td><td><b>yazzy</b></td><td><b>what changes</b></td><td><b>bad d20s</b></td></tr>` +
-    rows.map((r) => `<tr><td class="lb-score">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+    `<tr><td><b>table</b></td><td><b>yazzy</b></td><td><b>what changes</b></td></tr>` +
+    rows.map((r) => `<tr><td class="lb-score">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
 
-  const faces = [`<tr><td class="lb-score">floor 0–${LOSE_FACE_STEP - 1}</td><td>a 1 destroys a red die</td><td>5% each</td></tr>`];
-  for (let f = 2; f <= 4; f++) {
-    const from = (f - 1) * LOSE_FACE_STEP;
-    faces.push(`<tr><td class="lb-score">floor ${from}–${from + LOSE_FACE_STEP - 1}</td><td>1–${f} destroys a red die</td><td>${f * 5}% each</td></tr>`);
+  // Bad d20s and their losing faces by floor
+  const faces = [`<tr><td class="lb-score">floor 0</td><td>no bad d20s yet</td><td></td></tr>`];
+  for (const f of [BAD_EVERY_FLOORS, LOSE_FACE_STEP, LOSE_FACE_STEP * 2, LOSE_FACE_STEP * 3, LOSE_FACE_STEP * 4, CEO_FLOOR, CEO_FLOOR + 50]) {
+    const n = losingFacesAt(f);
+    const bad = badDiceFor(f);
+    const ceo = f === CEO_FLOOR ? " · \u{1F454} the Casino CEO doubles the faces" : "";
+    faces.push(`<tr><td class="lb-score">floor ${f}</td><td>${bad} bad d20${bad > 1 ? "s" : ""}: ${n === 1 ? "a 1" : `1–${n}`} destroys a red die${ceo}</td><td>${n * 5}% each</td></tr>`);
   }
+  faces.push(`<tr><td class="lb-score">every ${BAD_EVERY_FLOORS} floors</td><td>one more bad d20, for good</td><td></td></tr>`);
+  faces.push(`<tr><td class="lb-score">every ${LOSE_FACE_STEP} floors</td><td>one more losing face (doubled from floor ${CEO_FLOOR})</td><td></td></tr>`);
+  faces.push(`<tr><td class="lb-score">no red dice left</td><td>game over</td><td></td></tr>`);
   faces.push(`<tr><td class="lb-score">always</td><td>a 20 confiscates one unlocked bonus</td><td>5% each</td></tr>`);
   $("face-rows").innerHTML = faces.join("");
 })();

@@ -1369,6 +1369,20 @@ html.flashy .alarm { animation: alarm-strobe .16s steps(1) infinite; }
 .alarm-text { margin: 0; font-size: 1.45rem; line-height: 1.3; color: #fff; }
 .alarm-sub { margin: 12px 0 0; color: #ff9aa8; }
 
+/* The Casino CEO: the same alarm in violet, twice as frantic */
+.alarm.ceo {
+  background: radial-gradient(circle, rgba(90, 0, 140, .6), rgba(18, 0, 30, .94));
+  animation: ceo-pulse .5s ease-in-out infinite;
+}
+html.flashy .alarm.ceo { animation: ceo-strobe .12s steps(1) infinite; }
+@keyframes ceo-pulse { 50% { background-color: rgba(170, 40, 255, .4); } }
+@keyframes ceo-strobe { 50% { background: rgba(170, 40, 255, .85); } }
+.alarm.ceo .alarm-box { background: #0d0218; border-color: #b14dff; box-shadow: 0 0 50px #b14dff, 0 0 120px rgba(177, 77, 255, .5); }
+.alarm.ceo .alarm-title { color: #d38bff; }
+.alarm.ceo .alarm-sub { color: #e2b8ff; }
+.alarm.ceo .alarm-box { animation: ceo-shake .12s steps(2) infinite; }
+@keyframes ceo-shake { 50% { transform: translate(2px, -2px) rotate(-.5deg); } }
+
 /* Floor banner zipping across */
 .floor-banner {
   position: fixed;

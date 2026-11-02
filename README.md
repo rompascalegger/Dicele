@@ -9,21 +9,21 @@ A retro pixel dice game in plain HTML, CSS and JavaScript. No build step, no dep
 1. **Wheel of Wealth.** Tap STOP. The number is your multiplier; 100 spins again and adds up.
 2. **Tap your dice.** 5 red dice to start. Every 6 = one floor up and another round. No 6 at all = game over.
 3. **Every 5 floors** the elevator hands you another red die.
-4. **Yazzy:** most of your dice showing the same number (5 of 5 &hellip; 5 of 10, then 6 of 11, 7 of 12, &hellip;).
+4. **Yazzy:** most of your dice showing the same number (5 of 5 &hellip; 5 of 10, then 6 of 11, 7 of 12, &hellip;; at least 4 of a kind, so no yazzy with 3 dice or fewer).
    One short? The odd die gets a slow-motion chance: 1/6 + wheel luck. Every yazzy also counts as a 6.
    - 1s unlock rerolling 1s, 2s the green die for 2s (1, 3, 4, 5, 6), 3s the end-game sacrifice, 4s the d4 shelf
    - 5s: **Silver Jackpot**, the multiplier doubles
    - 6s: **Gold Jackpot**, a golden d10 joins the table and adds its roll to the multiplier every round
    - Perfect yazzy (every die the same): one more red die
 5. **Last chance:** no 6? The last die is rerolled in slow motion: 1/6 + (100 &minus; wheel) &divide; 10 %.
-6. **Casino Manager:** from 10 dice a bad d20 (it rolls itself and never leaves), one more per 5 dice. A 1 destroys a die (one more losing face every 100 floors); a 20 confiscates a bonus.
-7. **Score = chips &times; multiplier**, plus an end die d(total sixes) on the multiplier (one more end die per 10 floors). Beat 1/2 of it (rounded up) and you play one more round; each later end die needs 2/3, 3/4, 4/5, &hellip; The end screen ranks you against 6 million simulated games.
+6. **Casino Manager:** one more bad d20 every 25 floors (they roll themselves and never leave). A 1 destroys a red die (one more losing face every 50 floors, doubled from floor 250 when the Casino CEO arrives); a 20 confiscates a bonus. No red dice left is game over.
+7. **Score = chips &times; multiplier.** Every round pays +10 chips per floor. At the end, end dice d(total sixes) go on the multiplier: 1 from floor 1, 2 from floor 10, one more at floor 25, 50, 100, 150, 200, 250, 300 and 350 (10 at most); end die k counts k times. Every end die can buy one more round: die 1 beats 1/2 of its sides, die 2 beats 2/3, &hellip;, and every visit raises all bars one step. The end screen ranks you against 6 million simulated games.
 
 Buttons: 🏆 leaderboard (this device), ? rules, ⚡ flashy animations (off by default), ♪ sound, ⏩ insta-autoroll.
 
 ## Balance
 
-With the Casino Manager arriving at 10 dice, about 1 hand-rolled game in 4 breaks past it and snowballs practically forever (auto-rolled games about 1 in 21). That rate is tuned with `BAD_FROM_DICE`, `BAD_EVERY_DICE` and `LOSE_FACE_STEP` in `script.js`.
+Every game ends: from floor 250 the bad d20s destroy dice faster than the elevator hands them out. About half of the hand-rolled games end before floor 25, a third between floor 100 and 249, and only about 2 in 100 meet the Casino CEO. Tuned with `BAD_EVERY_FLOORS`, `LOSE_FACE_STEP` and `CEO_FLOOR` in `script.js`.
 
 ## Files
 
