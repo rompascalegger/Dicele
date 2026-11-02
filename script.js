@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.5.0";
+const VERSION = "2.6.0";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 6,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 18000, 110000, 4300000, 350000000, 630000000, 1000000000, 1400000000, 1900000000, 2900000000];
+const SCORE_TIERS = [0, 18000, 110000, 2100000, 58000000, 210000000, 590000000, 1600000000, 8300000000, 53000000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 13, 47, 176, 203, 223, 239, 256, 281, 302];
+const FLOOR_TIERS = [1, 13, 37, 100, 134, 173, 223, 339, 994, 1010];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 5], [0.1, 72], [1, 448], [5, 2147], [10, 5424], [20, 18128], [30, 44180], [40, 113568], [50, 377805], [60, 4324320], [70, 202657140], [75, 353355920], [80, 489072771], [85, 632039026], [90, 838069708], [93, 1005715400], [95, 1152635652], [97, 1371547720], [98, 1552637590], [99, 1866725868], [99.5, 2171182725], [99.8, 2578275498], [99.9, 2908544672], [99.95, 3251260625], [99.99, 4103636875], [99.999, 5701986145], [100, 12002774344]];
+const SCORE_PERCENTILES = [[0, 6], [0.1, 72], [1, 444], [5, 2145], [10, 5428], [20, 18172], [30, 44233], [40, 111625], [50, 336092], [60, 2063100], [70, 22793286], [75, 57862560], [80, 116965440], [85, 208815578], [90, 376211682], [93, 593411737], [95, 889837795], [97, 1631160375], [98, 2776111884], [99, 8302386535], [99.5, 27984111060], [99.8, 44548863714], [99.9, 52913995041], [99.95, 65780506230], [99.99, 124582387232], [99.999, 240021104264], [100, 805083155415]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 5], [40, 13], [50, 21], [60, 47], [75, 176], [85, 203], [90, 214], [93, 223], [95, 230], [97, 239], [99, 256], [99.9, 281], [99.99, 302]];
+const FLOOR_PERCENTILES = [[20, 5], [40, 13], [50, 20], [60, 37], [75, 100], [85, 134], [90, 154], [93, 173], [95, 191], [97, 223], [99, 339], [99.9, 994], [99.99, 1010]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0007], [1.069, 0.001], [1.138, 0.0013], [1.207, 0.0015], [1.276, 0.0016], [1.345, 0.0017], [1.414, 0.0022], [1.483, 0.0027], [1.552, 0.0033], [1.621, 0.0041], [1.689, 0.0048], [1.758, 0.0056], [1.827, 0.0069], [1.896, 0.0084], [1.965, 0.0105], [2.034, 0.0129], [2.103, 0.0157], [2.172, 0.0191], [2.241, 0.023], [2.31, 0.0278], [2.379, 0.0336], [2.448, 0.0406], [2.517, 0.0492], [2.586, 0.0593], [2.655, 0.0715], [2.724, 0.0859], [2.793, 0.103], [2.862, 0.1221], [2.93, 0.1413], [2.999, 0.1577], [3.068, 0.1684], [3.137, 0.1746], [3.206, 0.1796], [3.275, 0.1892], [3.344, 0.2086], [3.413, 0.2387], [3.482, 0.2753], [3.551, 0.3115], [3.62, 0.3423], [3.689, 0.3654], [3.758, 0.3832], [3.827, 0.4027], [3.896, 0.4255], [3.965, 0.4516], [4.034, 0.4814], [4.103, 0.5107], [4.171, 0.5379], [4.24, 0.5647], [4.309, 0.589], [4.378, 0.6095], [4.447, 0.6275], [4.516, 0.6395], [4.585, 0.6443], [4.654, 0.6419], [4.723, 0.6303], [4.792, 0.6122], [4.861, 0.5898], [4.93, 0.5665], [4.999, 0.5458], [5.068, 0.5283], [5.137, 0.5137], [5.206, 0.4994], [5.275, 0.4831], [5.344, 0.4626], [5.412, 0.4375], [5.481, 0.4079], [5.55, 0.375], [5.619, 0.3413], [5.688, 0.3095], [5.757, 0.2822], [5.826, 0.2608], [5.895, 0.2457], [5.964, 0.2359], [6.033, 0.2297], [6.102, 0.2249], [6.171, 0.22], [6.24, 0.2136], [6.309, 0.2052], [6.378, 0.1953], [6.447, 0.1848], [6.516, 0.1746], [6.585, 0.1662], [6.653, 0.1598], [6.722, 0.1555], [6.791, 0.1529], [6.86, 0.151], [6.929, 0.1493], [6.998, 0.1471], [7.067, 0.1437], [7.136, 0.1393], [7.205, 0.1334], [7.274, 0.1264], [7.343, 0.1191], [7.412, 0.1125], [7.481, 0.1081], [7.55, 0.1062], [7.619, 0.1069], [7.688, 0.1098], [7.757, 0.1137], [7.826, 0.119], [7.895, 0.1264], [7.963, 0.1385], [8.032, 0.1591], [8.101, 0.1917], [8.17, 0.2379], [8.239, 0.2974], [8.308, 0.3679], [8.377, 0.4498], [8.446, 0.547], [8.515, 0.6607], [8.584, 0.7825], [8.653, 0.8929], [8.722, 0.9706], [8.791, 1.0], [8.86, 0.9792], [8.929, 0.9158], [8.998, 0.8164], [9.067, 0.6891], [9.136, 0.5453], [9.204, 0.4006], [9.273, 0.2722], [9.342, 0.1709], [9.411, 0.0991], [9.48, 0.0529], [9.549, 0.0253], [9.618, 0.0109], [9.687, 0.0043], [9.756, 0.0015]];
+const SCORE_CURVE = [[1.0, 0.0012], [1.082, 0.0018], [1.163, 0.0022], [1.245, 0.0024], [1.327, 0.0028], [1.409, 0.0034], [1.49, 0.0042], [1.572, 0.0054], [1.654, 0.0067], [1.736, 0.0084], [1.817, 0.0107], [1.899, 0.0135], [1.981, 0.0176], [2.063, 0.0223], [2.144, 0.0282], [2.226, 0.0359], [2.308, 0.0448], [2.389, 0.0559], [2.471, 0.0694], [2.553, 0.0861], [2.635, 0.1072], [2.716, 0.1333], [2.798, 0.1642], [2.88, 0.197], [2.962, 0.2272], [3.043, 0.2505], [3.125, 0.2672], [3.207, 0.2824], [3.289, 0.3067], [3.37, 0.348], [3.452, 0.4037], [3.534, 0.4641], [3.615, 0.5205], [3.697, 0.5653], [3.779, 0.6034], [3.861, 0.6448], [3.942, 0.6891], [4.024, 0.7401], [4.106, 0.7929], [4.188, 0.842], [4.269, 0.8898], [4.351, 0.9312], [4.433, 0.9657], [4.515, 0.9906], [4.596, 1.0], [4.678, 0.9941], [4.76, 0.9726], [4.842, 0.9402], [4.923, 0.9053], [5.005, 0.8736], [5.087, 0.848], [5.168, 0.8266], [5.25, 0.8035], [5.332, 0.7739], [5.414, 0.7355], [5.495, 0.6878], [5.577, 0.6349], [5.659, 0.581], [5.741, 0.5317], [5.822, 0.4916], [5.904, 0.4616], [5.986, 0.4411], [6.068, 0.4266], [6.149, 0.4145], [6.231, 0.4019], [6.313, 0.3874], [6.394, 0.3711], [6.476, 0.3549], [6.558, 0.3419], [6.64, 0.334], [6.721, 0.3326], [6.803, 0.3376], [6.885, 0.3472], [6.967, 0.3601], [7.048, 0.374], [7.13, 0.3873], [7.212, 0.3992], [7.294, 0.41], [7.375, 0.4222], [7.457, 0.4385], [7.539, 0.4612], [7.62, 0.4905], [7.702, 0.5243], [7.784, 0.5601], [7.866, 0.5961], [7.947, 0.6328], [8.029, 0.6702], [8.111, 0.7066], [8.193, 0.7371], [8.274, 0.7539], [8.356, 0.7508], [8.438, 0.726], [8.52, 0.6824], [8.601, 0.6267], [8.683, 0.5657], [8.765, 0.5044], [8.846, 0.4448], [8.928, 0.388], [9.01, 0.3341], [9.092, 0.2838], [9.173, 0.2385], [9.255, 0.1991], [9.337, 0.1659], [9.419, 0.1386], [9.5, 0.1161], [9.582, 0.0974], [9.664, 0.0821], [9.746, 0.0693], [9.827, 0.0591], [9.909, 0.051], [9.991, 0.0446], [10.073, 0.0398], [10.154, 0.0363], [10.236, 0.0345], [10.318, 0.0358], [10.399, 0.0397], [10.481, 0.0442], [10.563, 0.0463], [10.645, 0.0431], [10.726, 0.0343], [10.808, 0.0234], [10.89, 0.0137], [10.972, 0.0071], [11.053, 0.0038], [11.135, 0.0024], [11.217, 0.0015], [11.299, 0.0009], [11.38, 0.0005]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -66,20 +66,32 @@ function paintTier(el, tier) {
 const BASE_DICE = 5;
 // Every this many floors the elevator hands you one more red die (no upper limit)
 const FLOORS_PER_DIE = 5;
-// The Casino Manager puts a bad d20 on the table every 25 floors, and it stays for the rest
-// of the game: a permanent debuff. It destroys a red die on a 1; every 50 floors one more
-// face loses: 1-2 from floor 50, 1-3 from 100, ... Lose your last red die and the game is over
-const BAD_EVERY_FLOORS = 25;
+// The Casino Manager puts bad d20s on the table at floor 10 and 25, then one more every 15
+// floors (40, 55, ...), 8 at most; they stay for the rest of the game. A bad d20 destroys a red
+// die on a 1, from floor 50 on 1-2. Lose your last red die and the game is over
+const BAD_FIRST_FLOOR = 10;
+const BAD_FROM_FLOOR = 25;
+const BAD_EVERY_FLOORS = 15;
+const BAD_MAX_DICE = 8;
 const LOSE_FACE_STEP = 50;
-// The Casino CEO arrives at floor 125, 250, 375, ... and each time puts one more bad d100 on
-// the table for good: a 1 destroys a third of your red dice (rounded up)
-const CEO_EVERY_FLOORS = 125;
+const LOSE_FACES_MAX = 2;
+// The Casino CEO arrives at floor 75 and 125 and each time puts a bad d100 on the table for
+// good: a 1 destroys a fifth of your red dice (rounded up)
+const CEO_FIRST_FLOOR = 75;
+const CEO_EVERY_FLOORS = 50;
+const CEO_MAX_DICE = 2;
 const CEO_DIE_SIDES = 100;
-const CEO_LOSS_SHARE = 0.33;
-const badDiceFor = (f) => Math.floor(f / BAD_EVERY_FLOORS);
-const ceoDiceFor = (f) => Math.floor(f / CEO_EVERY_FLOORS);
+const CEO_LOSS_SHARE = 0.2;
+// The President arrives at floor 500 with the Nuke die, a d500: a 1 ends the game. It loses a
+// face for every floor you climb and for every bad d20 that shows a 1
+const PRESIDENT_FLOOR = 500;
+const PRESIDENT_DIE_SIDES = 500;
+const PRESIDENT_SHRINKS_PER_FLOOR = 1;
+const badDiceFor = (f) =>
+  Math.min(BAD_MAX_DICE, (f >= BAD_FIRST_FLOOR ? 1 : 0) + (f >= BAD_FROM_FLOOR ? 1 + Math.floor((f - BAD_FROM_FLOOR) / BAD_EVERY_FLOORS) : 0));
+const ceoDiceFor = (f) => Math.min(CEO_MAX_DICE, f >= CEO_FIRST_FLOOR ? 1 + Math.floor((f - CEO_FIRST_FLOOR) / CEO_EVERY_FLOORS) : 0);
 const ceoLoss = (n) => Math.ceil(CEO_LOSS_SHARE * n - 1e-9);
-const losingFacesAt = (f) => Math.min(19, 1 + Math.floor(f / LOSE_FACE_STEP));
+const losingFacesAt = (f) => Math.min(LOSE_FACES_MAX, 1 + Math.floor(f / LOSE_FACE_STEP));
 const badLosesOn = () => losingFacesAt(floor);
 // Each extra round is worth this much more than the last: +10, +20, +30...
 const BONUS_STEP = 10;
@@ -692,9 +704,11 @@ function d20FrontQ() {
 const GOOD_COLORS = { waiting: "#c9a020", shield: "#ffe04a", miss: "#8a7a3a" };
 // The Casino CEO's bad d100, drawn on the same icosahedron in violet
 const CEO_COLORS = { waiting: "#5a1a8a", struck: "#c45cff", safe: "#4a3a5e" };
-// Dice the house rolls itself: bad d20s, good d20s, the CEO's d100s
-const selfRolling = (o) => o.kind === "bad" || o.kind === "good" || o.kind === "ceo";
-const sidesOf = (o) => (o.kind === "ceo" ? CEO_DIE_SIDES : 20);
+// The President's Nuke die: hazard yellow and black
+const NUKE_COLORS = { waiting: "#e8c400", struck: "#ff2f2f", safe: "#5e5420" };
+// Dice the house rolls itself: bad d20s, good d20s, the CEO's d100s, the Nuke die
+const selfRolling = (o) => o.kind === "bad" || o.kind === "good" || o.kind === "ceo" || o.kind === "nuke";
+const sidesOf = (o) => (o.kind === "ceo" ? CEO_DIE_SIDES : o.kind === "nuke" ? nukeSides : 20);
 const ceoStruck = (o) => o.kind === "ceo" && o.value === 1;
 
 function drawBad(obj, q = obj.q, highlight = obj.value !== null) {
@@ -703,16 +717,19 @@ function drawBad(obj, q = obj.q, highlight = obj.value !== null) {
       ? obj.value === null ? GOOD_COLORS.waiting : obj.value === 20 ? GOOD_COLORS.shield : GOOD_COLORS.miss
       : obj.kind === "ceo"
       ? obj.value === null ? CEO_COLORS.waiting : ceoStruck(obj) ? CEO_COLORS.struck : CEO_COLORS.safe
+      : obj.kind === "nuke"
+      ? obj.value === null ? NUKE_COLORS.waiting : obj.value === 1 ? NUKE_COLORS.struck : NUKE_COLORS.safe
       : obj.value === null ? BAD_COLORS.waiting : obj.value <= badLosesOn() ? BAD_COLORS.struck : BAD_COLORS.safe;
   drawD20(obj.ctx, BAD_D20_PX, q, color, obj.labels, highlight);
 }
 
-// kind "bad" (the Casino Manager's), "good" or "ceo" (the CEO's d100); all roll themselves
+// kind "bad" (the Casino Manager's), "good", "ceo" (the CEO's d100) or "nuke" (the President's);
+// all roll themselves
 function createBadDie(kind = "bad") {
   const slot = document.createElement("button");
   slot.type = "button";
-  slot.className = `bad-die ${kind === "good" ? "good-die " : kind === "ceo" ? "ceo-die " : ""}waiting`;
-  const label = { bad: "BAD d20", good: "GOOD d20 ☺", ceo: `CEO d${CEO_DIE_SIDES}` }[kind];
+  slot.className = `bad-die ${{ good: "good-die ", ceo: "ceo-die ", nuke: "nuke-die " }[kind] || ""}waiting`;
+  const label = { bad: "BAD d20", good: "GOOD d20 ☺", ceo: `CEO d${CEO_DIE_SIDES}`, nuke: `☢ NUKE d${nukeSides}` }[kind];
   slot.innerHTML = `<canvas class="bd-canvas" width="${BAD_D20_PX}" height="${BAD_D20_PX}"></canvas><span class="bd-value">?</span><span class="bd-label">${label}</span>`;
   const obj = {
     kind,
@@ -720,7 +737,7 @@ function createBadDie(kind = "bad") {
     value: null,
     rolling: false,
     ctx: slot.querySelector("canvas").getContext("2d"),
-    labels: ICO_FACES.map(() => d(kind === "ceo" ? CEO_DIE_SIDES : 20)),
+    labels: ICO_FACES.map(() => d(sidesOf({ kind }))),
     // Resting slightly tilted, so it reads as a 3D die
     q: qmul(qaxis(vnorm([1, 0.6, 0.2]), 0.45), d20FrontQ()),
   };
@@ -1179,12 +1196,12 @@ async function rollBad(obj) {
     obj.rolling = false;
     return value;
   }
-  const struck = obj.kind === "ceo" ? value === 1 : value <= badLosesOn();
+  const struck = obj.kind === "ceo" || obj.kind === "nuke" ? value === 1 : value <= badLosesOn();
   slot.classList.add(struck ? "struck" : "safe");
   if (struck) {
     sfx(220, 0.6, { type: "sawtooth", vol: 0.06, to: 90, wet: 0.3 });
     const { x, y } = centerOf(slot);
-    floatText(x, y - 30, obj.kind === "ceo" ? "-1/3 DICE!" : "-1 DIE!", "oof");
+    floatText(x, y - 30, { ceo: "-1/5 DICE!", nuke: "☢ BOOM ☢" }[obj.kind] || "-1 DIE!", "oof");
   } else {
     sfx(660, 0.08, { vol: 0.04 });
   }
@@ -2093,7 +2110,7 @@ async function rollEndDice(count) {
     mult += value * k;
     setMult(mult);
     showToast(`END DIE ${count > 1 ? `${k}/${count} ` : ""}d${sides}\n+${value * k} MULTI`, multTier(mult));
-    if (!earned && diceCount > 0 && value >= endDieNeed(sides, k)) {
+    if (!earned && !outOfGame() && value >= endDieNeed(sides, k)) {
       earned = true;
       goalEl.textContent = "★ ONE MORE ROUND ★";
       stage.classList.add("extra");
@@ -2116,7 +2133,7 @@ function endDieGoal(sides, k, count) {
   const j = endDieBar(k);
   const need = endDieNeed(sides, k);
   const die = count > 1 ? `die ${k}: ` : "";
-  if (!diceCount) return "no dice left · it only adds to the multiplier";
+  if (outOfGame()) return `${nuked ? "nuked" : "no dice left"} · it only adds to the multiplier`;
   return need > sides
     ? `${die}a d${sides} can't beat ${j}/${j + 1}${k > 1 ? ` · counts ×${k}` : ""}`
     : `${die}beat ${j}/${j + 1}: roll ${need}+ for ONE MORE ROUND${k > 1 ? ` · counts ×${k}` : ""}`;
@@ -2258,7 +2275,8 @@ function updateHint() {
         ? "The golden one is your CLUTCH TAP: hand-rollers' last die feels luckier..."
         : `Tap each die to roll it (${left} left). Every 6 = one floor up. No 6 at all = game over.` +
             (bad ? ` Bad d20: ${lose} costs you a die!` : "") +
-            (roundDice.some((o) => o.kind === "ceo" && o.value === null) ? " CEO d100: a 1 costs a third of your dice!" : "")
+            (roundDice.some((o) => o.kind === "ceo" && o.value === null) ? " CEO d100: a 1 costs a fifth of your dice!" : "") +
+            (roundDice.some((o) => o.kind === "nuke" && o.value === null) ? ` NUKE d${nukeSides}: a 1 ends the game!` : "")
     );
   } else if (phase === "choice") {
     const ones = roundDice.some((o) => rerollable(o) && o.value === 1);
@@ -2284,6 +2302,11 @@ silverBtn.addEventListener("click", () => {
 // Bad d20s on the table this game: the alarm only fires for new ones, and they never leave
 let badAnnounced = 0;
 let ceoAnnounced = 0;
+// Sides of the President's Nuke die (0 = he isn't here yet); nuked: it rolled a 1
+let nukeSides = 0;
+let nuked = false;
+// The game is over: no red dice left, or the Nuke die went off
+const outOfGame = () => !diceCount || nuked;
 // Good d20s earned by waiting out the stuck elevator; they stay for the game
 let goodD20 = 0;
 
@@ -2298,6 +2321,8 @@ async function startTurn() {
   resetStats();
   badAnnounced = 0;
   ceoAnnounced = 0;
+  nukeSides = 0;
+  nuked = false;
   goodD20 = 0;
   for (const v of [1, 2, 3, 4]) unlocked[v] = false;
   goldD10 = false;
@@ -2331,6 +2356,11 @@ async function startRound() {
   const ceo = Math.max(ceoAnnounced, ceoDiceFor(floor));
   if (ceo > ceoAnnounced) await ceoAlarm(ceo);
   ceoAnnounced = ceo;
+  // Floor 500: the President, with the Nuke die
+  if (floor >= PRESIDENT_FLOOR && !nukeSides) {
+    nukeSides = PRESIDENT_DIE_SIDES;
+    await presidentAlarm();
+  }
   // Bad d20s never leave: the count only ever grows
   const bad = Math.max(badAnnounced, badDiceFor(floor));
   if (bad > badAnnounced) {
@@ -2342,12 +2372,13 @@ async function startRound() {
   silverLeft = 0;
   bankedSixes = 0;
   tray.innerHTML = "";
-  sizeTray(diceCount + bad + ceo + goodD20 + (goldD10 ? 1 : 0));
+  sizeTray(diceCount + bad + ceo + (nukeSides ? 1 : 0) + goodD20 + (goldD10 ? 1 : 0));
   for (let i = 0; i < diceCount; i++) roundDice.push(createDie());
   if (goldD10) roundDice.push(createGoldDie());
   for (let i = 0; i < goodD20; i++) roundDice.push(createBadDie("good"));
   for (let i = 0; i < bad; i++) roundDice.push(createBadDie());
   for (let i = 0; i < ceo; i++) roundDice.push(createBadDie("ceo"));
+  if (nukeSides) roundDice.push(createBadDie("nuke"));
   // Dice drop onto the felt
   roundDice.forEach((o, i) =>
     o.slot.animate([{ transform: "translateY(-60px)", opacity: 0 }, { transform: "none", opacity: 1 }], {
@@ -2475,6 +2506,16 @@ async function resolveRound() {
     await wait(reducedMotion ? 400 : 1200);
   }
 
+  // Every bad d20 showing a 1 takes a face off the Nuke die (the good d20 can't stop that)
+  const nuke = roundDice.find((o) => o.kind === "nuke");
+  const ones = roundDice.filter((o) => o.kind === "bad" && o.value === 1).length;
+  if (nuke && ones) {
+    nukeSides = Math.max(1, nukeSides - ones);
+    nuke.slot.querySelector(".bd-label").textContent = `☢ NUKE d${nukeSides}`;
+    showToast(`BAD d20 ROLLED 1\nNUKE DIE NOW d${nukeSides}`, 7);
+    await wait(reducedMotion ? 300 : 900);
+  }
+
   // A bad d20 showing 20: the manager confiscates a bonus
   const twenties = badDice.filter((o) => o.value === 20).length;
   if (twenties) await confiscate(twenties);
@@ -2491,7 +2532,16 @@ async function resolveRound() {
     }
   }
 
-  // A CEO d100 showing 1 sweeps a third of the red dice off the table (the good d20 can't stop him)
+  // The Nuke die showing 1 ends the game (the end dice still roll, but buy no extra round)
+  if (nuke && nuke.value === 1) {
+    nuked = true;
+    stats.nuked = true;
+    await nukeBlast();
+    await endTurn();
+    return;
+  }
+
+  // A CEO d100 showing 1 sweeps a fifth of the red dice off the table (the good d20 can't stop him)
   for (const o of roundDice.filter(ceoStruck)) {
     const lost = ceoLoss(diceCount);
     stats.struck += lost;
@@ -2569,7 +2619,7 @@ async function loseDice(count, byCeo = false) {
     return;
   }
   showToast(`${byCeo ? `CEO d${CEO_DIE_SIDES} ROLLED 1!` : "BAD d20 STRUCK!"}\n-${count} DIE${count > 1 ? "S" : ""} · NOW ${diceCount}`, 7);
-  setMessage(byCeo ? `> the CEO sweeps a third of your dice off the table: ${count} gone` : `> the Casino Manager pockets ${count === 1 ? "a die" : count + " dice"} with a smile`);
+  setMessage(byCeo ? `> the CEO sweeps a fifth of your dice off the table: ${count} gone` : `> the Casino Manager pockets ${count === 1 ? "a die" : count + " dice"} with a smile`);
   arp([392, 330, 262, 196], 0.14, { type: "sawtooth", vol: 0.05, wet: 0.3 });
   await wait(reducedMotion ? 400 : 1400);
 }
@@ -2604,7 +2654,56 @@ async function managerAlarm(badTotal) {
   alarm.remove();
 }
 
-// Violet alarm: the Casino CEO arrives (floor 125, 250, ...) with one more bad d100. A frantic
+// The biggest alarm there is: the President arrives at floor 500 with the Nuke die. Hazard
+// stripes in yellow and black, an air-raid siren, klaxons and a countdown of booms
+async function presidentAlarm() {
+  const alarm = document.createElement("div");
+  alarm.className = "alarm president";
+  alarm.innerHTML = `
+    <div class="alarm-box">
+      <p class="alarm-title">&#9762; DEFCON 1 &#9762;</p>
+      <p class="alarm-text">"This is the President, this game has to end, now!"</p>
+      <p class="alarm-sub">the &#9762; NUKE d${nukeSides} joins your table: a 1 ends the game. It loses a face for every floor you climb and every bad d20 that shows a 1</p>
+    </div>`;
+  document.body.appendChild(alarm);
+  document.documentElement.classList.add("defcon");
+  // Air-raid siren: a slow wail up and down, twice, under everything
+  for (let i = 0; i < 2; i++) {
+    sfx(180, 1.6, { type: "sawtooth", vol: 0.06, to: 760, delay: i * 3.2, attack: 0.4, wet: 0.4 });
+    sfx(760, 1.6, { type: "sawtooth", vol: 0.06, to: 180, delay: i * 3.2 + 1.6, wet: 0.4 });
+  }
+  // Klaxons: harsh square bursts
+  for (let i = 0; i < 12; i++) sfx(440, 0.22, { type: "square", vol: 0.045, to: 330, delay: 0.1 + i * 0.5 });
+  // The horn from the CEO, lower and longer, and a boom on every beat
+  for (const at of [0, 2, 4]) {
+    for (const f of [55, 55.6, 82.4, 110]) sfx(f, 1.6, { type: "sawtooth", vol: 0.055, delay: at, attack: 0.08, wet: 0.35 });
+    boom(at);
+  }
+  for (let i = 0; i < 6; i++) boom(4.5 + i * 0.25);
+  setMessage("> the President. on the phone. on the table. this is it", true);
+  alarm.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, fill: "forwards" });
+  await wait(reducedMotion ? 2000 : 6500);
+  alarm.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" });
+  await wait(420);
+  alarm.remove();
+  document.documentElement.classList.remove("defcon");
+}
+
+// The Nuke die rolled a 1: a white flash, a mushroom of booms, and the game is over
+async function nukeBlast() {
+  const flash = document.createElement("div");
+  flash.className = "nuke-flash";
+  document.body.appendChild(flash);
+  for (let i = 0; i < 5; i++) boom(i * 0.3);
+  noise(2.5, { vol: 0.35, lp: 600, wet: 0.5 });
+  showToast("☢ THE NUKE DIE ROLLED 1 ☢\nGAME OVER", 7);
+  setMessage("> the President kept his word. the tower is gone");
+  flash.animate([{ opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 0 }], { duration: reducedMotion ? 600 : 2600, fill: "forwards" });
+  await wait(reducedMotion ? 800 : 2800);
+  flash.remove();
+}
+
+// Violet alarm: the Casino CEO arrives (floor 75 and 125) with one more bad d100. A frantic
 // siren over a ship's horn
 async function ceoAlarm(ceoTotal) {
   const alarm = document.createElement("div");
@@ -2613,7 +2712,7 @@ async function ceoAlarm(ceoTotal) {
     <div class="alarm-box">
       <p class="alarm-title">&#128680;&#128084; CEO ALERT &#128084;&#128680;</p>
       <p class="alarm-text">The casino CEO enters the room, your winstreak HAS to end now!</p>
-      <p class="alarm-sub">${ceoTotal > 1 ? `${ceoTotal} CEO d${CEO_DIE_SIDES}s` : `a CEO d${CEO_DIE_SIDES}`} on your table for good: a 1 destroys a third of your red dice</p>
+      <p class="alarm-sub">${ceoTotal > 1 ? `${ceoTotal} CEO d${CEO_DIE_SIDES}s` : `a CEO d${CEO_DIE_SIDES}`} on your table for good: a 1 destroys a fifth of your red dice</p>
     </div>`;
   document.body.appendChild(alarm);
   // Siren: fast sweeps in two clashing voices
@@ -2916,6 +3015,7 @@ async function climb(floors) {
     setFloor(floor);
     roundEl.textContent = floor;
     bump(roundEl);
+    if (nukeSides) nukeSides = Math.max(1, nukeSides - PRESIDENT_SHRINKS_PER_FLOOR);
     if (!stfu() && Math.random() < (slowText() ? STUCK_CHANCE_SLOW : STUCK_CHANCE)) await stuckInElevator();
     if (floor % FLOORS_PER_DIE === 0) {
       await milestone();
@@ -3740,16 +3840,16 @@ $("lb-clear").addEventListener("click", () => {
 
   // Bad d20s and their losing faces by floor
   const faces = [`<tr><td class="lb-score">floor 0</td><td>no bad d20s yet</td><td></td></tr>`];
-  for (const f of [BAD_EVERY_FLOORS, LOSE_FACE_STEP, LOSE_FACE_STEP * 2, CEO_EVERY_FLOORS, LOSE_FACE_STEP * 3, LOSE_FACE_STEP * 4, CEO_EVERY_FLOORS * 2, CEO_EVERY_FLOORS * 3]) {
+  for (const f of [BAD_FIRST_FLOOR, BAD_FROM_FLOOR, BAD_FROM_FLOOR + BAD_EVERY_FLOORS, LOSE_FACE_STEP, CEO_FIRST_FLOOR, CEO_FIRST_FLOOR + CEO_EVERY_FLOORS]) {
     const n = losingFacesAt(f);
     const bad = badDiceFor(f);
     const c = ceoDiceFor(f);
     const ceo = c ? ` · \u{1F454} ${c} CEO d${CEO_DIE_SIDES}${c > 1 ? "s" : ""}` : "";
     faces.push(`<tr><td class="lb-score">floor ${f}</td><td>${bad} bad d20${bad > 1 ? "s" : ""}: ${n === 1 ? "a 1" : `1–${n}`} destroys a red die${ceo}</td><td>${n * 5}% each</td></tr>`);
   }
-  faces.push(`<tr><td class="lb-score">every ${BAD_EVERY_FLOORS} floors</td><td>one more bad d20, for good</td><td></td></tr>`);
-  faces.push(`<tr><td class="lb-score">every ${LOSE_FACE_STEP} floors</td><td>one more losing face</td><td></td></tr>`);
-  faces.push(`<tr><td class="lb-score">every ${CEO_EVERY_FLOORS} floors</td><td>the Casino CEO adds a bad d${CEO_DIE_SIDES}, for good: a 1 destroys a third of your red dice</td><td>1% each</td></tr>`);
+  faces.push(`<tr><td class="lb-score">every ${BAD_EVERY_FLOORS} floors</td><td>one more bad d20, for good (${BAD_MAX_DICE} at most)</td><td></td></tr>`);
+  faces.push(`<tr><td class="lb-score">CEO d${CEO_DIE_SIDES}</td><td>a 1 destroys a fifth of your red dice</td><td>1% each</td></tr>`);
+  faces.push(`<tr><td class="lb-score">floor ${PRESIDENT_FLOOR}</td><td>\u{2622} the President's NUKE d${PRESIDENT_DIE_SIDES}: a 1 ends the game. One face less for every floor you climb and every bad d20 showing 1</td><td></td></tr>`);
   faces.push(`<tr><td class="lb-score">no red dice left</td><td>game over</td><td></td></tr>`);
   faces.push(`<tr><td class="lb-score">always</td><td>a 20 confiscates one unlocked bonus</td><td>5% each</td></tr>`);
   $("face-rows").innerHTML = faces.join("");

@@ -48,15 +48,32 @@ RESULTS = HERE / "sim_results.json"
 RULES = {
     "BASE_DICE": 5,
     "FLOORS_PER_DIE": 5,  # one more red die every 5 floors
-    # Casino Manager: one bad d20 every 25 floors; they never leave
-    "BAD_EVERY_FLOORS": 25,
+    # Casino Manager: bad d20s at floor 10 and 25, then one more every 15 floors (40, 55, ...);
+    # they never leave
+    "BAD_FIRST_FLOOR": 10,
+    "BAD_FROM_FLOOR": 25,
+    "BAD_EVERY_FLOORS": 15,
     # A bad d20 destroys a red die on 1 below floor 50, on 1-2 from 50, 1-3 from 100, ...
     "LOSE_FACE_STEP": 50,
-    # The Casino CEO arrives at floor 125, 250, 375, ... and each time puts one more bad d100 on
-    # the table for good: a 1 destroys a third of the red dice (CEO_LOSS_SHARE, rounded up)
-    "CEO_EVERY_FLOORS": 125,
+    # The Casino CEO arrives at floor 75, 125, 175, ... and each time puts one more bad d100 on
+    # the table for good: a 1 destroys a fifth of the red dice (CEO_LOSS_SHARE, rounded up)
+    "CEO_FIRST_FLOOR": 75,
+    "CEO_EVERY_FLOORS": 50,
     "CEO_DIE_SIDES": 100,
-    "CEO_LOSS_SHARE": 0.33,
+    "CEO_LOSS_SHARE": 0.2,
+    # The President arrives at floor 500 with the Nuke die, a d500: a 1 is game over. It loses
+    # a face for every floor climbed and for every bad d20 showing a 1 (d499, d498, ...), so by
+    # floor 1000 it is a d1. 0 = no President
+    "PRESIDENT_FLOOR": 500,
+    "PRESIDENT_DIE_SIDES": 500,
+    "PRESIDENT_SHRINKS_PER_FLOOR": 1,
+    # Caps (0 = none): the most bad d20s / CEO d100s on a table, the most losing faces. The
+    # danger stops growing there, so deep runs spread out instead of hitting one wall
+    "BAD_MAX_DICE": 8,
+    "CEO_MAX_DICE": 2,
+    "LOSE_FACES_MAX": 2,
+    # Every floor climbed multiplies the multiplier by this (1 = off)
+    "MULT_PER_FLOOR": 1,
     # 0: a losing bad d20 destroys one red die. Above 0: that share of the red dice on the
     # table (rounded, at least one), so big tables stay at risk
     "BAD_LOSS_SHARE": 0,
@@ -102,7 +119,7 @@ OLD_END_DICE = {"END_DICE_AT": (1,) + tuple(range(10, 1001, 10)), "END_BAR": "fi
 
 # How the simulation runs (not rules)
 SIM = {
-    "TRACK_TOP": 1000,  # a game reaching this floor is practically endless (since 2.4 none do)
+    "TRACK_TOP": 5000,  # a game reaching this floor is practically endless (since 2.4 none do)
 }
 PCT_POINTS = [0, 0.1, 1, 5, 10, 20, 30, 40, 50, 60, 70, 75, 80, 85, 90, 93, 95, 97, 98, 99, 99.5, 99.8, 99.9, 99.95, 99.99, 99.999]
 FLOOR_PCT_POINTS = [20, 40, 50, 60, 75, 85, 90, 93, 95, 97, 99, 99.9, 99.99]
@@ -208,16 +225,22 @@ def combos(c):
     return bonus
 
 
+def capped(n, cap):
+    return min(n, cap) if cap else n
+
+
 def bad_dice_for(floor):
-    return floor // R["BAD_EVERY_FLOORS"]
+    n = (floor >= R["BAD_FIRST_FLOOR"]) + (floor >= R["BAD_FROM_FLOOR"] and 1 + (floor - R["BAD_FROM_FLOOR"]) // R["BAD_EVERY_FLOORS"])
+    return capped(int(n), R["BAD_MAX_DICE"])
 
 
 def lose_faces(floor):
-    return min(19, 1 + floor // R["LOSE_FACE_STEP"])
+    return min(R["LOSE_FACES_MAX"], 1 + floor // R["LOSE_FACE_STEP"])
 
 
 def ceo_dice_for(floor):
-    return floor // R["CEO_EVERY_FLOORS"]
+    n = floor >= R["CEO_FIRST_FLOOR"] and 1 + (floor - R["CEO_FIRST_FLOOR"]) // R["CEO_EVERY_FLOORS"]
+    return capped(int(n), R["CEO_MAX_DICE"])
 
 
 def yazzy_need(n):
@@ -275,6 +298,7 @@ def play_game(hand):
     retry_used = False
     end_rolls = 0
     bad_count = 0  # bad d20s never leave the table
+    president = 0  # sides of the President's die once he is here
     while True:
         rnd += 1
         c = table(dice, unlocked)
@@ -297,8 +321,13 @@ def play_game(hand):
         bad_count = max(bad_count, bad_dice_for(floor))
         lf = lose_faces(floor)
         bad_twenties = bad_lost = 0
+        if R["PRESIDENT_FLOOR"] and floor >= R["PRESIDENT_FLOOR"] and not president:
+            president = R["PRESIDENT_DIE_SIDES"]
+        president_hit = president and d(president) == 1
         for _ in range(bad_count):
             b = d(20)
+            if b == 1 and president > 1:
+                president -= 1
             if b == 20:
                 bad_twenties += 1
             elif b <= lf:
@@ -369,7 +398,7 @@ def play_game(hand):
         for _ in range(ceo_dice_for(floor)):
             if d(R["CEO_DIE_SIDES"]) == 1:
                 dice -= math.ceil(R["CEO_LOSS_SHARE"] * dice - 1e-9)
-        if dice <= 0:
+        if dice <= 0 or president_hit:
             mult += end_mult(end_dice(floor))
             break
         if not sixes:
@@ -384,6 +413,10 @@ def play_game(hand):
         gained = (floor + sixes) // fpd - floor // fpd
         floor += sixes
         dice += gained
+        if president and R["PRESIDENT_SHRINKS_PER_FLOOR"]:
+            president = max(1, president - sixes * R["PRESIDENT_SHRINKS_PER_FLOOR"])
+        if R["MULT_PER_FLOOR"] != 1:
+            mult *= R["MULT_PER_FLOOR"] ** sixes
         if floor >= SIM["TRACK_TOP"]:
             return None
     return pips * mult, floor, rnd

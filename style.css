@@ -1386,6 +1386,34 @@ html.flashy .alarm.ceo { animation: ceo-strobe .12s steps(1) infinite; }
 .alarm.ceo .alarm-box { animation: ceo-shake .12s steps(2) infinite; }
 @keyframes ceo-shake { 50% { transform: translate(2px, -2px) rotate(-.5deg); } }
 
+/* The President: the biggest alarm there is. Hazard stripes in yellow and black that crawl,
+   a black box with a yellow frame, and the whole page shaking */
+.alarm.president {
+  z-index: 30;
+  background: repeating-linear-gradient(-45deg, #ffd400 0 40px, #111 40px 80px);
+  background-size: 113px 113px;
+  animation: hazard-crawl .6s linear infinite;
+}
+html.flashy .alarm.president { animation: hazard-crawl .3s linear infinite, hazard-strobe .2s steps(1) infinite; }
+@keyframes hazard-crawl { to { background-position: 113px 0; } }
+@keyframes hazard-strobe { 50% { filter: invert(1); } }
+.alarm.president .alarm-box {
+  max-width: 520px;
+  background: #0b0b0b;
+  border: 8px solid #ffd400;
+  outline: 4px solid #111;
+  box-shadow: 0 0 0 12px #ffd400, 0 0 80px #ffd400;
+  animation: ceo-shake .08s steps(2) infinite;
+}
+.alarm.president .alarm-title { color: #ffd400; font-size: 1.6rem; }
+.alarm.president .alarm-text { color: #fff; font-size: 1.7rem; }
+.alarm.president .alarm-sub { color: #ffe680; }
+html.defcon body { animation: mayhem-shake .1s steps(2) infinite; }
+.nuke-die .bd-label { color: #ffd400; }
+.nuke-die .bd-canvas { filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .5)) drop-shadow(0 0 12px rgba(255, 212, 0, .6)); }
+.nuke-die.struck .bd-value { text-shadow: 0 0 14px #ffd400, 2px 2px 0 #111; }
+.nuke-flash { position: fixed; inset: 0; z-index: 31; pointer-events: none; opacity: 0; background: radial-gradient(circle, #fff 0 30%, #ffd400 60%, #ff5a00); }
+
 /* Floor banner zipping across */
 .floor-banner {
   position: fixed;
