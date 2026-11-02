@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.4.0";
+const VERSION = "2.4.1";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -2749,9 +2749,10 @@ function floorBanner(f) {
 
 /* ---------- Easter egg: stuck in the elevator ---------- */
 
-// SLOW mode only: 1 floor in 100 the elevator gets stuck. HELP brings the mechanic in 15
-// seconds; whoever waits a whole minute without pressing it gets a good d20 for the game
+// 1 floor in 100 the elevator gets stuck, 1 in 50 in SLOW mode, never under STFU. HELP brings
+// the mechanic in 15 seconds; whoever waits a whole minute without pressing it gets a good d20
 const STUCK_CHANCE = 0.01;
+const STUCK_CHANCE_SLOW = 0.02;
 const STUCK_HELP_MS = 15000;
 const STUCK_WAIT_MS = 60000;
 const STUCK_LINES = [
@@ -2890,7 +2891,7 @@ async function climb(floors) {
     setFloor(floor);
     roundEl.textContent = floor;
     bump(roundEl);
-    if (slowText() && Math.random() < STUCK_CHANCE) await stuckInElevator();
+    if (!stfu() && Math.random() < (slowText() ? STUCK_CHANCE_SLOW : STUCK_CHANCE)) await stuckInElevator();
     if (floor % FLOORS_PER_DIE === 0) {
       await milestone();
     } else {

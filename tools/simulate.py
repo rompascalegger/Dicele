@@ -55,6 +55,9 @@ RULES = {
     # From floor 250 the Casino CEO doubles the losing faces
     "CEO_FLOOR": 250,
     "CEO_FACE_MULT": 2,
+    # 0: a losing bad d20 destroys one red die. Above 0: that share of the red dice on the
+    # table (rounded, at least one), so big tables stay at risk
+    "BAD_LOSS_SHARE": 0,
     # A 20 on a bad d20 takes away one unlocked bonus
     "BAD_CONFISCATES": True,
     # Yazzy: all but 5 dice the same (at least 5, at most all of them), and never fewer than
@@ -355,7 +358,9 @@ def play_game(hand):
                     unlocked[random.choice(owned)] = False
         # Destroyed dice go before anything else; no red dice left is game over (the end dice
         # still add to the multiplier, this round's sixes don't climb)
-        dice -= bad_lost
+        share = R["BAD_LOSS_SHARE"]
+        for _ in range(bad_lost):
+            dice -= max(1, round(share * dice)) if share else 1
         if dice <= 0:
             mult += end_mult(end_dice(floor))
             break
