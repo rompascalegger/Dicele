@@ -78,8 +78,8 @@ RULES = {
     # 0: a losing bad d20 destroys one red die. Above 0: that share of the red dice on the
     # table (rounded, at least one), so big tables stay at risk
     "BAD_LOSS_SHARE": 0,
-    # A 20 on a bad d20 takes away one unlocked bonus
-    "BAD_CONFISCATES": True,
+    # True: a 20 on a bad d20 takes away one unlocked bonus (off since 2.7.1: you keep your yazzys)
+    "BAD_CONFISCATES": False,
     # Yazzy: all but 5 dice the same (at least 5, at most all of them), and never fewer than
     # YAZZY_MIN_DICE of a kind: with 3 dice or fewer there is no yazzy. YAZZY_LIKE = [5, 10]
     # instead asks, on every table size, for the number of a kind whose chance comes closest
