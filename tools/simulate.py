@@ -62,11 +62,12 @@ RULES = {
     "CEO_DIE_SIDES": 100,
     "CEO_LOSS_SHARE": 0.2,
     # The President arrives at floor 500 with the Nuke die, a d500: a 1 is game over. It loses
-    # a face for every floor climbed and for every bad d20 showing a 1 (d499, d498, ...), so by
-    # floor 1000 it is a d1. 0 = no President
+    # a face for every floor climbed and gains one for every red die the house destroys.
+    # 0 = no President
     "PRESIDENT_FLOOR": 500,
     "PRESIDENT_DIE_SIDES": 500,
     "PRESIDENT_SHRINKS_PER_FLOOR": 1,
+    "PRESIDENT_GROWS_PER_LOST_DIE": 1,
     # Caps (0 = none): the most bad d20s / CEO d100s on a table, the most losing faces. The
     # danger stops growing there, so deep runs spread out instead of hitting one wall
     "BAD_MAX_DICE": 8,
@@ -80,10 +81,13 @@ RULES = {
     # A 20 on a bad d20 takes away one unlocked bonus
     "BAD_CONFISCATES": True,
     # Yazzy: all but 5 dice the same (at least 5, at most all of them), and never fewer than
-    # YAZZY_MIN_DICE of a kind: with 3 dice or fewer there is no yazzy
+    # YAZZY_MIN_DICE of a kind: with 3 dice or fewer there is no yazzy. YAZZY_LIKE = [5, 10]
+    # instead asks, on every table size, for the number of a kind whose chance comes closest
+    # to 5 of 10 (not live)
     "YAZZY_MIN": 5,
     "YAZZY_SLACK": 5,
     "YAZZY_MIN_DICE": 4,
+    "YAZZY_LIKE": None,
     "UNLOCK_REPEAT_CHIPS": 100,  # an unlock you already own pays 100 x its number
     "GOLD_REPEAT_MULT": 10,
     "GOLD_DIE_SIDES": 10,  # the golden die adds d10 to the multiplier every round
@@ -243,8 +247,39 @@ def ceo_dice_for(floor):
     return capped(int(n), R["CEO_MAX_DICE"])
 
 
+def chance_of_kind(n, k):
+    """Chance that some face shows at least k times on n fair d6 (same float math as script.js)."""
+    # below[m]: chance that m dice spread over t faces leave every face under k
+    below = [1.0 if m < k else 0.0 for m in range(n + 1)]
+    for t in range(2, 7):
+        nxt = []
+        for m in range(n + 1):
+            p = 0.0
+            for j in range(min(k - 1, m) + 1):
+                p += math.exp(math.lgamma(m + 1) - math.lgamma(j + 1) - math.lgamma(m - j + 1) + j * math.log(1 / t) + (m - j) * math.log((t - 1) / t)) * below[m - j]
+            nxt.append(p)
+        below = nxt
+    return 1 - below[n]
+
+
+_need_cache = {}
+
+
 def yazzy_need(n):
-    return max(R["YAZZY_MIN_DICE"], min(n, max(R["YAZZY_MIN"], n - R["YAZZY_SLACK"])))
+    if not R["YAZZY_LIKE"]:
+        return max(R["YAZZY_MIN_DICE"], min(n, max(R["YAZZY_MIN"], n - R["YAZZY_SLACK"])))
+    key = (n, tuple(R["YAZZY_LIKE"]), R["YAZZY_MIN_DICE"])
+    if key not in _need_cache:
+        lo = R["YAZZY_MIN_DICE"]
+        if n <= lo:
+            _need_cache[key] = lo
+        else:
+            target = math.log(chance_of_kind(R["YAZZY_LIKE"][1], R["YAZZY_LIKE"][0]))
+            k = max(lo, -(-n // 6))
+            while k < n and chance_of_kind(n, k + 1) > 0 and abs(math.log(chance_of_kind(n, k + 1)) - target) < abs(math.log(chance_of_kind(n, k)) - target):
+                k += 1
+            _need_cache[key] = k
+    return _need_cache[key]
 
 
 def end_mult(ends):
@@ -326,8 +361,6 @@ def play_game(hand):
         president_hit = president and d(president) == 1
         for _ in range(bad_count):
             b = d(20)
-            if b == 1 and president > 1:
-                president -= 1
             if b == 20:
                 bad_twenties += 1
             elif b <= lf:
@@ -392,12 +425,15 @@ def play_game(hand):
                     unlocked[random.choice(owned)] = False
         # Destroyed dice go before anything else; no red dice left is game over (the end dice
         # still add to the multiplier, this round's sixes don't climb)
+        before = dice
         share = R["BAD_LOSS_SHARE"]
         for _ in range(bad_lost):
             dice -= max(1, round(share * dice)) if share else 1
         for _ in range(ceo_dice_for(floor)):
             if d(R["CEO_DIE_SIDES"]) == 1:
                 dice -= math.ceil(R["CEO_LOSS_SHARE"] * dice - 1e-9)
+        if president:
+            president += (before - max(dice, 0)) * R["PRESIDENT_GROWS_PER_LOST_DIE"]
         if dice <= 0 or president_hit:
             mult += end_mult(end_dice(floor))
             break

@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.6.0";
+const VERSION = "2.6.1";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 6,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 18000, 110000, 2100000, 58000000, 210000000, 590000000, 1600000000, 8300000000, 53000000000];
+const SCORE_TIERS = [0, 18000, 110000, 2100000, 58000000, 210000000, 590000000, 1600000000, 8400000000, 62000000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 13, 37, 100, 134, 173, 223, 339, 994, 1010];
+const FLOOR_TIERS = [1, 13, 37, 99, 134, 173, 224, 339, 1071, 1108];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 6], [0.1, 72], [1, 444], [5, 2145], [10, 5428], [20, 18172], [30, 44233], [40, 111625], [50, 336092], [60, 2063100], [70, 22793286], [75, 57862560], [80, 116965440], [85, 208815578], [90, 376211682], [93, 593411737], [95, 889837795], [97, 1631160375], [98, 2776111884], [99, 8302386535], [99.5, 27984111060], [99.8, 44548863714], [99.9, 52913995041], [99.95, 65780506230], [99.99, 124582387232], [99.999, 240021104264], [100, 805083155415]];
+const SCORE_PERCENTILES = [[0, 6], [0.1, 70], [1, 442], [5, 2136], [10, 5412], [20, 18105], [30, 44030], [40, 111210], [50, 334512], [60, 2050272], [70, 22624632], [75, 57539100], [80, 116714864], [85, 208609520], [90, 376394788], [93, 594122640], [95, 891825178], [97, 1644746012], [98, 2796073975], [99, 8353167372], [99.5, 29411224192], [99.8, 51544875552], [99.9, 61520359424], [99.95, 73676341200], [99.99, 141977602650], [99.999, 301869798090], [100, 1346155042128]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 5], [40, 13], [50, 20], [60, 37], [75, 100], [85, 134], [90, 154], [93, 173], [95, 191], [97, 223], [99, 339], [99.9, 994], [99.99, 1010]];
+const FLOOR_PERCENTILES = [[20, 5], [40, 13], [50, 20], [60, 37], [75, 99], [85, 134], [90, 154], [93, 173], [95, 191], [97, 224], [99, 339], [99.9, 1071], [99.99, 1108]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0012], [1.082, 0.0018], [1.163, 0.0022], [1.245, 0.0024], [1.327, 0.0028], [1.409, 0.0034], [1.49, 0.0042], [1.572, 0.0054], [1.654, 0.0067], [1.736, 0.0084], [1.817, 0.0107], [1.899, 0.0135], [1.981, 0.0176], [2.063, 0.0223], [2.144, 0.0282], [2.226, 0.0359], [2.308, 0.0448], [2.389, 0.0559], [2.471, 0.0694], [2.553, 0.0861], [2.635, 0.1072], [2.716, 0.1333], [2.798, 0.1642], [2.88, 0.197], [2.962, 0.2272], [3.043, 0.2505], [3.125, 0.2672], [3.207, 0.2824], [3.289, 0.3067], [3.37, 0.348], [3.452, 0.4037], [3.534, 0.4641], [3.615, 0.5205], [3.697, 0.5653], [3.779, 0.6034], [3.861, 0.6448], [3.942, 0.6891], [4.024, 0.7401], [4.106, 0.7929], [4.188, 0.842], [4.269, 0.8898], [4.351, 0.9312], [4.433, 0.9657], [4.515, 0.9906], [4.596, 1.0], [4.678, 0.9941], [4.76, 0.9726], [4.842, 0.9402], [4.923, 0.9053], [5.005, 0.8736], [5.087, 0.848], [5.168, 0.8266], [5.25, 0.8035], [5.332, 0.7739], [5.414, 0.7355], [5.495, 0.6878], [5.577, 0.6349], [5.659, 0.581], [5.741, 0.5317], [5.822, 0.4916], [5.904, 0.4616], [5.986, 0.4411], [6.068, 0.4266], [6.149, 0.4145], [6.231, 0.4019], [6.313, 0.3874], [6.394, 0.3711], [6.476, 0.3549], [6.558, 0.3419], [6.64, 0.334], [6.721, 0.3326], [6.803, 0.3376], [6.885, 0.3472], [6.967, 0.3601], [7.048, 0.374], [7.13, 0.3873], [7.212, 0.3992], [7.294, 0.41], [7.375, 0.4222], [7.457, 0.4385], [7.539, 0.4612], [7.62, 0.4905], [7.702, 0.5243], [7.784, 0.5601], [7.866, 0.5961], [7.947, 0.6328], [8.029, 0.6702], [8.111, 0.7066], [8.193, 0.7371], [8.274, 0.7539], [8.356, 0.7508], [8.438, 0.726], [8.52, 0.6824], [8.601, 0.6267], [8.683, 0.5657], [8.765, 0.5044], [8.846, 0.4448], [8.928, 0.388], [9.01, 0.3341], [9.092, 0.2838], [9.173, 0.2385], [9.255, 0.1991], [9.337, 0.1659], [9.419, 0.1386], [9.5, 0.1161], [9.582, 0.0974], [9.664, 0.0821], [9.746, 0.0693], [9.827, 0.0591], [9.909, 0.051], [9.991, 0.0446], [10.073, 0.0398], [10.154, 0.0363], [10.236, 0.0345], [10.318, 0.0358], [10.399, 0.0397], [10.481, 0.0442], [10.563, 0.0463], [10.645, 0.0431], [10.726, 0.0343], [10.808, 0.0234], [10.89, 0.0137], [10.972, 0.0071], [11.053, 0.0038], [11.135, 0.0024], [11.217, 0.0015], [11.299, 0.0009], [11.38, 0.0005]];
+const SCORE_CURVE = [[1.0, 0.0011], [1.083, 0.0017], [1.165, 0.0022], [1.248, 0.0025], [1.33, 0.0029], [1.413, 0.0037], [1.495, 0.0046], [1.578, 0.0057], [1.66, 0.0072], [1.743, 0.0088], [1.825, 0.011], [1.908, 0.0143], [1.99, 0.0184], [2.073, 0.0234], [2.155, 0.0296], [2.238, 0.0372], [2.32, 0.0463], [2.403, 0.0577], [2.485, 0.072], [2.568, 0.0893], [2.65, 0.1115], [2.733, 0.1392], [2.815, 0.1712], [2.898, 0.2053], [2.98, 0.2346], [3.063, 0.2565], [3.145, 0.2724], [3.228, 0.2886], [3.311, 0.3176], [3.393, 0.3636], [3.476, 0.4217], [3.558, 0.4823], [3.641, 0.5361], [3.723, 0.5788], [3.806, 0.6181], [3.888, 0.6612], [3.971, 0.7084], [4.053, 0.7622], [4.136, 0.8148], [4.218, 0.8646], [4.301, 0.9109], [4.383, 0.9489], [4.466, 0.98], [4.548, 0.9981], [4.631, 1.0], [4.713, 0.9869], [4.796, 0.9592], [4.878, 0.9245], [4.961, 0.8902], [5.043, 0.8608], [5.126, 0.8375], [5.208, 0.8161], [5.291, 0.7909], [5.373, 0.7575], [5.456, 0.7137], [5.539, 0.6621], [5.621, 0.6072], [5.704, 0.5543], [5.786, 0.5091], [5.869, 0.474], [5.951, 0.4492], [6.034, 0.4325], [6.116, 0.4203], [6.199, 0.4084], [6.281, 0.3948], [6.364, 0.3786], [6.446, 0.3612], [6.529, 0.346], [6.611, 0.3359], [6.694, 0.3328], [6.776, 0.3369], [6.859, 0.3459], [6.941, 0.3583], [7.024, 0.3717], [7.106, 0.3846], [7.189, 0.3963], [7.271, 0.4069], [7.354, 0.4187], [7.436, 0.4342], [7.519, 0.4559], [7.601, 0.4842], [7.684, 0.5171], [7.766, 0.5526], [7.849, 0.5884], [7.932, 0.625], [8.014, 0.6628], [8.097, 0.6997], [8.179, 0.7316], [8.262, 0.7508], [8.344, 0.7508], [8.427, 0.7296], [8.509, 0.6888], [8.592, 0.6345], [8.674, 0.5735], [8.757, 0.511], [8.839, 0.45], [8.922, 0.392], [9.004, 0.3374], [9.087, 0.2866], [9.169, 0.241], [9.252, 0.2014], [9.334, 0.1681], [9.417, 0.1404], [9.499, 0.1176], [9.582, 0.0985], [9.664, 0.0827], [9.747, 0.0699], [9.829, 0.0596], [9.912, 0.0515], [9.994, 0.045], [10.077, 0.0398], [10.16, 0.0356], [10.242, 0.0326], [10.325, 0.0316], [10.407, 0.0333], [10.49, 0.0373], [10.572, 0.0412], [10.655, 0.0422], [10.737, 0.038], [10.82, 0.0291], [10.902, 0.0191], [10.985, 0.0107], [11.067, 0.0053], [11.15, 0.0028], [11.232, 0.0018], [11.315, 0.0011], [11.397, 0.0007], [11.48, 0.0004]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -83,10 +83,11 @@ const CEO_MAX_DICE = 2;
 const CEO_DIE_SIDES = 100;
 const CEO_LOSS_SHARE = 0.2;
 // The President arrives at floor 500 with the Nuke die, a d500: a 1 ends the game. It loses a
-// face for every floor you climb and for every bad d20 that shows a 1
+// face for every floor you climb and gains one for every red die the house destroys
 const PRESIDENT_FLOOR = 500;
 const PRESIDENT_DIE_SIDES = 500;
 const PRESIDENT_SHRINKS_PER_FLOOR = 1;
+const PRESIDENT_GROWS_PER_LOST_DIE = 1;
 const badDiceFor = (f) =>
   Math.min(BAD_MAX_DICE, (f >= BAD_FIRST_FLOOR ? 1 : 0) + (f >= BAD_FROM_FLOOR ? 1 + Math.floor((f - BAD_FROM_FLOOR) / BAD_EVERY_FLOORS) : 0));
 const ceoDiceFor = (f) => Math.min(CEO_MAX_DICE, f >= CEO_FIRST_FLOOR ? 1 + Math.floor((f - CEO_FIRST_FLOOR) / CEO_EVERY_FLOORS) : 0);
@@ -2506,15 +2507,7 @@ async function resolveRound() {
     await wait(reducedMotion ? 400 : 1200);
   }
 
-  // Every bad d20 showing a 1 takes a face off the Nuke die (the good d20 can't stop that)
   const nuke = roundDice.find((o) => o.kind === "nuke");
-  const ones = roundDice.filter((o) => o.kind === "bad" && o.value === 1).length;
-  if (nuke && ones) {
-    nukeSides = Math.max(1, nukeSides - ones);
-    nuke.slot.querySelector(".bd-label").textContent = `☢ NUKE d${nukeSides}`;
-    showToast(`BAD d20 ROLLED 1\nNUKE DIE NOW d${nukeSides}`, 7);
-    await wait(reducedMotion ? 300 : 900);
-  }
 
   // A bad d20 showing 20: the manager confiscates a bonus
   const twenties = badDice.filter((o) => o.value === 20).length;
@@ -2609,8 +2602,15 @@ async function loseDice(count, byCeo = false) {
   const victims = roundDice.filter(live).slice(-count);
   await Promise.all(victims.map((o, i) => wait(i * 250).then(() => destroyDie(o))));
   // No red dice left means game over (resolveRound ends it)
+  const lost = Math.min(count, diceCount);
   diceCount = Math.max(0, diceCount - count);
   setDiceCount();
+  // Every destroyed die gives the Nuke die one more face
+  if (nukeSides && diceCount) {
+    nukeSides += lost * PRESIDENT_GROWS_PER_LOST_DIE;
+    const nuke = roundDice.find((o) => o.kind === "nuke");
+    if (nuke) nuke.slot.querySelector(".bd-label").textContent = `☢ NUKE d${nukeSides}`;
+  }
   if (!diceCount) {
     showToast("ALL YOUR DICE ARE GONE\nGAME OVER", 7);
     setMessage(byCeo ? "> the CEO sweeps your last dice off the table. the table is empty" : "> the Casino Manager pockets your last die. the table is empty");
@@ -2618,7 +2618,7 @@ async function loseDice(count, byCeo = false) {
     await wait(reducedMotion ? 600 : 2000);
     return;
   }
-  showToast(`${byCeo ? `CEO d${CEO_DIE_SIDES} ROLLED 1!` : "BAD d20 STRUCK!"}\n-${count} DIE${count > 1 ? "S" : ""} · NOW ${diceCount}`, 7);
+  showToast(`${byCeo ? `CEO d${CEO_DIE_SIDES} ROLLED 1!` : "BAD d20 STRUCK!"}\n-${count} DIE${count > 1 ? "S" : ""} · NOW ${diceCount}${nukeSides ? ` · NUKE d${nukeSides}` : ""}`, 7);
   setMessage(byCeo ? `> the CEO sweeps a fifth of your dice off the table: ${count} gone` : `> the Casino Manager pockets ${count === 1 ? "a die" : count + " dice"} with a smile`);
   arp([392, 330, 262, 196], 0.14, { type: "sawtooth", vol: 0.05, wet: 0.3 });
   await wait(reducedMotion ? 400 : 1400);
@@ -2663,7 +2663,7 @@ async function presidentAlarm() {
     <div class="alarm-box">
       <p class="alarm-title">&#9762; DEFCON 1 &#9762;</p>
       <p class="alarm-text">"This is the President, this game has to end, now!"</p>
-      <p class="alarm-sub">the &#9762; NUKE d${nukeSides} joins your table: a 1 ends the game. It loses a face for every floor you climb and every bad d20 that shows a 1</p>
+      <p class="alarm-sub">the &#9762; NUKE d${nukeSides} joins your table: a 1 ends the game. It loses a face for every floor you climb and gains one for every die you lose</p>
     </div>`;
   document.body.appendChild(alarm);
   document.documentElement.classList.add("defcon");
@@ -3849,7 +3849,7 @@ $("lb-clear").addEventListener("click", () => {
   }
   faces.push(`<tr><td class="lb-score">every ${BAD_EVERY_FLOORS} floors</td><td>one more bad d20, for good (${BAD_MAX_DICE} at most)</td><td></td></tr>`);
   faces.push(`<tr><td class="lb-score">CEO d${CEO_DIE_SIDES}</td><td>a 1 destroys a fifth of your red dice</td><td>1% each</td></tr>`);
-  faces.push(`<tr><td class="lb-score">floor ${PRESIDENT_FLOOR}</td><td>\u{2622} the President's NUKE d${PRESIDENT_DIE_SIDES}: a 1 ends the game. One face less for every floor you climb and every bad d20 showing 1</td><td></td></tr>`);
+  faces.push(`<tr><td class="lb-score">floor ${PRESIDENT_FLOOR}</td><td>\u{2622} the President's NUKE d${PRESIDENT_DIE_SIDES}: a 1 ends the game. One face less for every floor you climb, one more for every die you lose</td><td></td></tr>`);
   faces.push(`<tr><td class="lb-score">no red dice left</td><td>game over</td><td></td></tr>`);
   faces.push(`<tr><td class="lb-score">always</td><td>a 20 confiscates one unlocked bonus</td><td>5% each</td></tr>`);
   $("face-rows").innerHTML = faces.join("");
