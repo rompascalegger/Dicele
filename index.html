@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.6.1">
+  <link rel="stylesheet" href="style.css?v=2.7.0">
 </head>
 <body>
   <div class="scanlines" aria-hidden="true"></div>
@@ -63,9 +63,9 @@
       <div id="go-curve" class="go-curve"></div>
       <div id="go-statgrid" class="go-statgrid"></div>
       <div id="go-comp" class="go-comp" hidden>
-        <p class="go-comp-title">&#127808; BEGINNER'S LUCK &#127808;</p>
-        <p class="go-comp-text">Rough start! The house feels bad and buys you one more game. It doesn't use up your next game.</p>
-        <button id="go-comp-btn" class="roll-btn go-comp-btn" type="button">&#9733; FREE GAME ON THE HOUSE &#9733;</button>
+        <p class="go-comp-title">&#127808; VERY BAD LUCK! &#127808;</p>
+        <p class="go-comp-text">BRONZE or worse? The house feels bad and lets you try again. It doesn't use up your next game.</p>
+        <button id="go-comp-btn" class="roll-btn go-comp-btn clover-btn" type="button">&#127808; TRY AGAIN! &#127808;</button>
       </div>
       <div id="go-entry" class="go-entry" hidden>
         <p id="go-entry-title" class="go-entry-title">HIGH SCORE!</p>
@@ -123,6 +123,8 @@
         <li><b>Casino Manager:</b> he puts a bad d20 on your table at floor 10 and 25, then one more every 15 floors (40, 55, 70, &hellip;), 8 at most. They roll themselves and <b>never leave</b>. A <b>1</b> destroys a red die for good, from floor 50 a 1 or 2. A <b>20</b> confiscates one of your unlocked bonuses. <b>No red dice left = game over.</b></li>
         <li><b>The Casino CEO</b> shows up at floor 75 and again at 125, each time leaving a bad <b>d100</b> on your table for good. It rolls itself; a <b>1</b> destroys a fifth of your red dice (rounded up). The good d20 can't stop him.</li>
         <li><b>The President</b> calls at floor 500: "This is the President, this game has to end, now!" His <b>&#9762; NUKE d500</b> rolls every round and a <b>1 ends the game</b>. It loses a face for every floor you climb and gains one for every red die you lose.</li>
+        <li><b>Street d8:</b> a round showing 1-2-3-4-5 or 2-3-4-5-6 (with more than 8 red dice: 1-2-3-4-5-6) brings an ultraviolet <b>d8</b> to your table for good (one at most). It rolls itself every round: <b>1</b> chips &times;2 this round, <b>2</b> multiplier &times;2 this round, <b>3</b> both, <b>4</b> a random red die rolls again (a 6 on it is banked), <b>5</b> the d8 rolls again, <b>6</b> a see-through bonus die joins this round, <b>7</b> a ghost bad d20 joins this round, <b>8</b> blocks a bad d20. The golden d10 rolls itself too.</li>
+        <li><b>Very bad luck:</b> a game that ends at BRONZE or worse gets the &#127808; clover: try again on the house, without using up your next game.</li>
         <li><b>Chips</b> each round: the sum of your red dice, a round bonus (+10 per round after the first), the floor pay (+10 for every floor you are on), combos (triple +30, four of a kind +80, five +200, six or more +500 and up, a 1&ndash;6 straight +100, six or more 6s in one round +666), the d4 shelf, random casino events, and the falling dice you tap: a red one pays the face it shows &times;10 in chips, a rare golden one adds its face to the multiplier.</li>
         <li><b>Score</b> = chips &times; multiplier. At the end you roll the END DICE, each a d(total sixes): one from floor 1, two from floor 10, then one more at floor 25, 50, 100, 150, 200, 250, 300 and 350 (10 at most). End die 2 counts &times;2 on the multiplier, die 3 &times;3 and so on. <b>Every end die can buy one more round:</b> die 1 has to beat 1/2 of its sides (rounded up: 7+ on a d12), die 2 beats 2/3, die 3 beats 3/4, &hellip; One hit is enough. Each time you're back at the end dice, every bar is one step higher.</li>
         <li><b>One game every 8 hours.</b> High scores go on this device's leaderboard (&#127942;).</li>
@@ -196,6 +198,6 @@
   <div id="toast" class="toast" aria-hidden="true">SIX!</div>
   <canvas id="fx" class="fx"></canvas>
 
-  <script src="script.js?v=2.6.1"></script>
+  <script src="script.js?v=2.7.0"></script>
 </body>
 </html>

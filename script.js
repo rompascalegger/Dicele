@@ -22,7 +22,7 @@ const wheelResultEl = $("wheel-result");
 const wheelTitleEl = $("wheel-title");
 const pointerEl = $("pointer");
 
-const VERSION = "2.6.1";
+const VERSION = "2.7.0";
 
 // Ten tiers, from boring to legendary: label, player title, end-screen verdict, color
 const TIERS = [
@@ -42,15 +42,15 @@ const TIERS = [
 // Final scores at or above these reach the matching tier. From 6,000,000 simulated
 // hand-rolled games (tools/simulate.py, MANUAL=1): bottom 20% Standard, then the
 // 40/60/75/85/93/97/99/99.9th percentiles
-const SCORE_TIERS = [0, 18000, 110000, 2100000, 58000000, 210000000, 590000000, 1600000000, 8400000000, 62000000000];
+const SCORE_TIERS = [0, 19000, 140000, 4500000, 160000000, 630000000, 2600000000, 18000000000, 80000000000, 150000000000];
 // Same idea for floors
-const FLOOR_TIERS = [1, 13, 37, 99, 134, 173, 224, 339, 1071, 1108];
+const FLOOR_TIERS = [1, 13, 42, 116, 158, 222, 362, 1045, 1092, 1119];
 // Score percentiles [percent of games, score], used to rank each result
-const SCORE_PERCENTILES = [[0, 6], [0.1, 70], [1, 442], [5, 2136], [10, 5412], [20, 18105], [30, 44030], [40, 111210], [50, 334512], [60, 2050272], [70, 22624632], [75, 57539100], [80, 116714864], [85, 208609520], [90, 376394788], [93, 594122640], [95, 891825178], [97, 1644746012], [98, 2796073975], [99, 8353167372], [99.5, 29411224192], [99.8, 51544875552], [99.9, 61520359424], [99.95, 73676341200], [99.99, 141977602650], [99.999, 301869798090], [100, 1346155042128]];
+const SCORE_PERCENTILES = [[0, 4], [0.1, 72], [1, 442], [5, 2160], [10, 5544], [20, 18971], [30, 48346], [40, 137750], [50, 512960], [60, 4524375], [70, 63217534], [75, 162378909], [80, 332370840], [85, 634388380], [90, 1365556030], [93, 2598044841], [95, 5053848000], [97, 17547246870], [98, 49103547544], [99, 79950795970], [99.5, 96638688235], [99.8, 120088319520], [99.9, 150696614403], [99.95, 200103284056], [99.99, 381360151489], [99.999, 807097023824], [100, 2851192833300]];
 // [percent of games, floors reached], for the end screen
-const FLOOR_PERCENTILES = [[20, 5], [40, 13], [50, 20], [60, 37], [75, 99], [85, 134], [90, 154], [93, 173], [95, 191], [97, 224], [99, 339], [99.9, 1071], [99.99, 1108]];
+const FLOOR_PERCENTILES = [[20, 5], [40, 13], [50, 21], [60, 42], [75, 116], [85, 158], [90, 189], [93, 222], [95, 262], [97, 362], [99, 1045], [99.9, 1092], [99.99, 1119]];
 // End-screen curve: [log10(score), share of games relative to the peak]
-const SCORE_CURVE = [[1.0, 0.0011], [1.083, 0.0017], [1.165, 0.0022], [1.248, 0.0025], [1.33, 0.0029], [1.413, 0.0037], [1.495, 0.0046], [1.578, 0.0057], [1.66, 0.0072], [1.743, 0.0088], [1.825, 0.011], [1.908, 0.0143], [1.99, 0.0184], [2.073, 0.0234], [2.155, 0.0296], [2.238, 0.0372], [2.32, 0.0463], [2.403, 0.0577], [2.485, 0.072], [2.568, 0.0893], [2.65, 0.1115], [2.733, 0.1392], [2.815, 0.1712], [2.898, 0.2053], [2.98, 0.2346], [3.063, 0.2565], [3.145, 0.2724], [3.228, 0.2886], [3.311, 0.3176], [3.393, 0.3636], [3.476, 0.4217], [3.558, 0.4823], [3.641, 0.5361], [3.723, 0.5788], [3.806, 0.6181], [3.888, 0.6612], [3.971, 0.7084], [4.053, 0.7622], [4.136, 0.8148], [4.218, 0.8646], [4.301, 0.9109], [4.383, 0.9489], [4.466, 0.98], [4.548, 0.9981], [4.631, 1.0], [4.713, 0.9869], [4.796, 0.9592], [4.878, 0.9245], [4.961, 0.8902], [5.043, 0.8608], [5.126, 0.8375], [5.208, 0.8161], [5.291, 0.7909], [5.373, 0.7575], [5.456, 0.7137], [5.539, 0.6621], [5.621, 0.6072], [5.704, 0.5543], [5.786, 0.5091], [5.869, 0.474], [5.951, 0.4492], [6.034, 0.4325], [6.116, 0.4203], [6.199, 0.4084], [6.281, 0.3948], [6.364, 0.3786], [6.446, 0.3612], [6.529, 0.346], [6.611, 0.3359], [6.694, 0.3328], [6.776, 0.3369], [6.859, 0.3459], [6.941, 0.3583], [7.024, 0.3717], [7.106, 0.3846], [7.189, 0.3963], [7.271, 0.4069], [7.354, 0.4187], [7.436, 0.4342], [7.519, 0.4559], [7.601, 0.4842], [7.684, 0.5171], [7.766, 0.5526], [7.849, 0.5884], [7.932, 0.625], [8.014, 0.6628], [8.097, 0.6997], [8.179, 0.7316], [8.262, 0.7508], [8.344, 0.7508], [8.427, 0.7296], [8.509, 0.6888], [8.592, 0.6345], [8.674, 0.5735], [8.757, 0.511], [8.839, 0.45], [8.922, 0.392], [9.004, 0.3374], [9.087, 0.2866], [9.169, 0.241], [9.252, 0.2014], [9.334, 0.1681], [9.417, 0.1404], [9.499, 0.1176], [9.582, 0.0985], [9.664, 0.0827], [9.747, 0.0699], [9.829, 0.0596], [9.912, 0.0515], [9.994, 0.045], [10.077, 0.0398], [10.16, 0.0356], [10.242, 0.0326], [10.325, 0.0316], [10.407, 0.0333], [10.49, 0.0373], [10.572, 0.0412], [10.655, 0.0422], [10.737, 0.038], [10.82, 0.0291], [10.902, 0.0191], [10.985, 0.0107], [11.067, 0.0053], [11.15, 0.0028], [11.232, 0.0018], [11.315, 0.0011], [11.397, 0.0007], [11.48, 0.0004]];
+const SCORE_CURVE = [[1.0, 0.0012], [1.086, 0.0018], [1.172, 0.0023], [1.258, 0.0028], [1.344, 0.0033], [1.429, 0.0042], [1.515, 0.0052], [1.601, 0.0064], [1.687, 0.008], [1.773, 0.0101], [1.859, 0.0132], [1.945, 0.0172], [2.031, 0.0223], [2.116, 0.0285], [2.202, 0.0358], [2.288, 0.0454], [2.374, 0.0573], [2.46, 0.0724], [2.546, 0.0916], [2.632, 0.1152], [2.718, 0.1444], [2.804, 0.1784], [2.889, 0.2143], [2.975, 0.2459], [3.061, 0.2705], [3.147, 0.2888], [3.233, 0.3082], [3.319, 0.3418], [3.405, 0.3927], [3.491, 0.4548], [3.576, 0.5193], [3.662, 0.575], [3.748, 0.6203], [3.834, 0.6645], [3.92, 0.7098], [4.006, 0.7599], [4.092, 0.8132], [4.178, 0.8629], [4.263, 0.9103], [4.349, 0.9501], [4.435, 0.9804], [4.521, 0.999], [4.607, 1.0], [4.693, 0.9847], [4.779, 0.9546], [4.865, 0.9152], [4.951, 0.8751], [5.036, 0.8385], [5.122, 0.8085], [5.208, 0.7832], [5.294, 0.7579], [5.38, 0.7302], [5.466, 0.6978], [5.552, 0.6595], [5.638, 0.6172], [5.723, 0.5729], [5.809, 0.5294], [5.895, 0.491], [5.981, 0.4599], [6.067, 0.437], [6.153, 0.4215], [6.239, 0.4102], [6.325, 0.4004], [6.411, 0.3888], [6.496, 0.3745], [6.582, 0.3586], [6.668, 0.3433], [6.754, 0.3313], [6.84, 0.3248], [6.926, 0.3242], [7.012, 0.3291], [7.098, 0.3379], [7.183, 0.3486], [7.269, 0.3594], [7.355, 0.3684], [7.441, 0.3754], [7.527, 0.3818], [7.613, 0.3901], [7.699, 0.4032], [7.785, 0.4231], [7.871, 0.4487], [7.956, 0.4782], [8.042, 0.5101], [8.128, 0.5436], [8.214, 0.5802], [8.3, 0.6192], [8.386, 0.6577], [8.472, 0.6897], [8.558, 0.7086], [8.643, 0.7115], [8.729, 0.6984], [8.815, 0.6727], [8.901, 0.6381], [8.987, 0.5973], [9.073, 0.5522], [9.159, 0.5038], [9.245, 0.4537], [9.33, 0.4038], [9.416, 0.3557], [9.502, 0.3117], [9.588, 0.2724], [9.674, 0.2375], [9.76, 0.2071], [9.846, 0.1809], [9.932, 0.1585], [10.018, 0.1399], [10.103, 0.1249], [10.189, 0.1126], [10.275, 0.1027], [10.361, 0.0956], [10.447, 0.0926], [10.533, 0.0979], [10.619, 0.1158], [10.705, 0.1429], [10.79, 0.1679], [10.876, 0.1778], [10.962, 0.1617], [11.048, 0.1236], [11.134, 0.0797], [11.22, 0.0427], [11.306, 0.0198], [11.392, 0.0098], [11.478, 0.0057], [11.563, 0.0036], [11.649, 0.0022], [11.735, 0.0013], [11.821, 0.0008], [11.907, 0.0004]];
 
 const multTier = (m) => Math.min(9, Math.floor((m - 1) / 10));
 // Highest tier whose threshold is reached (no findLastIndex: it crashes older iPhones)
@@ -88,6 +88,14 @@ const PRESIDENT_FLOOR = 500;
 const PRESIDENT_DIE_SIDES = 500;
 const PRESIDENT_SHRINKS_PER_FLOOR = 1;
 const PRESIDENT_GROWS_PER_LOST_DIE = 1;
+// Street d8s: a round showing 1-2-3-4-5 or 2-3-4-5-6 (with more than 8 red dice only
+// 1-2-3-4-5-6) earns an ultraviolet d8 for good, 1 at most. It rolls itself every round:
+// 1 chips x2, 2 multiplier x2 (both for this round: its chips count double), 3 both, 4 a
+// random red die rolls again (a 6 on it is banked), 5 a random d8 rolls again, 6 a
+// temporary red die joins this round, 7 a ghost bad d20 joins this round, 8 blocks one bad d20
+const STREET_SMALL_MAX_DICE = 8;
+const STREET_DIE_SIDES = 8;
+const STREET_MAX_DICE = 1;
 const badDiceFor = (f) =>
   Math.min(BAD_MAX_DICE, (f >= BAD_FIRST_FLOOR ? 1 : 0) + (f >= BAD_FROM_FLOOR ? 1 + Math.floor((f - BAD_FROM_FLOOR) / BAD_EVERY_FLOORS) : 0));
 const ceoDiceFor = (f) => Math.min(CEO_MAX_DICE, f >= CEO_FIRST_FLOOR ? 1 + Math.floor((f - CEO_FIRST_FLOOR) / CEO_EVERY_FLOORS) : 0);
@@ -635,6 +643,10 @@ function resetStats() {
 
 // Hand-rollers' second chance: the losing round is laid out again, once per game
 async function handRetry() {
+  // The street d8's temporary dice and ghosts leave with the round
+  for (const o of roundDice.filter((o) => o.temp || o.ghost)) o.slot.remove();
+  roundDice = roundDice.filter((o) => !o.temp && !o.ghost);
+  streetChipX = 1;
   silverUsed = false;
   silverLeft = 0;
   bankedSixes = 0;
@@ -656,7 +668,10 @@ async function handRetry() {
       o.slot.classList.remove("safe", "struck", "done");
       o.slot.classList.add("waiting");
       o.slot.querySelector(".bd-value").textContent = "?";
-      if (selfRolling(o)) drawBad(o);
+      o.slot.classList.remove("shine", "spent", "blocked");
+      o.blocked = false;
+      o.spent = false;
+      if (o.ctx) drawBad(o);
     }
   }
   phase = "rolling";
@@ -708,7 +723,7 @@ const CEO_COLORS = { waiting: "#5a1a8a", struck: "#c45cff", safe: "#4a3a5e" };
 // The President's Nuke die: hazard yellow and black
 const NUKE_COLORS = { waiting: "#e8c400", struck: "#ff2f2f", safe: "#5e5420" };
 // Dice the house rolls itself: bad d20s, good d20s, the CEO's d100s, the Nuke die
-const selfRolling = (o) => o.kind === "bad" || o.kind === "good" || o.kind === "ceo" || o.kind === "nuke";
+const selfRolling = (o) => ["bad", "good", "ceo", "nuke", "gold", "street"].includes(o.kind);
 const sidesOf = (o) => (o.kind === "ceo" ? CEO_DIE_SIDES : o.kind === "nuke" ? nukeSides : 20);
 const ceoStruck = (o) => o.kind === "ceo" && o.value === 1;
 
@@ -862,7 +877,8 @@ async function checkYazzy() {
       if (await slowMoChance(die, value, chance, null)) count++;
     }
   }
-  if (count >= need) await yazzy(value, count === red.length);
+  // A perfect yazzy needs the real table: a temporary die doesn't count for it
+  if (count >= need) await yazzy(value, count === red.length && !red.some((o) => o.temp));
 }
 
 async function yazzy(value, perfect) {
@@ -1001,6 +1017,142 @@ async function rollGold(obj) {
   obj.value = value;
   obj.rolling = false;
   return value;
+}
+
+// The ultraviolet street d8, earned with a street; it rolls itself
+function createStreetDie() {
+  const slot = document.createElement("button");
+  slot.type = "button";
+  slot.className = "street-die waiting";
+  slot.innerHTML = `<span class="bd-value">?</span><span class="bd-label">STREET d${STREET_DIE_SIDES}</span>`;
+  const obj = { kind: "street", slot, value: null, rolling: false };
+  tray.appendChild(slot);
+  return obj;
+}
+
+async function rollStreet(obj) {
+  obj.rolling = true;
+  const { slot } = obj;
+  const valueEl = slot.querySelector(".bd-value");
+  slot.classList.remove("waiting", "done", "shine", "spent");
+  slot.classList.add("rolling");
+  const time = reducedMotion ? 250 : 900;
+  slot.animate(
+    [
+      { transform: "translateY(0) rotate(0)" },
+      { transform: "translateY(-40px) rotate(225deg) scale(1.15)", offset: 0.45 },
+      { transform: "translateY(0) rotate(405deg) scale(1.1, .9)", offset: 0.75 },
+      { transform: "translateY(0) rotate(360deg)" },
+    ],
+    { duration: time, easing: "cubic-bezier(.3, .7, .4, 1)" }
+  );
+  let delay = 40;
+  for (let t = 0; t < time; t += delay, delay *= 1.15) {
+    valueEl.textContent = d(STREET_DIE_SIDES);
+    SOUND.tick();
+    await wait(delay);
+  }
+  const value = d(STREET_DIE_SIDES);
+  valueEl.textContent = value;
+  slot.classList.remove("rolling");
+  slot.classList.add("done");
+  sfx(700 + value * 90, 0.18, { type: "triangle", vol: 0.06, wet: 0.35 });
+  obj.value = value;
+  obj.rolling = false;
+  return value;
+}
+
+// This round's chips multiply by this (street d8 1s, 2s and 3s)
+let streetChipX = 1;
+const STREET_TEXT = {
+  1: "CHIPS ×2 THIS ROUND",
+  2: "MULTI ×2 THIS ROUND",
+  3: "CHIPS & MULTI ×2",
+  4: "A RANDOM DIE ROLLS AGAIN",
+  5: "A RANDOM d8 ROLLS AGAIN",
+  6: "A TEMPORARY DIE JOINS",
+  7: "A GHOST BAD d20 JOINS",
+  8: "BLOCKS A BAD d20",
+};
+
+async function streetToast(obj, text) {
+  const { x, y } = centerOf(obj.slot);
+  floatText(x, y - 30, `d8: ${obj.value}`, "gold");
+  showToast(`STREET d8 ROLLED ${obj.value}\n${text}`, 7);
+  arp([523, 698, 880], 0.06, { type: "triangle", vol: 0.05, wet: 0.35 });
+  await wait(reducedMotion ? 300 : 900);
+}
+
+// The street d8s act once the player's dice are down, before the yazzy and the scoring
+async function streetEffects() {
+  streetChipX = 1;
+  const streets = roundDice.filter((o) => o.kind === "street");
+  if (!streets.length) return;
+  // 5s first: each one rerolls a random d8 (maybe itself), and a new 5 goes again
+  const pending = streets.filter((o) => o.value === 5);
+  for (let guard = 0; pending.length && guard < 50; guard++) {
+    const o = pending.pop();
+    if (o.value !== 5 || o.spent) continue;
+    await streetToast(o, STREET_TEXT[5]);
+    const target = pick(streets);
+    if (target !== o) {
+      o.spent = true;
+      o.slot.classList.add("spent");
+    }
+    const i = pending.indexOf(target);
+    if (i >= 0) pending.splice(i, 1);
+    await rollStreet(target);
+    if (target.value === 5) pending.push(target);
+  }
+  const acting = streets.filter((o) => !o.spent);
+  for (const o of acting) {
+    const v = o.value;
+    if (v === 1 || v === 2) {
+      streetChipX *= 2;
+      await streetToast(o, STREET_TEXT[v]);
+    } else if (v === 3) {
+      streetChipX *= 4;
+      await streetToast(o, STREET_TEXT[3]);
+    } else if (v === 4) {
+      const red = roundDice.filter(live);
+      if (!red.length) continue;
+      await streetToast(o, STREET_TEXT[4]);
+      const die = pick(red);
+      if (die.value === 6) {
+        bankedSixes++;
+        const { x, y } = centerOf(die.slot);
+        floatText(x, y - 30, "6 BANKED", "gold");
+      }
+      await rollRed(die);
+    } else if (v === 6) {
+      await streetToast(o, STREET_TEXT[6]);
+      const temp = createDie();
+      temp.temp = true;
+      temp.slot.classList.add("temp-die");
+      roundDice.push(temp);
+      await rollRed(temp);
+    } else if (v === 7) {
+      await streetToast(o, STREET_TEXT[7]);
+      const ghost = createBadDie();
+      ghost.ghost = true;
+      ghost.slot.classList.add("ghost-die");
+      ghost.slot.querySelector(".bd-label").textContent = "GHOST d20";
+      roundDice.push(ghost);
+      await rollBad(ghost);
+    }
+  }
+  // 8s last, once every ghost is down: block a bad d20 that would hurt, a strike first
+  for (const o of acting.filter((o) => o.value === 8)) {
+    o.slot.classList.add("shine");
+    await streetToast(o, STREET_TEXT[8]);
+    const bad = roundDice.filter((b) => b.kind === "bad" && !b.blocked);
+    const target = bad.find((b) => b.value <= badLosesOn()) || bad.find((b) => b.value === 20);
+    if (!target) continue;
+    target.blocked = true;
+    target.slot.classList.add("blocked");
+    const { x, y } = centerOf(target.slot);
+    floatText(x, y - 30, "BLOCKED!", "gold");
+  }
 }
 
 // Every d4 on the shelf rolls; returns the total
@@ -1436,7 +1588,7 @@ async function sacrificeThrees() {
   // Destroy every 3 for good
   await Promise.all(threes.map((o, i) => wait(i * 200).then(() => destroyDie(o))));
   for (const o of threes) o.gone = true;
-  diceCount = Math.max(1, diceCount - threes.length);
+  diceCount = Math.max(1, diceCount - threes.filter((o) => !o.temp).length);
   stats.sacrificed += threes.length;
   setDiceCount();
   await wait(reducedMotion ? 100 : 400);
@@ -1489,7 +1641,7 @@ function autoRollBad() {
     .forEach((o, i) =>
       setTimeout(async () => {
         if (o.value !== null || o.rolling || phase !== "rolling") return;
-        await rollBad(o);
+        await (o.kind === "gold" ? rollGold(o) : o.kind === "street" ? rollStreet(o) : rollBad(o));
         afterRoll();
       }, (reducedMotion ? 100 : 500) + i * 250)
     );
@@ -2303,6 +2455,8 @@ silverBtn.addEventListener("click", () => {
 // Bad d20s on the table this game: the alarm only fires for new ones, and they never leave
 let badAnnounced = 0;
 let ceoAnnounced = 0;
+// Street d8s earned this game; they stay
+let streetDice = 0;
 // Sides of the President's Nuke die (0 = he isn't here yet); nuked: it rolled a 1
 let nukeSides = 0;
 let nuked = false;
@@ -2322,6 +2476,7 @@ async function startTurn() {
   resetStats();
   badAnnounced = 0;
   ceoAnnounced = 0;
+  streetDice = 0;
   nukeSides = 0;
   nuked = false;
   goodD20 = 0;
@@ -2373,9 +2528,10 @@ async function startRound() {
   silverLeft = 0;
   bankedSixes = 0;
   tray.innerHTML = "";
-  sizeTray(diceCount + bad + ceo + (nukeSides ? 1 : 0) + goodD20 + (goldD10 ? 1 : 0));
+  sizeTray(diceCount + bad + ceo + (nukeSides ? 1 : 0) + goodD20 + streetDice + (goldD10 ? 1 : 0));
   for (let i = 0; i < diceCount; i++) roundDice.push(createDie());
   if (goldD10) roundDice.push(createGoldDie());
+  for (let i = 0; i < streetDice; i++) roundDice.push(createStreetDie());
   for (let i = 0; i < goodD20; i++) roundDice.push(createBadDie("good"));
   for (let i = 0; i < bad; i++) roundDice.push(createBadDie());
   for (let i = 0; i < ceo; i++) roundDice.push(createBadDie("ceo"));
@@ -2405,6 +2561,7 @@ async function resolveRound() {
   rollBtn.disabled = true;
   silverBtn.hidden = true;
   setHint("");
+  await streetEffects();
   await checkYazzy();
   phase = "busy";
   const hasSix = () => bankedSixes > 0 || roundDice.some((o) => live(o) && o.value === 6);
@@ -2480,6 +2637,28 @@ async function resolveRound() {
     extra += combo.bonus;
     await wait(reducedMotion ? 300 : 1000);
   }
+  // Street d8 1s, 2s and 3s: this round's chips count double (or more)
+  if (streetChipX > 1) {
+    const bonus = (sum + d4Total + extra) * (streetChipX - 1);
+    showToast(`STREET ×${streetChipX}\n+${bonus.toLocaleString("en-US")} CHIPS`, 8);
+    SOUND.combo();
+    addPips(bonus);
+    extra += bonus;
+    await wait(reducedMotion ? 300 : 1000);
+  }
+
+  // A street on the table earns an ultraviolet d8 for the next rounds
+  const has = (faces) => faces.every((f) => values.includes(f));
+  const street = has([1, 2, 3, 4, 5, 6]) || (diceCount <= STREET_SMALL_MAX_DICE && (has([1, 2, 3, 4, 5]) || has([2, 3, 4, 5, 6])));
+  if (street && streetDice < STREET_MAX_DICE) {
+    streetDice++;
+    stats.streets = (stats.streets || 0) + 1;
+    showToast(`STREET!\nAN ULTRAVIOLET d${STREET_DIE_SIDES} JOINS`, 8);
+    arp([392, 523, 659, 784, 1047, 1319], 0.07, { type: "triangle", vol: 0.06, wet: 0.4 });
+    setMessage(`> a street! the ultraviolet d${STREET_DIE_SIDES} rolls with you from now on`, true);
+    await wait(reducedMotion ? 400 : 1200);
+  }
+
   const sixes = red.filter((o) => o.value === 6);
   // Banked sixes from silver rerolls count as floors too
   const sixCount = sixes.length + bankedSixes;
@@ -2500,7 +2679,7 @@ async function resolveRound() {
 
   // A good d20 showing 20: every bad d20 is ignored this round
   const shielded = roundDice.some((o) => o.kind === "good" && o.value === 20);
-  const badDice = shielded ? [] : roundDice.filter((o) => o.kind === "bad");
+  const badDice = shielded ? [] : roundDice.filter((o) => o.kind === "bad" && !o.blocked);
   if (shielded && roundDice.some((o) => o.kind === "bad")) {
     showToast("GOOD d20 ROLLED 20!\nBAD d20s IGNORED", 9);
     setMessage("> the good d20 smiles: the manager's dice don't count this round", true);
@@ -2599,7 +2778,7 @@ async function destroyDie(obj) {
 
 async function loseDice(count, byCeo = false) {
   // The last red dice on the table are the ones that crumble
-  const victims = roundDice.filter(live).slice(-count);
+  const victims = roundDice.filter((o) => live(o) && !o.temp).slice(-count);
   await Promise.all(victims.map((o, i) => wait(i * 250).then(() => destroyDie(o))));
   // No red dice left means game over (resolveRound ends it)
   const lost = Math.min(count, diceCount);
@@ -3649,28 +3828,24 @@ function saveBoard(list) {
   }
 }
 
-/* ---------- Beginner's Luck: a free retry for very unlucky new players ---------- */
+/* ---------- Very bad luck: a free retry for every BRONZE game or worse ---------- */
 
-// In their first few games, a bottom-tier result (about 1 game in 5) gets one free game on
-// the house that doesn't count against the daily limit. A handful per player, ever
+// A game that ends at BRONZE or below gets the clover: one more game on the house that
+// doesn't count against the 8-hour limit. Every such game, as often as it happens
 const GAMES_KEY = "dicele-games-played";
 const COMPS_KEY = "dicele-comps-used";
-const BEGINNER_GAMES = 3;
-const MAX_COMPS = 3;
 
 function offerBeginnersLuck(final) {
   const box = $("go-comp");
   box.hidden = true;
-  const isNew = load(GAMES_KEY) <= BEGINNER_GAMES;
-  const unlucky = final < SCORE_TIERS[1];
-  if (!isNew || !unlucky || load(COMPS_KEY) >= MAX_COMPS) return;
+  if (final >= SCORE_TIERS[2]) return;
   box.hidden = false;
   box.animate([{ transform: "scale(.6) rotate(-3deg)", opacity: 0 }, { transform: "none", opacity: 1 }], {
     duration: 450,
     easing: "cubic-bezier(.3, 1.6, .5, 1)",
   });
   arp([523, 659, 784, 1047], 0.09, { type: "triangle", vol: 0.06, wet: 0.4 });
-  setHint("Rough start? The house is buying you another game.");
+  setHint("Very bad luck! Tap the clover for another game on the house.");
 }
 
 $("go-comp-btn").addEventListener("click", () => {
@@ -3679,7 +3854,7 @@ $("go-comp-btn").addEventListener("click", () => {
   // Same door as the secret one: this game doesn't use up the 8-hour game
   secretGame = true;
   gameoverEl.classList.remove("show");
-  showToast("BEGINNER'S LUCK\nON THE HOUSE", 4);
+  showToast("\u{1F340} VERY BAD LUCK!\nTRY AGAIN!", 4);
   play();
 });
 

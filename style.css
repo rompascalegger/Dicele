@@ -1781,6 +1781,34 @@ header h1 { cursor: default; user-select: none; -webkit-tap-highlight-color: tra
 .gold-die .bd-label { font-family: var(--pixel); font-size: .75rem; }
 .gold-die.waiting { animation: bob 1.4s ease-in-out infinite; }
 
+/* The street d8: an ultraviolet octagon. 8 makes it shine, a spent 5 fades */
+.street-die {
+  width: calc(var(--s) * 1.1);
+  height: calc(var(--s) * 1.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  color: #fff;
+  background: radial-gradient(circle at 35% 30%, #d9ceff, #6a3cff 45%, #2a0ca8);
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  filter: drop-shadow(0 0 8px rgba(110, 70, 255, .7));
+  text-shadow: 0 0 6px #b9a8ff;
+}
+.street-die .bd-value { font-family: var(--pixel-bold); font-size: calc(var(--s) * .34); }
+.street-die .bd-label { font-family: var(--pixel); font-size: .6rem; }
+.street-die.waiting { animation: bob 1.4s ease-in-out infinite; }
+.street-die.spent { opacity: .45; }
+.street-die.shine { animation: street-shine .5s ease-in-out infinite alternate; }
+@keyframes street-shine { to { filter: drop-shadow(0 0 22px #b9a8ff) brightness(1.5); } }
+/* The street d8's guests: a see-through temporary die, a ghost bad d20 */
+.slot.temp-die { opacity: .55; filter: drop-shadow(0 0 8px #b9a8ff); }
+.bad-die.ghost-die { opacity: .5; filter: grayscale(.6) drop-shadow(0 0 10px #d9ceff); }
+.bad-die.blocked { opacity: .35; filter: grayscale(1); }
+.bad-die.blocked .bd-value { text-decoration: line-through; }
+
 /* The d4 shelf: small permanent d4s under the dice */
 .d4-shelf { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; min-height: 0; padding: 0 6px 6px; }
 .d4-shelf:empty { display: none; }
@@ -1891,3 +1919,7 @@ body { touch-action: manipulation; }
 .slot.clutch .face { background: #c41e33; box-shadow: inset 0 0 0 3px var(--gold), 0 0 18px var(--gold); }
 .slot.clutch .shadow { background: var(--gold); box-shadow: 0 0 18px 6px var(--gold); opacity: .6; }
 .slot.clutch::after { color: var(--gold); }
+
+/* Very bad luck: the four-leaf clover retry */
+.clover-btn { background: linear-gradient(180deg, #3bf08a, #129a4a); border-color: #0b5e2c; color: #062a14; animation: clover-wiggle 1.2s ease-in-out infinite; }
+@keyframes clover-wiggle { 50% { transform: rotate(-1.5deg) scale(1.04); } }

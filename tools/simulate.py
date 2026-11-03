@@ -88,6 +88,16 @@ RULES = {
     "YAZZY_SLACK": 5,
     "YAZZY_MIN_DICE": 4,
     "YAZZY_LIKE": None,
+    # Street d8s: a round showing 1-2-3-4-5 or 2-3-4-5-6 (with more than STREET_SMALL_MAX_DICE
+    # red dice: only 1-2-3-4-5-6) earns one more ultraviolet d8 for good. They roll themselves
+    # every round: 1 chips x2 this round, 2 multiplier x2 this round (the round's chips count
+    # double), 3 both (x4), 4 a random red die rolls again (a 6 on it is banked), 5 a random
+    # d8 rolls again, 6 a temporary red die joins this round, 7 a ghost bad d20 joins this
+    # round, 8 blocks one bad d20 that would hurt. At most STREET_MAX_DICE of them (0 = no cap)
+    "STREET_SMALL_MAX_DICE": 8,
+    "STREET_DIE_SIDES": 8,
+    "STREET_MAX_DICE": 1,
+    "STREET_MULT_PERMANENT": False,  # True: a 2 doubles the real multiplier for good
     "UNLOCK_REPEAT_CHIPS": 100,  # an unlock you already own pays 100 x its number
     "GOLD_REPEAT_MULT": 10,
     "GOLD_DIE_SIDES": 10,  # the golden die adds d10 to the multiplier every round
@@ -334,6 +344,7 @@ def play_game(hand):
     end_rolls = 0
     bad_count = 0  # bad d20s never leave the table
     president = 0  # sides of the President's die once he is here
+    street = 0  # street d8s on the table
     while True:
         rnd += 1
         c = table(dice, unlocked)
@@ -352,6 +363,56 @@ def play_game(hand):
                 banked += free[6]
                 c = add(held, table(sum(free), unlocked))
 
+        # Street d8s act after the player's rolls
+        chip_x = 1
+        temp = ghosts = blocks = 0
+        if street:
+            r = [d(R["STREET_DIE_SIDES"]) for _ in range(street)]
+            pending = [i for i, v in enumerate(r) if v == 5]
+            guard = 0
+            while pending and guard < 200:
+                guard += 1
+                i = pending.pop()
+                if r[i] != 5:
+                    continue
+                j = random.randrange(street)
+                r[j] = d(R["STREET_DIE_SIDES"])
+                if j in pending:
+                    pending.remove(j)
+                if r[j] == 5:
+                    pending.append(j)
+                if j != i:
+                    r[i] = 0  # this 5 is spent
+            for v in r:
+                if v == 1:
+                    chip_x *= 2
+                elif v == 2:
+                    if R["STREET_MULT_PERMANENT"]:
+                        mult *= 2
+                    else:
+                        chip_x *= 2
+                elif v == 3:
+                    chip_x *= 2
+                    if R["STREET_MULT_PERMANENT"]:
+                        mult *= 2
+                    else:
+                        chip_x *= 2
+                elif v == 4 and sum(c):
+                    k = random.randrange(sum(c))
+                    face = next(f for f in range(1, 7) if (k := k - c[f]) < 0)
+                    if face == 6:
+                        banked += 1
+                    c[face] -= 1
+                    c[d(6)] += 1
+                elif v == 6:
+                    c[d(6)] += 1
+                    temp += 1
+                elif v == 7:
+                    ghosts += 1
+                elif v == 8:
+                    blocks += 1
+            n += temp
+
         gold_roll = d(R["GOLD_DIE_SIDES"]) if gold else 0
         bad_count = max(bad_count, bad_dice_for(floor))
         lf = lose_faces(floor)
@@ -359,12 +420,18 @@ def play_game(hand):
         if R["PRESIDENT_FLOOR"] and floor >= R["PRESIDENT_FLOOR"] and not president:
             president = R["PRESIDENT_DIE_SIDES"]
         president_hit = president and d(president) == 1
-        for _ in range(bad_count):
+        for _ in range(bad_count + ghosts):
             b = d(20)
             if b == 20:
                 bad_twenties += 1
             elif b <= lf:
                 bad_lost += 1
+        # A street 8 blocks one bad d20 that would hurt: a strike first, else a confiscation
+        for _ in range(blocks):
+            if bad_lost:
+                bad_lost -= 1
+            elif bad_twenties:
+                bad_twenties -= 1
 
         # Yazzy, with the near-miss chance on one odd non-6 die
         need = yazzy_need(n)
@@ -387,7 +454,7 @@ def play_game(hand):
                 if gold:
                     mult += R["GOLD_REPEAT_MULT"]
                 gold = True
-            if count == n:
+            if count == n and not temp:
                 c[d(6)] += 1  # perfect yazzy: one more die, kept
                 dice += 1
 
@@ -406,13 +473,18 @@ def play_game(hand):
             rnd -= 1
             continue
         sixes = c[6] + banked
-        pips += sum(f * c[f] for f in range(1, 7)) + R["BONUS_STEP"] * (rnd - 1) + combos(c) + R["FLOOR_CHIPS"] * floor
-        if sixes >= 6:
-            pips += R["SIX_SIXES_CHIPS"]
+        gain = sum(f * c[f] for f in range(1, 7)) + R["BONUS_STEP"] * (rnd - 1) + combos(c) + R["FLOOR_CHIPS"] * floor
         if unlocked[4]:
             shelf += c[4]
         if shelf:
-            pips += shelf + (int(NP.integers(0, 4, shelf).sum()) if shelf > 8 else sum(int(_rnd() * 4) for _ in range(shelf)))
+            gain += shelf + (int(NP.integers(0, 4, shelf).sum()) if shelf > 8 else sum(int(_rnd() * 4) for _ in range(shelf)))
+        pips += gain * chip_x
+        if sixes >= 6:
+            pips += R["SIX_SIXES_CHIPS"]
+        # A street on the table earns one more d8 for the next rounds
+        small = dice <= R["STREET_SMALL_MAX_DICE"]
+        if (all(c[1:7]) or small and (all(c[1:6]) or all(c[2:7]))) and (not R["STREET_MAX_DICE"] or street < R["STREET_MAX_DICE"]):
+            street += 1
         if random.random() < R["EVENT_CHANCE"]:
             dp, dm = random.choice(R["EVENTS"])
             pips = max(0, pips + dp)
